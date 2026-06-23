@@ -1,0 +1,49 @@
+package br.com.cuidaplus.api.common;
+
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<ApiError> handleBusinessException(BusinessException exception) {
+    return ResponseEntity
+      .status(exception.getStatus())
+      .body(new ApiError(Instant.now(), exception.getStatus().value(), exception.getMessage(), Map.of()));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException exception) {
+    Map<String, String> fields = new LinkedHashMap<>();
+    for (FieldError error : exception.getBindingResult().getFieldErrors()) {
+      fields.putIfAbsent(error.getField(), error.getDefaultMessage());
+    }
+
+    return ResponseEntity
+      .badRequest()
+      .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "Dados inválidos.", fields));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ApiError> handleUnreadableMessage() {
+    return ResponseEntity
+      .badRequest()
+      .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "Corpo da requisição inválido.", Map.of()));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiError> handleUnexpectedException() {
+    return ResponseEntity
+      .internalServerError()
+      .body(new ApiError(Instant.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "Erro interno.", Map.of()));
+  }
+}
