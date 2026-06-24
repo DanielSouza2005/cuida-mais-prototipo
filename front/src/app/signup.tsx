@@ -15,8 +15,16 @@ import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
 
+function getSignupFeedback(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  return 'Nao foi possivel criar sua conta. Tente novamente.';
+}
+
 export default function SignupScreen() {
-  const { register } = useAuth();
+  const { signup } = useAuth();
   const [role, setRole] = useState<Role>('family');
   const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [fullName, setFullName] = useState('');
@@ -30,8 +38,28 @@ export default function SignupScreen() {
   async function handleSignup() {
     setFeedback(null);
 
-    if (!fullName.trim() || !cpf.trim() || !email.trim() || !password || !birthDate.trim()) {
-      setFeedback('Preencha todos os campos obrigatorios.');
+    if (!fullName.trim()) {
+      setFeedback('Informe seu nome completo.');
+      return;
+    }
+
+    if (!cpf.trim()) {
+      setFeedback('Informe seu CPF.');
+      return;
+    }
+
+    if (!email.trim()) {
+      setFeedback('Informe seu e-mail.');
+      return;
+    }
+
+    if (!password) {
+      setFeedback('Informe uma senha.');
+      return;
+    }
+
+    if (!birthDate.trim()) {
+      setFeedback('Informe sua data de nascimento.');
       return;
     }
 
@@ -47,7 +75,7 @@ export default function SignupScreen() {
 
     try {
       setIsSubmitting(true);
-      await register({
+      await signup({
         fullName: fullName.trim(),
         cpf: cpf.trim(),
         email: email.trim(),
@@ -58,7 +86,7 @@ export default function SignupScreen() {
       });
       router.replace('/profile');
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel criar sua conta.');
+      setFeedback(getSignupFeedback(error));
     } finally {
       setIsSubmitting(false);
     }

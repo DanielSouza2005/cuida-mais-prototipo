@@ -14,6 +14,8 @@ export type AuthResponse = {
   token: string;
 };
 
+export type AuthUser = User;
+
 export type RegisterRequest = {
   fullName: string;
   cpf: string;
@@ -24,10 +26,15 @@ export type RegisterRequest = {
   acceptedTerms: boolean;
 };
 
+export type SignupRequest = RegisterRequest;
+export type SignupResponse = AuthResponse;
+
 export type LoginRequest = {
   email: string;
   password: string;
 };
+
+export type LoginResponse = AuthResponse;
 
 export type ForgotPasswordRequest = {
   email: string;

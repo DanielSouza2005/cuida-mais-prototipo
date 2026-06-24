@@ -1,10 +1,8 @@
-import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import * as authService from '@/services/authService';
-import type { AuthResponse, LoginRequest, RegisterRequest, User } from '@/types/auth';
-
-const TOKEN_KEY = 'cuida_mais_auth_token';
+import { AUTH_TOKEN_KEY, deleteSessionItem, getSessionItem, setSessionItem } from '@/services/sessionStorage';
+import type { AuthResponse, LoginRequest, SignupRequest, User } from '@/types/auth';
 
 type AuthContextValue = {
   user: User | null;
@@ -12,8 +10,10 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (request: LoginRequest) => Promise<AuthResponse>;
-  register: (request: RegisterRequest) => Promise<AuthResponse>;
   logout: () => Promise<void>;
+  register: (request: SignupRequest) => Promise<AuthResponse>;
+  restoreSession: () => Promise<void>;
+  signup: (request: SignupRequest) => Promise<AuthResponse>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -30,39 +30,35 @@ export function AuthProvider({ children }: Props) {
   const persistSession = useCallback(async (response: AuthResponse) => {
     setUser(response.user);
     setToken(response.token);
-    await SecureStore.setItemAsync(TOKEN_KEY, response.token);
+    await setSessionItem(AUTH_TOKEN_KEY, response.token);
+  }, []);
+
+  const restoreSession = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const storedToken = await getSessionItem(AUTH_TOKEN_KEY);
+      if (!storedToken) {
+        setToken(null);
+        setUser(null);
+        return;
+      }
+
+      const profile = await authService.getMe(storedToken);
+      setToken(storedToken);
+      setUser(profile);
+    } catch {
+      await deleteSessionItem(AUTH_TOKEN_KEY);
+      setToken(null);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function restoreSession() {
-      try {
-        const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-        if (!storedToken) return;
-
-        const profile = await authService.getMe(storedToken);
-        if (!mounted) return;
-
-        setToken(storedToken);
-        setUser(profile);
-      } catch {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-        if (!mounted) return;
-
-        setToken(null);
-        setUser(null);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    }
-
     restoreSession();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [restoreSession]);
 
   const login = useCallback(async (request: LoginRequest) => {
     const response = await authService.login(request);
@@ -70,17 +66,19 @@ export function AuthProvider({ children }: Props) {
     return response;
   }, [persistSession]);
 
-  const register = useCallback(async (request: RegisterRequest) => {
-    const response = await authService.register(request);
+  const signup = useCallback(async (request: SignupRequest) => {
+    const response = await authService.signup(request);
     await persistSession(response);
     return response;
   }, [persistSession]);
+
+  const register = signup;
 
   const logout = useCallback(async () => {
     const currentToken = token;
     setUser(null);
     setToken(null);
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await deleteSessionItem(AUTH_TOKEN_KEY);
 
     try {
       await authService.logout(currentToken);
@@ -96,8 +94,10 @@ export function AuthProvider({ children }: Props) {
     isLoading,
     login,
     register,
+    restoreSession,
     logout,
-  }), [isLoading, login, logout, register, token, user]);
+    signup,
+  }), [isLoading, login, logout, register, restoreSession, signup, token, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

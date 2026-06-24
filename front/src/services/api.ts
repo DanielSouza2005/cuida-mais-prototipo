@@ -1,4 +1,10 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+import { AUTH_TOKEN_KEY, getSessionItem } from '@/services/sessionStorage';
+
 const DEFAULT_API_URL = 'http://localhost:8080';
+const ANDROID_EMULATOR_HOST = '10.0.2.2';
 
 export type ApiErrorPayload = {
   timestamp?: string;
@@ -19,9 +25,88 @@ export class ApiError extends Error {
   }
 }
 
-export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL).replace(/\/$/, '');
+type ExpoConstantsWithHost = typeof Constants & {
+  experienceUrl?: string | null;
+  expoGoConfig?: {
+    debuggerHost?: string | null;
+  } | null;
+  linkingUri?: string | null;
+  manifest2?: {
+    extra?: {
+      expoClient?: {
+        hostUri?: string | null;
+      } | null;
+    } | null;
+  } | null;
+  platform?: {
+    hostUri?: string | null;
+  } | null;
+};
+
+function stripTrailingSlash(value: string) {
+  return value.replace(/\/$/, '');
+}
+
+function isLoopbackHost(hostname: string) {
+  return ['localhost', '127.0.0.1', '::1', '0.0.0.0'].includes(hostname.toLowerCase());
+}
+
+function getHostFromUri(uri?: string | null) {
+  if (!uri) return null;
+
+  const withoutProtocol = uri.replace(/^[a-z]+:\/\//i, '');
+  const hostWithPort = withoutProtocol.split('/')[0];
+  const host = hostWithPort.split(':')[0];
+
+  return host || null;
+}
+
+function getExpoDevServerHost() {
+  const constants = Constants as ExpoConstantsWithHost;
+
+  return getHostFromUri(
+    constants.expoConfig?.hostUri
+      ?? constants.expoGoConfig?.debuggerHost
+      ?? constants.platform?.hostUri
+      ?? constants.linkingUri
+      ?? constants.experienceUrl
+      ?? constants.manifest2?.extra?.expoClient?.hostUri,
+  );
+}
+
+function resolveApiBaseUrl(configuredUrl: string) {
+  const normalizedUrl = stripTrailingSlash(configuredUrl.trim() || DEFAULT_API_URL);
+
+  try {
+    const url = new URL(normalizedUrl);
+
+    if (!isLoopbackHost(url.hostname)) {
+      return stripTrailingSlash(url.toString());
+    }
+
+    const expoHost = getExpoDevServerHost();
+    const isPhysicalDeviceViaExpo = expoHost && !isLoopbackHost(expoHost) && expoHost !== ANDROID_EMULATOR_HOST;
+
+    if (Platform.OS === 'android' && !Constants.isDevice) {
+      url.hostname = ANDROID_EMULATOR_HOST;
+      return stripTrailingSlash(url.toString());
+    }
+
+    if (isPhysicalDeviceViaExpo) {
+      url.hostname = expoHost;
+      return stripTrailingSlash(url.toString());
+    }
+
+    return normalizedUrl;
+  } catch {
+    return normalizedUrl;
+  }
+}
+
+export const API_BASE_URL = resolveApiBaseUrl(process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL);
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
+  auth?: boolean;
   body?: unknown;
   token?: string | null;
 };
@@ -51,7 +136,7 @@ async function readJson(response: Response) {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, token, ...fetchOptions } = options;
+  const { auth = true, body, token, ...fetchOptions } = options;
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
 
@@ -65,8 +150,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     requestOptions.body = JSON.stringify(body);
   }
 
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  const authToken = token ?? (auth ? await getSessionItem(AUTH_TOKEN_KEY) : null);
+  if (authToken) {
+    headers.set('Authorization', `Bearer ${authToken}`);
   }
 
   let response: Response;

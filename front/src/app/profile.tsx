@@ -33,9 +33,13 @@ export default function ProfileScreen() {
 
   async function handleLogout() {
     setIsLoggingOut(true);
-    await logout();
-    setIsLoggingOut(false);
-    router.replace('/login');
+
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+      router.replace('/login');
+    }
   }
 
   return (

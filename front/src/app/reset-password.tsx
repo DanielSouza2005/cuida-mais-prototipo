@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { KeyRound, Lock, ShieldCheck } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
@@ -11,8 +11,17 @@ import { ApiError } from '@/services/api';
 import { resetPassword } from '@/services/authService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
+function getResetPasswordFeedback(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  return 'Nao foi possivel redefinir a senha. Tente novamente.';
+}
+
 export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ token?: string }>();
+  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialToken = useMemo(() => {
     if (typeof params.token === 'string') return params.token;
     return '';
@@ -21,14 +30,20 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (initialToken) setToken(initialToken);
   }, [initialToken]);
 
+  useEffect(() => () => {
+    if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
+  }, []);
+
   async function handleResetPassword() {
     setFeedback(null);
+    setIsSuccess(false);
 
     if (!token.trim() || !password || !confirmPassword) {
       setFeedback('Informe o token e a nova senha.');
@@ -40,12 +55,19 @@ export default function ResetPasswordScreen() {
       return;
     }
 
+    if (password.length < 6) {
+      setFeedback('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      await resetPassword({ token: token.trim(), password });
-      router.replace('/login');
+      const response = await resetPassword({ token: token.trim(), password });
+      setFeedback(response.message);
+      setIsSuccess(true);
+      redirectTimeoutRef.current = setTimeout(() => router.replace('/login'), 1200);
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel redefinir a senha.');
+      setFeedback(getResetPasswordFeedback(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -76,9 +98,13 @@ export default function ResetPasswordScreen() {
           <Text style={styles.rule}>• O token expira e so pode ser usado uma vez</Text>
         </View>
 
-        {feedback ? <Text style={styles.errorText}>{feedback}</Text> : null}
+        {feedback ? <Text style={[styles.feedbackText, isSuccess && styles.successText]}>{feedback}</Text> : null}
 
-        <PrimaryButton label={isSubmitting ? 'Salvando...' : 'Salvar nova senha'} onPress={handleResetPassword} disabled={isSubmitting} />
+        <PrimaryButton
+          label={isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
+          onPress={handleResetPassword}
+          disabled={isSubmitting || isSuccess}
+        />
       </View>
     </ScreenContainer>
   );
@@ -134,10 +160,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.mutedForeground,
   },
-  errorText: {
+  feedbackText: {
     fontFamily: fontFamily.medium,
     fontSize: 12,
     lineHeight: 18,
     color: colors.destructive,
+  },
+  successText: {
+    color: colors.mintForeground,
   },
 });

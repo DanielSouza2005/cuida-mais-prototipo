@@ -14,6 +14,14 @@ import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
 
+function getLoginFeedback(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.status === 401 ? 'E-mail ou senha inválidos.' : error.message;
+  }
+
+  return 'Nao foi possivel entrar.';
+}
+
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -39,7 +47,7 @@ export default function LoginScreen() {
       await login({ email: email.trim(), password });
       router.replace('/profile');
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel entrar.');
+      setFeedback(getLoginFeedback(error));
     } finally {
       setIsSubmitting(false);
     }

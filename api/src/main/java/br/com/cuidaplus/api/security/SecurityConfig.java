@@ -38,6 +38,8 @@ public class SecurityConfig {
         .authenticationEntryPoint((request, response, authException) -> response.setStatus(HttpStatus.UNAUTHORIZED.value()))
       )
       .authorizeHttpRequests(auth -> auth
+        .requestMatchers(HttpMethod.GET, "/health").permitAll()
+        .requestMatchers(HttpMethod.HEAD, "/health").permitAll()
         .requestMatchers(
           HttpMethod.POST,
           "/api/auth/register",
