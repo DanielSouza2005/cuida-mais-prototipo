@@ -14,14 +14,14 @@ type Props = {
 const roles: { value: Role; title: string; description: string; icon: LucideIcon }[] = [
   {
     value: 'family',
-    title: 'Responsável/Família',
-    description: 'Organizar cuidados e acompanhar rotinas.',
+    title: 'Sou responsavel',
+    description: 'Gerenciar o cuidado de uma pessoa assistida.',
     icon: Users,
   },
   {
     value: 'caregiver',
-    title: 'Cuidador',
-    description: 'Visualizar jornadas e registrar apoio.',
+    title: 'Sou cuidador',
+    description: 'Prestar servicos de cuidado profissional.',
     icon: HeartHandshake,
   },
 ];
@@ -29,7 +29,7 @@ const roles: { value: Role; title: string; description: string; icon: LucideIcon
 export function RoleSelector({ value, onChange }: Props) {
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>Tipo de perfil</Text>
+      <Text style={styles.label}>Tipo de conta</Text>
       <View style={styles.options}>
         {roles.map(({ value: roleValue, title, description, icon: Icon }) => {
           const active = roleValue === value;

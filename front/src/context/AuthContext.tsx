@@ -2,7 +2,14 @@ import { createContext, useCallback, useEffect, useMemo, useState, type ReactNod
 
 import * as authService from '@/services/authService';
 import { AUTH_TOKEN_KEY, deleteSessionItem, getSessionItem, setSessionItem } from '@/services/sessionStorage';
-import type { AuthResponse, LoginRequest, SignupRequest, User } from '@/types/auth';
+import type {
+  AuthResponse,
+  LoginRequest,
+  RegisterCaregiverPayload,
+  RegisterResponsiblePayload,
+  SignupRequest,
+  User,
+} from '@/types/auth';
 
 type AuthContextValue = {
   user: User | null;
@@ -12,6 +19,8 @@ type AuthContextValue = {
   login: (request: LoginRequest) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   register: (request: SignupRequest) => Promise<AuthResponse>;
+  registerCaregiver: (request: RegisterCaregiverPayload) => Promise<AuthResponse>;
+  registerResponsible: (request: RegisterResponsiblePayload) => Promise<AuthResponse>;
   restoreSession: () => Promise<void>;
   signup: (request: SignupRequest) => Promise<AuthResponse>;
 };
@@ -74,6 +83,18 @@ export function AuthProvider({ children }: Props) {
 
   const register = signup;
 
+  const registerResponsible = useCallback(async (request: RegisterResponsiblePayload) => {
+    const response = await authService.registerResponsible(request);
+    await persistSession(response);
+    return response;
+  }, [persistSession]);
+
+  const registerCaregiver = useCallback(async (request: RegisterCaregiverPayload) => {
+    const response = await authService.registerCaregiver(request);
+    await persistSession(response);
+    return response;
+  }, [persistSession]);
+
   const logout = useCallback(async () => {
     const currentToken = token;
     setUser(null);
@@ -94,10 +115,23 @@ export function AuthProvider({ children }: Props) {
     isLoading,
     login,
     register,
+    registerCaregiver,
+    registerResponsible,
     restoreSession,
     logout,
     signup,
-  }), [isLoading, login, logout, register, restoreSession, signup, token, user]);
+  }), [
+    isLoading,
+    login,
+    logout,
+    register,
+    registerCaregiver,
+    registerResponsible,
+    restoreSession,
+    signup,
+    token,
+    user,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

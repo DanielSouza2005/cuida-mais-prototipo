@@ -12,6 +12,7 @@ import { forgotPassword } from '@/services/authService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
+const genericSuccessMessage = 'Se o e-mail estiver cadastrado, enviaremos as instrucoes de recuperacao.';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -35,8 +36,8 @@ export default function ForgotPasswordScreen() {
 
     try {
       setIsSubmitting(true);
-      const response = await forgotPassword({ email: email.trim() });
-      setFeedback(response.message);
+      await forgotPassword({ email: email.trim() });
+      setFeedback(genericSuccessMessage);
       setIsSuccess(true);
     } catch (error) {
       setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel enviar o link.');

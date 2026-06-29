@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { Bell, HeartPulse, LogOut, Pencil, Shield, User } from 'lucide-react-native';
+import { Bell, HeartPulse, LogOut, MapPin, Pencil, Shield, User, Users } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
@@ -13,6 +13,9 @@ import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 export default function ProfileScreen() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isCaregiver = user?.userType === 'caregiver';
+  const profileLabel = isCaregiver ? 'Cuidador' : 'Responsavel';
+
   const initials = useMemo(() => {
     const name = user?.fullName?.trim();
     if (!name) return 'CP';
@@ -47,24 +50,36 @@ export default function ProfileScreen() {
       <AppHeader showBack />
 
       <View style={styles.profileCard}>
-        <ProfileAvatar initials={initials} name={user?.fullName ?? 'Cuidador Plus'} subtitle={user?.email ?? 'Perfil de protótipo'} />
+        <ProfileAvatar initials={initials} name={user?.fullName ?? 'Cuidar+'} subtitle={user?.email ?? 'Perfil de prototipo'} />
         <Text style={styles.profileNote}>
-          {user ? `Perfil ${user.userType === 'caregiver' ? 'cuidador' : 'responsavel/familia'}` : 'Carregando dados do perfil.'}
+          {user ? `Perfil de ${profileLabel.toLowerCase()}` : 'Carregando dados do perfil.'}
         </Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Configurações</Text>
+        <Text style={styles.sectionTitle}>Configuracoes</Text>
         <SettingsRow
           title="Editar perfil"
-          description="Nome, contato e preferências visuais"
+          description={isCaregiver ? 'Dados pessoais e profissionais' : 'Dados pessoais e pessoa assistida'}
           icon={Pencil}
           onPress={() => router.push('/edit-profile')}
         />
-        <SettingsRow title="Informações pessoais" description="Dados ainda não conectados" icon={User} />
-        <SettingsRow title="Plano de cuidado" description="Espaço para preferências futuras" icon={HeartPulse} />
-        <SettingsRow title="Notificações" description="Somente estrutura visual" icon={Bell} />
-        <SettingsRow title="Privacidade" description="Sem regras reais nesta etapa" icon={Shield} />
+        <SettingsRow title="Informacoes pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} />
+        {isCaregiver ? (
+          <>
+            <SettingsRow title="Experiencia" description="Trajetoria, formacao e biografia profissional" icon={HeartPulse} />
+            <SettingsRow title="Disponibilidade" description="Horarios, regiao e modalidade de atendimento" icon={MapPin} />
+            <SettingsRow title="Servicos oferecidos" description="Atividades de cuidado disponiveis" icon={Users} />
+          </>
+        ) : (
+          <>
+            <SettingsRow title="Pessoa assistida" description="Perfil de cuidado e necessidades importantes" icon={Users} />
+            <SettingsRow title="Endereco do cuidado" description="Local onde o cuidado sera realizado" icon={MapPin} />
+            <SettingsRow title="Contato de emergencia" description="Nome, telefone e vinculo de apoio" icon={HeartPulse} />
+          </>
+        )}
+        <SettingsRow title="Notificacoes" description="Preferencias de comunicacao" icon={Bell} />
+        <SettingsRow title="Privacidade" description="Seguranca da conta e dados pessoais" icon={Shield} />
         <SettingsRow
           title={isLoggingOut ? 'Saindo...' : 'Sair'}
           description="Encerrar sessao neste aparelho"
