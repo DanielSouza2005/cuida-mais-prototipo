@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, router } from 'expo-router';
 import {
   Calendar,
@@ -16,15 +16,60 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppTextInput } from '@/components/app-text-input';
 import { BackButton } from '@/components/back-button';
 import { BrandMark } from '@/components/brand';
+import { DatePickerField } from '@/components/date-picker-field';
+import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { RoleSelector, type Role } from '@/components/role-selector';
 import { ScreenContainer } from '@/components/screen-container';
+import {
+  allergyOptions,
+  caregiverEducationOptions,
+  caregiverServiceOptions,
+  careModalityOptions,
+  contactPreferenceOptions,
+  dayPeriodOptions,
+  dependencyLevelOptions,
+  foodRestrictionOptions,
+  mobilityOptions,
+  relationshipOptions,
+  weekDayOptions,
+  type Allergy,
+  type CaregiverEducation,
+  type CaregiverService,
+  type CareModality,
+  type ContactPreference,
+  type DayPeriod,
+  type DependencyLevel,
+  type FoodRestriction,
+  type Mobility,
+  type Relationship,
+  type WeekDay,
+} from '@/constants/enums';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/api';
+import { CepError, getAddressByCep } from '@/services/cepService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 import type { Address, AssistedPerson, CaregiverProfile, UserBase } from '@/types/auth';
+import {
+  formatCep,
+  formatCpf,
+  formatPhone,
+  isValidEmailFormat,
+  unformatCep,
+  unformatCpf,
+  unformatPhone,
+} from '@/utils/masks';
 
-const emailRegex = /\S+@\S+\.\S+/;
+const emptyAddress: Address = {
+  cep: '',
+  rua: '',
+  numero: '',
+  complemento: '',
+  bairro: '',
+  cidade: '',
+  estado: '',
+  pontoReferencia: '',
+};
 
 function splitList(value: string) {
   return value
@@ -41,6 +86,19 @@ function getSignupFeedback(error: unknown) {
   return 'Nao foi possivel criar sua conta. Tente novamente.';
 }
 
+function needsDetail(options: string[]) {
+  return options.some((option) => option !== 'NAO_POSSUI' && option !== 'NAO_SEI_INFORMAR');
+}
+
+function normalizeExclusiveHealthOptions<T extends string>(values: T[]) {
+  const lastValue = values[values.length - 1];
+  const exclusiveOptions = ['NAO_POSSUI', 'NAO_SEI_INFORMAR'];
+
+  if (!lastValue) return values;
+  if (exclusiveOptions.includes(lastValue)) return [lastValue];
+  return values.filter((value) => !exclusiveOptions.includes(value));
+}
+
 export default function SignupScreen() {
   const { registerCaregiver, registerResponsible } = useAuth();
   const [role, setRole] = useState<Role>('family');
@@ -54,120 +112,265 @@ export default function SignupScreen() {
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('');
-  const [city, setCity] = useState('');
-  const [stateUf, setStateUf] = useState('');
 
-  const [relationship, setRelationship] = useState('');
-  const [contactPreference, setContactPreference] = useState('');
+  const [relationship, setRelationship] = useState<Relationship | null>(null);
+  const [relationshipCustom, setRelationshipCustom] = useState('');
+  const [contactPreference, setContactPreference] = useState<ContactPreference | null>(null);
   const [assistedName, setAssistedName] = useState('');
   const [assistedBirthDate, setAssistedBirthDate] = useState('');
   const [assistedCpf, setAssistedCpf] = useState('');
-  const [dependencyLevel, setDependencyLevel] = useState('');
-  const [mobility, setMobility] = useState('');
+  const [dependencyLevel, setDependencyLevel] = useState<DependencyLevel | null>(null);
+  const [mobility, setMobility] = useState<Mobility | null>(null);
+  const [mobilityCustom, setMobilityCustom] = useState('');
   const [careNeeds, setCareNeeds] = useState('');
-  const [allergies, setAllergies] = useState('');
+  const [allergies, setAllergies] = useState<Allergy[]>([]);
+  const [allergyDetails, setAllergyDetails] = useState('');
   const [medications, setMedications] = useState('');
-  const [foodRestrictions, setFoodRestrictions] = useState('');
+  const [foodRestrictions, setFoodRestrictions] = useState<FoodRestriction[]>([]);
+  const [foodRestrictionDetails, setFoodRestrictionDetails] = useState('');
   const [notes, setNotes] = useState('');
-  const [careAddress, setCareAddress] = useState<Address>({
-    cep: '',
-    rua: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-    pontoReferencia: '',
-  });
+  const [careAddress, setCareAddress] = useState<Address>(emptyAddress);
+  const [careCepFeedback, setCareCepFeedback] = useState<string | null>(null);
+  const [careCepFeedbackKind, setCareCepFeedbackKind] = useState<'info' | 'success' | 'error'>('info');
+  const [isFetchingCareCep, setIsFetchingCareCep] = useState(false);
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [emergencyRelation, setEmergencyRelation] = useState('');
+  const [useResponsibleAsEmergencyContact, setUseResponsibleAsEmergencyContact] = useState(false);
 
+  const [caregiverAddress, setCaregiverAddress] = useState<Address>(emptyAddress);
+  const [cepFeedback, setCepFeedback] = useState<string | null>(null);
+  const [cepFeedbackKind, setCepFeedbackKind] = useState<'info' | 'success' | 'error'>('info');
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [experience, setExperience] = useState('');
-  const [education, setEducation] = useState('');
+  const [education, setEducation] = useState<CaregiverEducation | null>(null);
+  const [educationCustom, setEducationCustom] = useState('');
   const [bio, setBio] = useState('');
-  const [availability, setAvailability] = useState('');
-  const [careRegion, setCareRegion] = useState('');
-  const [careMode, setCareMode] = useState('');
-  const [services, setServices] = useState('');
+  const [weekDays, setWeekDays] = useState<WeekDay[]>([]);
+  const [dayPeriods, setDayPeriods] = useState<DayPeriod[]>([]);
+  const [availabilityStart, setAvailabilityStart] = useState('');
+  const [availabilityEnd, setAvailabilityEnd] = useState('');
+  const [availabilityNote, setAvailabilityNote] = useState('');
+  const [careModes, setCareModes] = useState<CareModality[]>([]);
+  const [careModeCustom, setCareModeCustom] = useState('');
+  const [services, setServices] = useState<CaregiverService[]>([]);
+  const [serviceCustom, setServiceCustom] = useState('');
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const today = useMemo(() => new Date(), []);
 
-  const maxStep = role === 'family' ? 3 : 2;
+  const maxStep = role === 'family' ? 4 : 4;
+  const showAllergyDetails = needsDetail(allergies);
+  const showFoodRestrictionDetails = needsDetail(foodRestrictions);
+  const usesCustomAvailability = dayPeriods.includes('HORARIO_PERSONALIZADO');
+
   const title = useMemo(() => {
     if (step === 0) return 'Escolha o tipo de conta';
-    if (role === 'family' && step === 1) return 'Dados do responsavel';
-    if (role === 'family' && step === 2) return 'Pessoa assistida';
+    if (role === 'family' && step === 1) return 'Dados da conta';
+    if (role === 'family' && step === 2) return 'Vinculo e contato';
+    if (role === 'family' && step === 3) return 'Pessoa assistida';
     if (role === 'family') return 'Cuidado e emergencia';
     if (step === 1) return 'Dados pessoais';
-    return 'Dados profissionais';
+    if (step === 2) return 'Endereco do cuidador';
+    if (step === 3) return 'Dados profissionais';
+    return 'Disponibilidade e servicos';
   }, [role, step]);
 
+  useEffect(() => {
+    const cleanCep = unformatCep(caregiverAddress.cep);
+    if (role !== 'caregiver' || cleanCep.length !== 8) {
+      setCepFeedback(null);
+      setCepFeedbackKind('info');
+      return;
+    }
+
+    let active = true;
+
+    async function fetchAddress() {
+      setIsFetchingCep(true);
+      setCepFeedback('Consultando CEP...');
+      setCepFeedbackKind('info');
+
+      try {
+        const address = await getAddressByCep(cleanCep);
+        if (!active) return;
+
+        setCaregiverAddress((current) => ({
+          ...current,
+          cep: formatCep(address.cep ?? current.cep),
+          rua: address.rua ?? current.rua,
+          bairro: address.bairro ?? current.bairro,
+          cidade: address.cidade ?? current.cidade,
+          estado: address.estado ?? current.estado,
+          complemento: current.complemento?.trim() ? current.complemento : address.complemento ?? current.complemento,
+        }));
+        setCepFeedback('Endereco preenchido pelo CEP. Voce pode editar se precisar.');
+        setCepFeedbackKind('success');
+      } catch (error) {
+        if (!active) return;
+        setCepFeedback(error instanceof CepError ? error.message : 'Nao foi possivel consultar o CEP agora.');
+        setCepFeedbackKind('error');
+      } finally {
+        if (active) setIsFetchingCep(false);
+      }
+    }
+
+    fetchAddress();
+
+    return () => {
+      active = false;
+    };
+  }, [caregiverAddress.cep, role]);
+
+  useEffect(() => {
+    const cleanCep = unformatCep(careAddress.cep);
+    if (role !== 'family' || cleanCep.length !== 8) {
+      setCareCepFeedback(null);
+      setCareCepFeedbackKind('info');
+      return;
+    }
+
+    let active = true;
+
+    async function fetchAddress() {
+      setIsFetchingCareCep(true);
+      setCareCepFeedback('Consultando CEP...');
+      setCareCepFeedbackKind('info');
+
+      try {
+        const address = await getAddressByCep(cleanCep);
+        if (!active) return;
+
+        setCareAddress((current) => ({
+          ...current,
+          cep: formatCep(address.cep ?? current.cep),
+          rua: address.rua ?? current.rua,
+          bairro: address.bairro ?? current.bairro,
+          cidade: address.cidade ?? current.cidade,
+          estado: address.estado ?? current.estado,
+          complemento: current.complemento?.trim() ? current.complemento : address.complemento ?? current.complemento,
+        }));
+        setCareCepFeedback('Endereco do cuidado preenchido pelo CEP. Voce pode editar se precisar.');
+        setCareCepFeedbackKind('success');
+      } catch (error) {
+        if (!active) return;
+        setCareCepFeedback(error instanceof CepError ? error.message : 'Nao foi possivel consultar o CEP agora.');
+        setCareCepFeedbackKind('error');
+      } finally {
+        if (active) setIsFetchingCareCep(false);
+      }
+    }
+
+    fetchAddress();
+
+    return () => {
+      active = false;
+    };
+  }, [careAddress.cep, role]);
+
   function updateCareAddress(field: keyof Address, value: string) {
-    setCareAddress((current) => ({ ...current, [field]: value }));
+    setCareAddress((current) => ({ ...current, [field]: field === 'cep' ? formatCep(value) : value }));
+  }
+
+  function updateCaregiverAddress(field: keyof Address, value: string) {
+    setCaregiverAddress((current) => ({ ...current, [field]: field === 'cep' ? formatCep(value) : value }));
   }
 
   function validatePersonalData() {
     if (!fullName.trim()) return 'Informe seu nome completo.';
     if (!cpf.trim()) return 'Informe seu CPF.';
     if (!email.trim()) return 'Informe seu e-mail.';
-    if (!emailRegex.test(email.trim())) return 'Informe um e-mail valido.';
+    if (!isValidEmailFormat(email)) return 'Informe um e-mail valido.';
     if (!password) return 'Informe uma senha.';
-    if (passwordConfirmation && passwordConfirmation !== password) return 'A confirmacao de senha deve ser igual a senha.';
+    if (!passwordConfirmation) return 'Confirme sua senha.';
+    if (passwordConfirmation !== password) return 'A confirmacao de senha deve ser igual a senha.';
     if (!phone.trim()) return 'Informe seu telefone.';
     if (!birthDate.trim()) return 'Informe sua data de nascimento.';
-    if (role === 'family' && !relationship.trim()) return 'Informe o vinculo com a pessoa assistida.';
-    if (role === 'caregiver' && (!city.trim() || !stateUf.trim())) return 'Informe cidade e estado.';
+    return null;
+  }
+
+  function validateResponsibleRelationship() {
+    if (!relationship) return 'Informe o vinculo com a pessoa assistida.';
+    if (relationship === 'OUTRO' && !relationshipCustom.trim()) return 'Informe o parentesco personalizado.';
+    if (!contactPreference) return 'Informe a preferencia de contato.';
     return null;
   }
 
   function validateResponsibleAssistedPerson() {
     if (!assistedName.trim()) return 'Informe o nome da pessoa assistida.';
     if (!assistedBirthDate.trim()) return 'Informe a data de nascimento da pessoa assistida.';
-    if (!dependencyLevel.trim()) return 'Informe o grau de dependencia.';
-    if (!mobility.trim()) return 'Informe a mobilidade.';
+    if (!dependencyLevel) return 'Informe o grau de dependencia.';
+    if (!mobility) return 'Informe a mobilidade.';
+    if (mobility === 'OUTRO' && !mobilityCustom.trim()) return 'Informe a mobilidade personalizada.';
     if (splitList(careNeeds).length === 0) return 'Informe ao menos uma necessidade de cuidado.';
+    if (allergies.length === 0) return 'Informe se a pessoa assistida possui alergias.';
+    if (showAllergyDetails && !allergyDetails.trim()) return 'Informe os detalhes da alergia.';
+    if (foodRestrictions.length === 0) return 'Informe se ha restricoes alimentares.';
+    if (showFoodRestrictionDetails && !foodRestrictionDetails.trim()) return 'Informe os detalhes da restricao alimentar.';
     return null;
   }
 
   function validateResponsibleCareDetails() {
-    if (!careAddress.cep.trim()) return 'Informe o CEP do cuidado.';
+    if (unformatCep(careAddress.cep).length !== 8) return 'Informe um CEP com 8 numeros.';
     if (!careAddress.rua.trim()) return 'Informe a rua do cuidado.';
     if (!careAddress.numero.trim()) return 'Informe o numero do cuidado.';
     if (!careAddress.bairro.trim()) return 'Informe o bairro do cuidado.';
     if (!careAddress.cidade.trim()) return 'Informe a cidade do cuidado.';
     if (!careAddress.estado.trim()) return 'Informe o estado do cuidado.';
+    if (useResponsibleAsEmergencyContact) return null;
     if (!emergencyName.trim() || !emergencyPhone.trim() || !emergencyRelation.trim()) {
       return 'Informe nome, telefone e vinculo do contato de emergencia.';
     }
     return null;
   }
 
+  function validateCaregiverAddress() {
+    if (unformatCep(caregiverAddress.cep).length !== 8) return 'Informe um CEP com 8 numeros.';
+    if (!caregiverAddress.rua.trim()) return 'Informe a rua.';
+    if (!caregiverAddress.numero.trim()) return 'Informe o numero.';
+    if (!caregiverAddress.bairro.trim()) return 'Informe o bairro.';
+    if (!caregiverAddress.cidade.trim()) return 'Informe a cidade.';
+    if (!caregiverAddress.estado.trim()) return 'Informe o estado.';
+    return null;
+  }
+
   function validateCaregiverProfessionalData() {
     if (!experience.trim()) return 'Informe sua experiencia.';
-    if (splitList(availability).length === 0) return 'Informe sua disponibilidade.';
-    if (!careRegion.trim()) return 'Informe sua regiao de atendimento.';
-    if (!careMode.trim()) return 'Informe a modalidade de atendimento.';
-    if (splitList(services).length === 0) return 'Informe ao menos um servico oferecido.';
+    return null;
+  }
+
+  function validateCaregiverAvailabilityAndServices() {
+    if (weekDays.length === 0) return 'Informe ao menos um dia de disponibilidade.';
+    if (dayPeriods.length === 0) return 'Informe ao menos um periodo de disponibilidade.';
+    if (usesCustomAvailability && (!availabilityStart.trim() || !availabilityEnd.trim())) {
+      return 'Informe horario inicial e final.';
+    }
+    if (careModes.length === 0) return 'Informe ao menos uma modalidade de atendimento.';
+    if (careModes.includes('OUTRO') && !careModeCustom.trim()) return 'Informe a modalidade personalizada.';
+    if (services.length === 0) return 'Informe ao menos um servico oferecido.';
+    if (services.includes('OUTRO') && !serviceCustom.trim()) return 'Informe o servico personalizado.';
     return null;
   }
 
   function validateCurrentStep() {
     if (step === 0) return null;
     if (step === 1) return validatePersonalData();
-    if (role === 'family' && step === 2) return validateResponsibleAssistedPerson();
-    if (role === 'family' && step === 3) return validateResponsibleCareDetails();
-    if (role === 'caregiver' && step === 2) return validateCaregiverProfessionalData();
+    if (role === 'family' && step === 2) return validateResponsibleRelationship();
+    if (role === 'family' && step === 3) return validateResponsibleAssistedPerson();
+    if (role === 'family' && step === 4) return validateResponsibleCareDetails();
+    if (role === 'caregiver' && step === 2) return validateCaregiverAddress();
+    if (role === 'caregiver' && step === 3) return validateCaregiverProfessionalData();
+    if (role === 'caregiver' && step === 4) return validateCaregiverAvailabilityAndServices();
     return null;
   }
 
   function buildUser(tipoUsuario: UserBase['tipoUsuario']): UserBase {
     return {
       nome: fullName.trim(),
-      cpf: cpf.trim(),
+      cpf: unformatCpf(cpf),
       email: email.trim(),
-      telefone: phone.trim(),
+      telefone: unformatPhone(phone),
       dataNascimento: birthDate.trim(),
       tipoUsuario,
       status: 'ACTIVE',
@@ -178,19 +381,25 @@ export default function SignupScreen() {
     return {
       nome: assistedName.trim(),
       dataNascimento: assistedBirthDate.trim(),
-      cpf: assistedCpf.trim() || undefined,
-      grauDependencia: dependencyLevel.trim(),
-      mobilidade: mobility.trim(),
+      cpf: assistedCpf.trim() ? unformatCpf(assistedCpf) : undefined,
+      grauDependencia: dependencyLevel ?? 'NAO_SEI_INFORMAR',
+      mobilidade: mobility ?? 'OUTRO',
+      mobilidadePersonalizada: mobility === 'OUTRO' ? mobilityCustom.trim() : undefined,
       necessidadesCuidado: splitList(careNeeds),
-      alergias: allergies.trim() || undefined,
+      alergias: allergies.length > 0 ? allergies : undefined,
+      detalhesAlergia: allergyDetails.trim() || undefined,
       medicamentos: medications.trim() || undefined,
-      restricoesAlimentares: foodRestrictions.trim() || undefined,
+      restricoesAlimentares: foodRestrictions.length > 0 ? foodRestrictions : undefined,
+      detalhesRestricaoAlimentar: foodRestrictionDetails.trim() || undefined,
       observacoes: notes.trim() || undefined,
       enderecoCuidado: careAddress,
       contatoEmergencia: {
-        nome: emergencyName.trim(),
-        telefone: emergencyPhone.trim(),
-        vinculo: emergencyRelation.trim(),
+        nome: useResponsibleAsEmergencyContact ? fullName.trim() : emergencyName.trim(),
+        telefone: useResponsibleAsEmergencyContact ? unformatPhone(phone) : unformatPhone(emergencyPhone),
+        vinculo: useResponsibleAsEmergencyContact
+          ? relationshipCustom.trim() || relationship || 'Responsavel'
+          : emergencyRelation.trim(),
+        isResponsibleEmergencyContact: useResponsibleAsEmergencyContact,
       },
     };
   }
@@ -198,12 +407,22 @@ export default function SignupScreen() {
   function buildCaregiverProfile(): CaregiverProfile {
     return {
       experiencia: experience.trim(),
-      formacao: education.trim() || undefined,
+      formacao: education ?? undefined,
+      formacaoPersonalizada: education === 'OUTRO' ? educationCustom.trim() : undefined,
       biografia: bio.trim() || undefined,
-      disponibilidade: splitList(availability),
-      regiaoAtendimento: careRegion.trim(),
-      modalidadeAtendimento: careMode.trim(),
-      servicosOferecidos: splitList(services),
+      disponibilidade: {
+        diasSemana: weekDays,
+        periodos: dayPeriods,
+        horariosEspecificos: usesCustomAvailability
+          ? { inicio: availabilityStart.trim(), fim: availabilityEnd.trim() }
+          : undefined,
+        observacao: availabilityNote.trim() || undefined,
+      },
+      enderecoAtendimento: caregiverAddress,
+      modalidadeAtendimento: careModes,
+      modalidadePersonalizada: careModes.includes('OUTRO') ? careModeCustom.trim() : undefined,
+      servicosOferecidos: services,
+      servicoPersonalizado: services.includes('OUTRO') ? serviceCustom.trim() : undefined,
     };
   }
 
@@ -233,8 +452,9 @@ export default function SignupScreen() {
           user: buildUser('RESPONSAVEL'),
           senha: password,
           responsibleProfile: {
-            parentescoPadrao: relationship.trim(),
-            contatoPreferencial: contactPreference.trim() || undefined,
+            parentescoPadrao: relationship ?? undefined,
+            parentescoPersonalizado: relationship === 'OUTRO' ? relationshipCustom.trim() : undefined,
+            contatoPreferencial: contactPreference ?? undefined,
           },
           assistedPersons: [buildAssistedPerson()],
           acceptedTerms,
@@ -272,67 +492,156 @@ export default function SignupScreen() {
       <View style={styles.form}>
         {step === 1 ? (
           <>
-            <AppTextInput label="Nome completo" icon={User} placeholder="Maria da Silva" value={fullName} onChangeText={setFullName} autoCapitalize="words" />
-            <AppTextInput label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={setCpf} keyboardType="number-pad" />
-            <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-            <AppTextInput label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-            <AppTextInput label="Data de nascimento" icon={Calendar} placeholder="dd/mm/aaaa" value={birthDate} onChangeText={setBirthDate} keyboardType="number-pad" />
-            <AppTextInput label="Senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry />
-            <AppTextInput label="Confirmar senha" icon={Lock} placeholder="********" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry />
+            <AppTextInput required label="Nome completo" icon={User} placeholder="Maria da Silva" value={fullName} onChangeText={setFullName} autoCapitalize="words" />
+            <AppTextInput required label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" />
+            <AppTextInput required label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} visualState={email && !isValidEmailFormat(email) ? 'error' : 'default'} />
+            <AppTextInput required label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={(value) => setPhone(formatPhone(value))} keyboardType="phone-pad" />
+            <DatePickerField required label="Data de nascimento" value={birthDate} onChange={setBirthDate} maxDate={today} />
+            <AppTextInput required label="Senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry />
+            <AppTextInput required label="Confirmar senha" icon={Lock} placeholder="********" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry />
             {role === 'family' ? (
-              <>
-                <AppTextInput label="Parentesco ou vinculo" icon={HeartPulse} placeholder="Filha, neto, responsavel legal..." value={relationship} onChangeText={setRelationship} />
-                <AppTextInput label="Preferencia de contato" icon={Phone} placeholder="WhatsApp, ligacao, e-mail..." value={contactPreference} onChangeText={setContactPreference} />
-              </>
+              null
             ) : (
-              <>
-                <AppTextInput label="Cidade" icon={MapPin} placeholder="Sua cidade" value={city} onChangeText={setCity} />
-                <AppTextInput label="Estado" icon={MapPin} placeholder="UF" value={stateUf} onChangeText={setStateUf} autoCapitalize="characters" />
-              </>
+              null
             )}
           </>
         ) : null}
 
         {role === 'family' && step === 2 ? (
           <>
-            <AppTextInput label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={assistedName} onChangeText={setAssistedName} />
-            <AppTextInput label="Data de nascimento" icon={Calendar} placeholder="dd/mm/aaaa" value={assistedBirthDate} onChangeText={setAssistedBirthDate} keyboardType="number-pad" />
-            <AppTextInput label="CPF da pessoa assistida" icon={IdCard} placeholder="Opcional" value={assistedCpf} onChangeText={setAssistedCpf} keyboardType="number-pad" />
-            <AppTextInput label="Grau de dependencia" icon={HeartPulse} placeholder="Baixo, moderado, alto..." value={dependencyLevel} onChangeText={setDependencyLevel} />
-            <AppTextInput label="Mobilidade" icon={HeartPulse} placeholder="Independente, usa bengala..." value={mobility} onChangeText={setMobility} />
-            <AppTextInput label="Necessidades de cuidado" icon={HeartPulse} placeholder="Separadas por virgula" value={careNeeds} onChangeText={setCareNeeds} />
-            <AppTextInput label="Alergias" icon={HeartPulse} placeholder="Opcional" value={allergies} onChangeText={setAllergies} />
-            <AppTextInput label="Medicamentos" icon={HeartPulse} placeholder="Opcional" value={medications} onChangeText={setMedications} />
-            <AppTextInput label="Restricoes alimentares" icon={HeartPulse} placeholder="Opcional" value={foodRestrictions} onChangeText={setFoodRestrictions} />
-            <AppTextInput label="Observacoes importantes" icon={HeartPulse} placeholder="Opcional" value={notes} onChangeText={setNotes} />
+            <OptionGroup required label="Parentesco ou vinculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} />
+            {relationship === 'OUTRO' ? (
+              <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vinculo" value={relationshipCustom} onChangeText={setRelationshipCustom} />
+            ) : null}
+            <OptionGroup required label="Preferencia de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
           </>
         ) : null}
 
         {role === 'family' && step === 3 ? (
           <>
-            <AppTextInput label="CEP" icon={MapPin} placeholder="00000-000" value={careAddress.cep} onChangeText={(value) => updateCareAddress('cep', value)} keyboardType="number-pad" />
-            <AppTextInput label="Rua" icon={MapPin} placeholder="Rua do cuidado" value={careAddress.rua} onChangeText={(value) => updateCareAddress('rua', value)} />
-            <AppTextInput label="Numero" icon={MapPin} placeholder="123" value={careAddress.numero} onChangeText={(value) => updateCareAddress('numero', value)} />
-            <AppTextInput label="Complemento" icon={MapPin} placeholder="Opcional" value={careAddress.complemento} onChangeText={(value) => updateCareAddress('complemento', value)} />
-            <AppTextInput label="Bairro" icon={MapPin} placeholder="Bairro" value={careAddress.bairro} onChangeText={(value) => updateCareAddress('bairro', value)} />
-            <AppTextInput label="Cidade" icon={MapPin} placeholder="Cidade" value={careAddress.cidade} onChangeText={(value) => updateCareAddress('cidade', value)} />
-            <AppTextInput label="Estado" icon={MapPin} placeholder="UF" value={careAddress.estado} onChangeText={(value) => updateCareAddress('estado', value)} autoCapitalize="characters" />
-            <AppTextInput label="Ponto de referencia" icon={MapPin} placeholder="Opcional" value={careAddress.pontoReferencia} onChangeText={(value) => updateCareAddress('pontoReferencia', value)} />
-            <AppTextInput label="Contato de emergencia" icon={User} placeholder="Nome completo" value={emergencyName} onChangeText={setEmergencyName} />
-            <AppTextInput label="Telefone de emergencia" icon={Phone} placeholder="(00) 00000-0000" value={emergencyPhone} onChangeText={setEmergencyPhone} keyboardType="phone-pad" />
-            <AppTextInput label="Vinculo do contato" icon={HeartPulse} placeholder="Irma, vizinho, amigo..." value={emergencyRelation} onChangeText={setEmergencyRelation} />
+            <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={assistedName} onChangeText={setAssistedName} />
+            <DatePickerField required label="Data de nascimento" value={assistedBirthDate} onChange={setAssistedBirthDate} maxDate={today} />
+            <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={assistedCpf} onChangeText={(value) => setAssistedCpf(formatCpf(value))} keyboardType="number-pad" />
+            <OptionGroup required label="Grau de dependencia" options={dependencyLevelOptions} value={dependencyLevel} onChange={(value) => setDependencyLevel(value as DependencyLevel)} />
+            <OptionGroup required label="Mobilidade" options={mobilityOptions} value={mobility} onChange={(value) => setMobility(value as Mobility)} />
+            {mobility === 'OUTRO' ? (
+              <AppTextInput required label="Mobilidade personalizada" icon={HeartPulse} placeholder="Descreva a mobilidade" value={mobilityCustom} onChangeText={setMobilityCustom} />
+            ) : null}
+            <AppTextInput required label="Necessidades de cuidado" icon={HeartPulse} placeholder="Separadas por virgula" value={careNeeds} onChangeText={setCareNeeds} />
+            <OptionGroup required multiple label="Alergias" options={allergyOptions} value={allergies} onChange={(value) => setAllergies(normalizeExclusiveHealthOptions(value as Allergy[]))} />
+            {showAllergyDetails ? (
+              <AppTextInput required label="Detalhes da alergia" icon={HeartPulse} placeholder="Informe detalhes importantes" value={allergyDetails} onChangeText={setAllergyDetails} />
+            ) : null}
+            <AppTextInput optional label="Medicamentos" icon={HeartPulse} placeholder="Liste se houver" value={medications} onChangeText={setMedications} />
+            <OptionGroup required multiple label="Restricoes alimentares" options={foodRestrictionOptions} value={foodRestrictions} onChange={(value) => setFoodRestrictions(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} />
+            {showFoodRestrictionDetails ? (
+              <AppTextInput required label="Detalhes da restricao alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={foodRestrictionDetails} onChangeText={setFoodRestrictionDetails} />
+            ) : null}
+            <AppTextInput optional label="Observacoes importantes" icon={HeartPulse} placeholder="Informacoes adicionais" value={notes} onChangeText={setNotes} />
+          </>
+        ) : null}
+
+        {role === 'family' && step === 4 ? (
+          <>
+            <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={careAddress.cep} onChangeText={(value) => updateCareAddress('cep', value)} keyboardType="number-pad" />
+            {careCepFeedback ? (
+              <Text style={[
+                styles.feedbackText,
+                careCepFeedbackKind === 'success' && styles.successText,
+                careCepFeedbackKind === 'error' && styles.errorText,
+              ]}>
+                {careCepFeedback}
+              </Text>
+            ) : null}
+            <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua do cuidado" value={careAddress.rua} onChangeText={(value) => updateCareAddress('rua', value)} />
+            <AppTextInput required label="Numero" icon={MapPin} placeholder="123" value={careAddress.numero} onChangeText={(value) => updateCareAddress('numero', value)} />
+            <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={careAddress.complemento} onChangeText={(value) => updateCareAddress('complemento', value)} />
+            <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={careAddress.bairro} onChangeText={(value) => updateCareAddress('bairro', value)} />
+            <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={careAddress.cidade} onChangeText={(value) => updateCareAddress('cidade', value)} />
+            <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={careAddress.estado} onChangeText={(value) => updateCareAddress('estado', value)} autoCapitalize="characters" />
+            <AppTextInput optional label="Ponto de referencia" icon={MapPin} placeholder="Referencia proxima" value={careAddress.pontoReferencia} onChangeText={(value) => updateCareAddress('pontoReferencia', value)} />
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: useResponsibleAsEmergencyContact }}
+              onPress={() => setUseResponsibleAsEmergencyContact((value) => !value)}
+              style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
+            >
+              <View style={[styles.checkbox, useResponsibleAsEmergencyContact && styles.checkboxChecked]}>
+                {useResponsibleAsEmergencyContact ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
+              </View>
+              <View style={styles.checkboxTextBlock}>
+                <Text style={styles.termsText}>Sou o contato de emergencia</Text>
+                <Text style={styles.helperText}>Usaremos seu nome, telefone e vinculo como contato principal.</Text>
+              </View>
+            </Pressable>
+            {useResponsibleAsEmergencyContact ? (
+              <View style={styles.emergencyPreview}>
+                <Text style={styles.previewText}>{fullName || 'Nome do responsavel'}</Text>
+                <Text style={styles.previewText}>{phone || 'Telefone do responsavel'}</Text>
+                <Text style={styles.previewText}>{relationshipCustom || relationship || 'Vinculo informado'}</Text>
+              </View>
+            ) : (
+              <>
+                <AppTextInput required label="Contato de emergencia" icon={User} placeholder="Nome completo" value={emergencyName} onChangeText={setEmergencyName} />
+                <AppTextInput required label="Telefone de emergencia" icon={Phone} placeholder="(00) 00000-0000" value={emergencyPhone} onChangeText={(value) => setEmergencyPhone(formatPhone(value))} keyboardType="phone-pad" />
+                <AppTextInput required label="Vinculo do contato" icon={HeartPulse} placeholder="Irma, vizinho, amigo..." value={emergencyRelation} onChangeText={setEmergencyRelation} />
+              </>
+            )}
           </>
         ) : null}
 
         {role === 'caregiver' && step === 2 ? (
           <>
-            <AppTextInput label="Experiencia" icon={HeartPulse} placeholder="Resumo da experiencia" value={experience} onChangeText={setExperience} />
-            <AppTextInput label="Formacao" icon={HeartPulse} placeholder="Opcional" value={education} onChangeText={setEducation} />
-            <AppTextInput label="Biografia profissional" icon={HeartPulse} placeholder="Opcional" value={bio} onChangeText={setBio} />
-            <AppTextInput label="Disponibilidade" icon={Calendar} placeholder="Dias e horarios separados por virgula" value={availability} onChangeText={setAvailability} />
-            <AppTextInput label="Regiao de atendimento" icon={MapPin} placeholder="Bairros, cidades ou raio de atendimento" value={careRegion} onChangeText={setCareRegion} />
-            <AppTextInput label="Modalidade de atendimento" icon={HeartPulse} placeholder="Domiciliar, acompanhamento, plantao..." value={careMode} onChangeText={setCareMode} />
-            <AppTextInput label="Servicos oferecidos" icon={HeartPulse} placeholder="Separados por virgula" value={services} onChangeText={setServices} />
+            <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={caregiverAddress.cep} onChangeText={(value) => updateCaregiverAddress('cep', value)} keyboardType="number-pad" />
+            {cepFeedback ? (
+              <Text style={[
+                styles.feedbackText,
+                cepFeedbackKind === 'success' && styles.successText,
+                cepFeedbackKind === 'error' && styles.errorText,
+              ]}>
+                {cepFeedback}
+              </Text>
+            ) : null}
+            <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua" value={caregiverAddress.rua} onChangeText={(value) => updateCaregiverAddress('rua', value)} />
+            <AppTextInput required label="Numero" icon={MapPin} placeholder="123" value={caregiverAddress.numero} onChangeText={(value) => updateCaregiverAddress('numero', value)} />
+            <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={caregiverAddress.complemento} onChangeText={(value) => updateCaregiverAddress('complemento', value)} />
+            <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={caregiverAddress.bairro} onChangeText={(value) => updateCaregiverAddress('bairro', value)} />
+            <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={caregiverAddress.cidade} onChangeText={(value) => updateCaregiverAddress('cidade', value)} />
+            <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={caregiverAddress.estado} onChangeText={(value) => updateCaregiverAddress('estado', value)} autoCapitalize="characters" />
+            <AppTextInput optional label="Ponto de referencia" icon={MapPin} placeholder="Referencia proxima" value={caregiverAddress.pontoReferencia} onChangeText={(value) => updateCaregiverAddress('pontoReferencia', value)} />
+          </>
+        ) : null}
+
+        {role === 'caregiver' && step === 3 ? (
+          <>
+            <AppTextInput required label="Experiencia" icon={HeartPulse} placeholder="Resumo da experiencia" value={experience} onChangeText={setExperience} />
+            <OptionGroup optional label="Formacao" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation)} />
+            {education === 'OUTRO' ? (
+              <AppTextInput required label="Formacao personalizada" icon={HeartPulse} placeholder="Informe sua formacao" value={educationCustom} onChangeText={setEducationCustom} />
+            ) : null}
+            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentacao breve" value={bio} onChangeText={setBio} />
+          </>
+        ) : null}
+
+        {role === 'caregiver' && step === 4 ? (
+          <>
+            <OptionGroup required multiple label="Dias disponiveis" options={weekDayOptions} value={weekDays} onChange={(value) => setWeekDays(value as WeekDay[])} />
+            <OptionGroup required multiple label="Periodos disponiveis" options={dayPeriodOptions} value={dayPeriods} onChange={(value) => setDayPeriods(value as DayPeriod[])} />
+            {usesCustomAvailability ? (
+              <View style={styles.inlineFields}>
+                <AppTextInput required label="Horario inicial" icon={Calendar} placeholder="08:00" value={availabilityStart} onChangeText={setAvailabilityStart} />
+                <AppTextInput required label="Horario final" icon={Calendar} placeholder="18:00" value={availabilityEnd} onChangeText={setAvailabilityEnd} />
+              </View>
+            ) : null}
+            <AppTextInput optional label="Observacao de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={availabilityNote} onChangeText={setAvailabilityNote} />
+            <OptionGroup required multiple label="Modalidade de atendimento" options={careModalityOptions} value={careModes} onChange={(value) => setCareModes(value as CareModality[])} />
+            {careModes.includes('OUTRO') ? (
+              <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={careModeCustom} onChangeText={setCareModeCustom} />
+            ) : null}
+            <OptionGroup required multiple label="Servicos oferecidos" options={caregiverServiceOptions} value={services} onChange={(value) => setServices(value as CaregiverService[])} />
+            {services.includes('OUTRO') ? (
+              <AppTextInput required label="Servico personalizado" icon={HeartPulse} placeholder="Informe o servico" value={serviceCustom} onChangeText={setServiceCustom} />
+            ) : null}
           </>
         ) : null}
 
@@ -362,7 +671,7 @@ export default function SignupScreen() {
           <PrimaryButton
             label={step < maxStep ? 'Continuar' : isSubmitting ? 'Criando conta...' : 'Criar conta'}
             onPress={handleNext}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isFetchingCep || isFetchingCareCep}
           />
         </View>
       </View>
@@ -409,6 +718,9 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
   },
+  inlineFields: {
+    gap: spacing.md,
+  },
   termsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -440,9 +752,42 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: colors.mutedForeground,
   },
+  checkboxTextBlock: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  helperText: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11.5,
+    lineHeight: 17,
+    color: colors.mutedForeground,
+  },
+  emergencyPreview: {
+    gap: spacing.xs,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    padding: spacing.md,
+  },
+  previewText: {
+    fontFamily: fontFamily.medium,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.secondaryForeground,
+  },
   termsLink: {
     fontFamily: fontFamily.semiBold,
     color: colors.primary,
+  },
+  feedbackText: {
+    fontFamily: fontFamily.medium,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.mutedForeground,
+  },
+  successText: {
+    color: colors.mintForeground,
   },
   errorText: {
     fontFamily: fontFamily.medium,

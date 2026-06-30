@@ -14,12 +14,16 @@ import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 type Props = TextInputProps & {
   label: string;
   icon?: LucideIcon;
+  optional?: boolean;
+  required?: boolean;
   visualState?: 'default' | 'success' | 'error';
 };
 
 export function AppTextInput({
   label,
   icon: Icon,
+  optional,
+  required,
   secureTextEntry,
   visualState = 'default',
   style,
@@ -33,7 +37,11 @@ export function AppTextInput({
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>
+        {label}
+        {optional ? ' (opcional)' : null}
+        {required ? <Text style={styles.requiredMark}> *</Text> : null}
+      </Text>
       <View
         style={[
           styles.inputShell,
@@ -77,6 +85,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: 13,
     color: colors.foreground,
+  },
+  requiredMark: {
+    color: colors.destructive,
   },
   inputShell: {
     minHeight: 54,

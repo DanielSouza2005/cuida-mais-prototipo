@@ -1,3 +1,17 @@
+import type {
+  Allergy,
+  CaregiverEducation,
+  CaregiverService,
+  CareModality,
+  ContactPreference,
+  DayPeriod,
+  DependencyLevel,
+  FoodRestriction,
+  Mobility,
+  Relationship,
+  WeekDay,
+} from '@/constants/enums';
+
 export type UserType = 'RESPONSAVEL' | 'CUIDADOR' | 'ADMIN';
 
 export type ApiUserType = 'family' | 'caregiver' | 'admin';
@@ -31,19 +45,33 @@ export type UserBase = {
 
 export type ResponsibleProfile = {
   userId?: string;
-  parentescoPadrao?: string;
-  contatoPreferencial?: string;
+  parentescoPadrao?: Relationship;
+  parentescoPersonalizado?: string;
+  contatoPreferencial?: ContactPreference;
+};
+
+export type Availability = {
+  diasSemana: WeekDay[];
+  periodos: DayPeriod[];
+  horariosEspecificos?: {
+    inicio: string;
+    fim: string;
+  };
+  observacao?: string;
 };
 
 export type CaregiverProfile = {
   userId?: string;
   experiencia: string;
-  formacao?: string;
+  formacao?: CaregiverEducation;
+  formacaoPersonalizada?: string;
   biografia?: string;
-  disponibilidade: string[];
-  regiaoAtendimento: string;
-  modalidadeAtendimento: string;
-  servicosOferecidos: string[];
+  disponibilidade: Availability;
+  enderecoAtendimento: Address;
+  modalidadeAtendimento: CareModality[];
+  modalidadePersonalizada?: string;
+  servicosOferecidos: CaregiverService[];
+  servicoPersonalizado?: string;
 };
 
 export type Address = {
@@ -61,6 +89,7 @@ export type EmergencyContact = {
   nome: string;
   telefone: string;
   vinculo: string;
+  isResponsibleEmergencyContact?: boolean;
 };
 
 export type AssistedPerson = {
@@ -69,14 +98,17 @@ export type AssistedPerson = {
   nome: string;
   dataNascimento: string;
   cpf?: string;
-  grauDependencia: string;
-  mobilidade: string;
+  grauDependencia: DependencyLevel;
+  mobilidade: Mobility;
+  mobilidadePersonalizada?: string;
   enderecoCuidado: Address;
   contatoEmergencia: EmergencyContact;
   necessidadesCuidado: string[];
-  alergias?: string;
+  alergias?: Allergy[];
+  detalhesAlergia?: string;
   medicamentos?: string;
-  restricoesAlimentares?: string;
+  restricoesAlimentares?: FoodRestriction[];
+  detalhesRestricaoAlimentar?: string;
   observacoes?: string;
 };
 

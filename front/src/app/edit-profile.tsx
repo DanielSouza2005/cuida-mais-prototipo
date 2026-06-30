@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { DatePickerField } from '@/components/date-picker-field';
 import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { ScreenContainer } from '@/components/screen-container';
@@ -25,6 +26,7 @@ export default function EditProfileScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const today = new Date();
 
   useEffect(() => {
     if (!user) return;
@@ -92,7 +94,7 @@ export default function EditProfileScreen() {
         <AppTextInput label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={setCpf} keyboardType="number-pad" />
         <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
         <AppTextInput label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <AppTextInput label="Data de nascimento" icon={Calendar} placeholder="dd/mm/aaaa" value={birthDate} onChangeText={setBirthDate} keyboardType="number-pad" />
+        <DatePickerField required label="Data de nascimento" value={birthDate} onChange={setBirthDate} maxDate={today} />
       </View>
 
       <View style={styles.card}>
@@ -100,7 +102,7 @@ export default function EditProfileScreen() {
           <>
             <AppTextInput label="Experiencia" icon={HeartPulse} placeholder="Resumo da experiencia" />
             <AppTextInput label="Disponibilidade" icon={Calendar} placeholder="Dias e horarios" />
-            <AppTextInput label="Regiao de atendimento" icon={MapPin} placeholder="Bairros ou cidades" />
+            <AppTextInput label="Endereco de atendimento" icon={MapPin} placeholder="CEP, rua, numero e cidade" />
             <AppTextInput label="Servicos oferecidos" icon={Users} placeholder="Servicos separados por virgula" />
             <AppTextInput label="Biografia profissional" icon={HeartPulse} placeholder="Apresentacao breve" />
           </>
