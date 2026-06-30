@@ -12,15 +12,22 @@ import type {
   User,
 } from '@/types/auth';
 
-function toApiRegisterRequest(payload: RegisterResponsiblePayload | RegisterCaregiverPayload): SignupRequest {
+function toIsoDate(value: string) {
+  const [day, month, year] = value.split('/');
+  if (!day || !month || !year) return value;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+function toApiAddress(address: RegisterCaregiverPayload['caregiverProfile']['enderecoAtendimento']) {
   return {
-    fullName: payload.user.nome,
-    cpf: payload.user.cpf,
-    email: payload.user.email,
-    password: payload.senha,
-    birthDate: payload.user.dataNascimento,
-    userType: payload.user.tipoUsuario === 'CUIDADOR' ? 'caregiver' : 'family',
-    acceptedTerms: payload.acceptedTerms,
+    cep: address.cep,
+    rua: address.rua,
+    numero: address.numero,
+    complemento: address.complemento,
+    bairro: address.bairro,
+    cidade: address.cidade,
+    estado: address.estado,
+    pontoReferencia: address.pontoReferencia,
   };
 }
 
@@ -35,11 +42,87 @@ export function signup(request: SignupRequest) {
 export const register = signup as (request: RegisterRequest) => Promise<AuthResponse>;
 
 export function registerResponsible(payload: RegisterResponsiblePayload) {
-  return signup(toApiRegisterRequest(payload));
+  const assistedPerson = payload.assistedPersons[0];
+
+  return apiRequest<AuthResponse>('/api/auth/register/responsible', {
+    auth: false,
+    method: 'POST',
+    body: {
+      user: {
+        nome: payload.user.nome,
+        cpf: payload.user.cpf,
+        email: payload.user.email,
+        senha: payload.senha,
+        telefone: payload.user.telefone,
+        dataNascimento: toIsoDate(payload.user.dataNascimento),
+      },
+      responsibleProfile: {
+        parentesco: payload.responsibleProfile.parentescoPadrao,
+        parentescoOutro: payload.responsibleProfile.parentescoPersonalizado,
+        preferenciaContato: payload.responsibleProfile.contatoPreferencial,
+      },
+      assistedPerson: {
+        nome: assistedPerson.nome,
+        cpf: assistedPerson.cpf,
+        dataNascimento: toIsoDate(assistedPerson.dataNascimento),
+        grauDependencia: assistedPerson.grauDependencia,
+        mobilidade: assistedPerson.mobilidade,
+        mobilidadeOutro: assistedPerson.mobilidadePersonalizada,
+        alergias: assistedPerson.alergias,
+        alergiasOutro: assistedPerson.alergias?.includes('OUTRO') ? assistedPerson.detalhesAlergia : undefined,
+        alergiasDetalhes: assistedPerson.detalhesAlergia,
+        restricoesAlimentares: assistedPerson.restricoesAlimentares,
+        restricoesAlimentaresOutro: assistedPerson.restricoesAlimentares?.includes('OUTRO')
+          ? assistedPerson.detalhesRestricaoAlimentar
+          : undefined,
+        restricoesAlimentaresDetalhes: assistedPerson.detalhesRestricaoAlimentar,
+        medicamentos: assistedPerson.medicamentos,
+        observacoes: assistedPerson.observacoes,
+        enderecoCuidado: toApiAddress(assistedPerson.enderecoCuidado),
+        contatoEmergencia: {
+          nome: assistedPerson.contatoEmergencia.nome,
+          telefone: assistedPerson.contatoEmergencia.telefone,
+          vinculo: assistedPerson.contatoEmergencia.vinculo,
+          isResponsibleContact: Boolean(assistedPerson.contatoEmergencia.isResponsibleEmergencyContact),
+        },
+      },
+    },
+  });
 }
 
 export function registerCaregiver(payload: RegisterCaregiverPayload) {
-  return signup(toApiRegisterRequest(payload));
+  return apiRequest<AuthResponse>('/api/auth/register/caregiver', {
+    auth: false,
+    method: 'POST',
+    body: {
+      user: {
+        nome: payload.user.nome,
+        cpf: payload.user.cpf,
+        email: payload.user.email,
+        senha: payload.senha,
+        telefone: payload.user.telefone,
+        dataNascimento: toIsoDate(payload.user.dataNascimento),
+      },
+      address: toApiAddress(payload.caregiverProfile.enderecoAtendimento),
+      caregiverProfile: {
+        experiencia: payload.caregiverProfile.experiencia,
+        formacao: payload.caregiverProfile.formacao,
+        formacaoOutro: payload.caregiverProfile.formacaoPersonalizada,
+        biografia: payload.caregiverProfile.biografia,
+        modalidades: payload.caregiverProfile.modalidadeAtendimento,
+        modalidadeOutro: payload.caregiverProfile.modalidadePersonalizada,
+        servicosOferecidos: payload.caregiverProfile.servicosOferecidos,
+        servicoOutro: payload.caregiverProfile.servicoPersonalizado,
+        disponibilidade: {
+          diasSemana: payload.caregiverProfile.disponibilidade.diasSemana,
+          periodos: payload.caregiverProfile.disponibilidade.periodos,
+          horarioInicio: payload.caregiverProfile.disponibilidade.horariosEspecificos?.inicio,
+          horarioFim: payload.caregiverProfile.disponibilidade.horariosEspecificos?.fim,
+          observacao: payload.caregiverProfile.disponibilidade.observacao,
+        },
+      },
+    },
+  });
 }
 
 export function login(request: LoginRequest) {

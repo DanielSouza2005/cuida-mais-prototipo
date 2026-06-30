@@ -1,0 +1,11 @@
+package br.com.cuidaplus.api.profile;
+
+public enum FormacaoCuidador {
+  CURSO_CUIDADOR_IDOSOS,
+  TECNICO_ENFERMAGEM,
+  AUXILIAR_ENFERMAGEM,
+  ENFERMAGEM_SUPERIOR,
+  PRIMEIROS_SOCORROS,
+  EXPERIENCIA_PRATICA,
+  OUTRO
+}

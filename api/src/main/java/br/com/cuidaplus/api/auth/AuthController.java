@@ -3,7 +3,9 @@ package br.com.cuidaplus.api.auth;
 import br.com.cuidaplus.api.auth.dto.AuthResponse;
 import br.com.cuidaplus.api.auth.dto.ForgotPasswordRequest;
 import br.com.cuidaplus.api.auth.dto.LoginRequest;
+import br.com.cuidaplus.api.auth.dto.RegisterCaregiverRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterRequest;
+import br.com.cuidaplus.api.auth.dto.RegisterResponsibleRequest;
 import br.com.cuidaplus.api.auth.dto.ResetPasswordRequest;
 import br.com.cuidaplus.api.common.MessageResponse;
 import jakarta.validation.Valid;
@@ -26,6 +28,16 @@ public class AuthController {
   @PostMapping("/register")
   public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
     return authService.register(request);
+  }
+
+  @PostMapping("/register/responsible")
+  public AuthResponse registerResponsible(@Valid @RequestBody RegisterResponsibleRequest request) {
+    return authService.registerResponsible(request);
+  }
+
+  @PostMapping("/register/caregiver")
+  public AuthResponse registerCaregiver(@Valid @RequestBody RegisterCaregiverRequest request) {
+    return authService.registerCaregiver(request);
   }
 
   @PostMapping("/login")

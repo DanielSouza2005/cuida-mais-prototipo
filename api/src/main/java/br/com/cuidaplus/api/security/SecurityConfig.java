@@ -43,6 +43,8 @@ public class SecurityConfig {
         .requestMatchers(
           HttpMethod.POST,
           "/api/auth/register",
+          "/api/auth/register/responsible",
+          "/api/auth/register/caregiver",
           "/api/auth/login",
           "/api/auth/forgot-password",
           "/api/auth/reset-password"

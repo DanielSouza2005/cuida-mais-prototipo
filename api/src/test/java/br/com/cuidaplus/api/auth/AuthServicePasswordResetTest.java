@@ -31,6 +31,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
   "JWT_SECRET=01234567890123456789012345678901",
   "FRONTEND_RESET_PASSWORD_URL=http://localhost:19006/reset-password",
   "spring.datasource.driver-class-name=org.h2.Driver",
+  "spring.flyway.enabled=false",
   "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 class AuthServicePasswordResetTest {
@@ -141,7 +142,7 @@ class AuthServicePasswordResetTest {
     user.setCpf("12345678901");
     user.setEmail(email);
     user.setBirthDate(LocalDate.of(1990, 1, 1));
-    user.setUserType(UserType.FAMILY);
+    user.setUserType(UserType.RESPONSAVEL);
     user.setPasswordHash(passwordEncoder.encode(password));
     return userRepository.save(user);
   }

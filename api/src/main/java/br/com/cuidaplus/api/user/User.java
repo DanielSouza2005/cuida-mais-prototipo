@@ -44,9 +44,15 @@ public class User {
   @Column(nullable = false)
   private LocalDate birthDate;
 
+  @Column(length = 20)
+  private String phone;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private UserType userType;
+
+  @Column(nullable = false, length = 30)
+  private String status = "ACTIVE";
 
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
@@ -110,11 +116,27 @@ public class User {
     this.birthDate = birthDate;
   }
 
+  public String getPhone() {
+    return phone;
+  }
+
+  public void setPhone(String phone) {
+    this.phone = phone;
+  }
+
   public UserType getUserType() {
     return userType;
   }
 
   public void setUserType(UserType userType) {
     this.userType = userType;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
   }
 }

@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum UserType {
+  RESPONSAVEL("family"),
+  CUIDADOR("caregiver"),
+  ADMIN("admin"),
   FAMILY("family"),
   CAREGIVER("caregiver");
 
@@ -26,6 +29,14 @@ public enum UserType {
       }
     }
 
-    throw new IllegalArgumentException("Tipo de usuário inválido.");
+    if ("FAMILY".equalsIgnoreCase(value)) {
+      return RESPONSAVEL;
+    }
+
+    if ("CAREGIVER".equalsIgnoreCase(value)) {
+      return CUIDADOR;
+    }
+
+    throw new IllegalArgumentException("Tipo de usuario invalido.");
   }
 }

@@ -1,18 +1,33 @@
 package br.com.cuidaplus.api.auth;
 
 import br.com.cuidaplus.api.auth.dto.AuthResponse;
+import br.com.cuidaplus.api.auth.dto.AddressRequest;
 import br.com.cuidaplus.api.auth.dto.ForgotPasswordRequest;
 import br.com.cuidaplus.api.auth.dto.LoginRequest;
+import br.com.cuidaplus.api.auth.dto.RegisterCaregiverRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterRequest;
+import br.com.cuidaplus.api.auth.dto.RegisterResponsibleRequest;
+import br.com.cuidaplus.api.auth.dto.RegisterUserDataRequest;
 import br.com.cuidaplus.api.auth.dto.ResetPasswordRequest;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.common.MessageResponse;
 import br.com.cuidaplus.api.email.EmailService;
+import br.com.cuidaplus.api.profile.AddressFields;
+import br.com.cuidaplus.api.profile.AssistedPerson;
+import br.com.cuidaplus.api.profile.AssistedPersonRepository;
+import br.com.cuidaplus.api.profile.CaregiverAvailability;
+import br.com.cuidaplus.api.profile.CaregiverProfile;
+import br.com.cuidaplus.api.profile.CaregiverProfileRepository;
+import br.com.cuidaplus.api.profile.EmergencyContact;
+import br.com.cuidaplus.api.profile.EmergencyContactRepository;
+import br.com.cuidaplus.api.profile.ResponsibleProfile;
+import br.com.cuidaplus.api.profile.ResponsibleProfileRepository;
 import br.com.cuidaplus.api.security.TokenService;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserService;
+import br.com.cuidaplus.api.user.UserType;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -36,6 +51,10 @@ public class AuthService {
 
   private final UserRepository userRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
+  private final ResponsibleProfileRepository responsibleProfileRepository;
+  private final AssistedPersonRepository assistedPersonRepository;
+  private final EmergencyContactRepository emergencyContactRepository;
+  private final CaregiverProfileRepository caregiverProfileRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final TokenService tokenService;
@@ -48,6 +67,10 @@ public class AuthService {
   public AuthService(
     UserRepository userRepository,
     PasswordResetTokenRepository passwordResetTokenRepository,
+    ResponsibleProfileRepository responsibleProfileRepository,
+    AssistedPersonRepository assistedPersonRepository,
+    EmergencyContactRepository emergencyContactRepository,
+    CaregiverProfileRepository caregiverProfileRepository,
     UserMapper userMapper,
     PasswordEncoder passwordEncoder,
     TokenService tokenService,
@@ -58,6 +81,10 @@ public class AuthService {
   ) {
     this.userRepository = userRepository;
     this.passwordResetTokenRepository = passwordResetTokenRepository;
+    this.responsibleProfileRepository = responsibleProfileRepository;
+    this.assistedPersonRepository = assistedPersonRepository;
+    this.emergencyContactRepository = emergencyContactRepository;
+    this.caregiverProfileRepository = caregiverProfileRepository;
     this.userMapper = userMapper;
     this.passwordEncoder = passwordEncoder;
     this.tokenService = tokenService;
@@ -94,6 +121,81 @@ public class AuthService {
 
     User savedUser = userRepository.save(user);
     return new AuthResponse(userMapper.toResponse(savedUser), tokenService.generate(savedUser.getId()));
+  }
+
+  @Transactional
+  public AuthResponse registerResponsible(RegisterResponsibleRequest request) {
+    User user = createUser(request.user(), UserType.RESPONSAVEL);
+
+    ResponsibleProfile profile = new ResponsibleProfile();
+    profile.setUser(user);
+    profile.setParentesco(request.responsibleProfile().parentesco());
+    profile.setParentescoOutro(trimToNull(request.responsibleProfile().parentescoOutro()));
+    profile.setPreferenciaContato(request.responsibleProfile().preferenciaContato());
+    responsibleProfileRepository.save(profile);
+
+    RegisterResponsibleRequest.AssistedPersonRequest assistedRequest = request.assistedPerson();
+    AssistedPerson assistedPerson = new AssistedPerson();
+    assistedPerson.setResponsibleUser(user);
+    assistedPerson.setNome(assistedRequest.nome().trim());
+    assistedPerson.setCpf(optionalDigits(assistedRequest.cpf()));
+    assistedPerson.setDataNascimento(assistedRequest.dataNascimento());
+    assistedPerson.setGrauDependencia(assistedRequest.grauDependencia());
+    assistedPerson.setMobilidade(assistedRequest.mobilidade());
+    assistedPerson.setMobilidadeOutro(trimToNull(assistedRequest.mobilidadeOutro()));
+    assistedPerson.setAlergias(assistedRequest.alergias());
+    assistedPerson.setAlergiasOutro(trimToNull(assistedRequest.alergiasOutro()));
+    assistedPerson.setAlergiasDetalhes(trimToNull(assistedRequest.alergiasDetalhes()));
+    assistedPerson.setRestricoesAlimentares(assistedRequest.restricoesAlimentares());
+    assistedPerson.setRestricoesAlimentaresOutro(trimToNull(assistedRequest.restricoesAlimentaresOutro()));
+    assistedPerson.setRestricoesAlimentaresDetalhes(trimToNull(assistedRequest.restricoesAlimentaresDetalhes()));
+    assistedPerson.setMedicamentos(trimToNull(assistedRequest.medicamentos()));
+    assistedPerson.setObservacoes(trimToNull(assistedRequest.observacoes()));
+    assistedPerson.setEnderecoCuidado(toAddress(assistedRequest.enderecoCuidado()));
+    AssistedPerson savedAssistedPerson = assistedPersonRepository.save(assistedPerson);
+
+    RegisterResponsibleRequest.EmergencyContactRequest contactRequest = assistedRequest.contatoEmergencia();
+    EmergencyContact contact = new EmergencyContact();
+    contact.setAssistedPerson(savedAssistedPerson);
+    contact.setResponsibleContact(contactRequest.isResponsibleContact());
+    contact.setNome(contactRequest.isResponsibleContact() ? user.getFullName() : contactRequest.nome().trim());
+    contact.setTelefone(contactRequest.isResponsibleContact() ? user.getPhone() : UserService.onlyDigits(contactRequest.telefone()));
+    contact.setVinculo(contactRequest.isResponsibleContact()
+      ? resolveResponsibleRelationship(profile)
+      : contactRequest.vinculo().trim());
+    emergencyContactRepository.save(contact);
+
+    return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
+  }
+
+  @Transactional
+  public AuthResponse registerCaregiver(RegisterCaregiverRequest request) {
+    User user = createUser(request.user(), UserType.CUIDADOR);
+    RegisterCaregiverRequest.CaregiverProfileRequest profileRequest = request.caregiverProfile();
+
+    CaregiverProfile profile = new CaregiverProfile();
+    profile.setUser(user);
+    profile.setFormacao(profileRequest.formacao());
+    profile.setFormacaoOutro(trimToNull(profileRequest.formacaoOutro()));
+    profile.setExperiencia(trimToNull(profileRequest.experiencia()));
+    profile.setBiografia(trimToNull(profileRequest.biografia()));
+    profile.setEnderecoAtendimento(toAddress(request.address()));
+    profile.setModalidades(profileRequest.modalidades());
+    profile.setModalidadeOutro(trimToNull(profileRequest.modalidadeOutro()));
+    profile.setServicosOferecidos(profileRequest.servicosOferecidos());
+    profile.setServicoOutro(trimToNull(profileRequest.servicoOutro()));
+
+    RegisterCaregiverRequest.AvailabilityRequest availabilityRequest = profileRequest.disponibilidade();
+    CaregiverAvailability availability = new CaregiverAvailability();
+    availability.setDiasSemana(availabilityRequest.diasSemana());
+    availability.setPeriodos(availabilityRequest.periodos());
+    availability.setHorarioInicio(availabilityRequest.horarioInicio());
+    availability.setHorarioFim(availabilityRequest.horarioFim());
+    availability.setObservacao(trimToNull(availabilityRequest.observacao()));
+    profile.setDisponibilidade(availability);
+
+    caregiverProfileRepository.save(profile);
+    return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
   }
 
   @Transactional(readOnly = true)
@@ -154,6 +256,65 @@ public class AuthService {
 
   public MessageResponse logout() {
     return new MessageResponse("Sessao encerrada.");
+  }
+
+  private User createUser(RegisterUserDataRequest request, UserType userType) {
+    String email = UserService.normalizeEmail(request.email());
+    String cpf = UserService.onlyDigits(request.cpf());
+
+    if (userRepository.existsByEmail(email)) {
+      throw new BusinessException("E-mail ja cadastrado.");
+    }
+
+    if (userRepository.existsByCpf(cpf)) {
+      throw new BusinessException("CPF ja cadastrado.");
+    }
+
+    User user = new User();
+    user.setFullName(request.nome().trim());
+    user.setCpf(cpf);
+    user.setEmail(email);
+    user.setBirthDate(request.dataNascimento());
+    user.setPhone(UserService.onlyDigits(request.telefone()));
+    user.setUserType(userType);
+    user.setStatus("ACTIVE");
+    user.setPasswordHash(passwordEncoder.encode(request.senha()));
+
+    return userRepository.save(user);
+  }
+
+  private AddressFields toAddress(AddressRequest request) {
+    AddressFields address = new AddressFields();
+    address.setCep(UserService.onlyDigits(request.cep()));
+    address.setRua(request.rua().trim());
+    address.setNumero(request.numero().trim());
+    address.setComplemento(trimToNull(request.complemento()));
+    address.setBairro(request.bairro().trim());
+    address.setCidade(request.cidade().trim());
+    address.setEstado(request.estado().trim().toUpperCase());
+    address.setPontoReferencia(trimToNull(request.pontoReferencia()));
+    return address;
+  }
+
+  private String optionalDigits(String value) {
+    String digits = UserService.onlyDigits(value);
+    return digits.isBlank() ? null : digits;
+  }
+
+  private String trimToNull(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    return value.trim();
+  }
+
+  private String resolveResponsibleRelationship(ResponsibleProfile profile) {
+    if (profile.getParentescoOutro() != null && !profile.getParentescoOutro().isBlank()) {
+      return profile.getParentescoOutro();
+    }
+
+    return profile.getParentesco().name();
   }
 
   private void invalidateUnusedTokens(User user) {
