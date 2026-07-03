@@ -3,6 +3,7 @@ package br.com.cuidaplus.api.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -29,7 +30,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
   "DATABASE_USERNAME=sa",
   "DATABASE_PASSWORD=sa",
   "JWT_SECRET=01234567890123456789012345678901",
-  "FRONTEND_RESET_PASSWORD_URL=http://localhost:19006/reset-password",
+  "PASSWORD_RESET_MOBILE_URL=cuidarplus://reset-password",
+  "PASSWORD_RESET_WEB_URL=http://localhost:8081/reset-password",
+  "PASSWORD_RESET_PREFER_MOBILE_LINK=true",
   "spring.datasource.driver-class-name=org.h2.Driver",
   "spring.flyway.enabled=false",
   "spring.jpa.hibernate.ddl-auto=create-drop"
@@ -66,10 +69,11 @@ class AuthServicePasswordResetTest {
     authService.requestPasswordReset(new ForgotPasswordRequest("maria@example.com"), FRONTEND_ORIGIN);
 
     assertThat(passwordResetTokenRepository.findAll()).hasSize(1);
-    verify(emailService).sendPasswordResetEmail(eq("maria@example.com"), org.mockito.ArgumentMatchers.contains("token="));
-    ArgumentCaptor<String> linkCaptor = ArgumentCaptor.forClass(String.class);
-    verify(emailService).sendPasswordResetEmail(eq("maria@example.com"), linkCaptor.capture());
-    assertThat(linkCaptor.getValue()).startsWith(FRONTEND_ORIGIN + "?token=");
+    ArgumentCaptor<String> primaryLinkCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> fallbackLinkCaptor = ArgumentCaptor.forClass(String.class);
+    verify(emailService).sendPasswordResetEmail(eq("maria@example.com"), primaryLinkCaptor.capture(), fallbackLinkCaptor.capture(), eq(30L));
+    assertThat(primaryLinkCaptor.getValue()).startsWith("cuidarplus://reset-password?token=");
+    assertThat(fallbackLinkCaptor.getValue()).startsWith(FRONTEND_ORIGIN + "/reset-password?token=");
     assertThat(passwordResetTokenRepository.findAll().get(0).getTokenHash()).hasSize(64);
   }
 
@@ -79,7 +83,12 @@ class AuthServicePasswordResetTest {
 
     assertThat(message).contains("Se o e-mail estiver cadastrado");
     assertThat(passwordResetTokenRepository.findAll()).isEmpty();
-    verify(emailService, never()).sendPasswordResetEmail(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+    verify(emailService, never()).sendPasswordResetEmail(
+      org.mockito.ArgumentMatchers.anyString(),
+      org.mockito.ArgumentMatchers.anyString(),
+      org.mockito.ArgumentMatchers.anyString(),
+      anyLong()
+    );
   }
 
   @Test
@@ -150,7 +159,7 @@ class AuthServicePasswordResetTest {
   private String requestToken(String email) {
     authService.requestPasswordReset(new ForgotPasswordRequest(email), FRONTEND_ORIGIN);
     ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-    verify(emailService, org.mockito.Mockito.atLeastOnce()).sendPasswordResetEmail(eq(email), captor.capture());
+    verify(emailService, org.mockito.Mockito.atLeastOnce()).sendPasswordResetEmail(eq(email), captor.capture(), org.mockito.ArgumentMatchers.anyString(), anyLong());
     String link = captor.getAllValues().get(captor.getAllValues().size() - 1);
     return URI.create(link).getQuery().replace("token=", "");
   }

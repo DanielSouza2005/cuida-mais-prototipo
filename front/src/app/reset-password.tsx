@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { KeyRound, Lock, ShieldCheck } from 'lucide-react-native';
+import { Lock, ShieldCheck } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/back-button';
@@ -26,16 +26,13 @@ export default function ResetPasswordScreen() {
     if (typeof params.token === 'string') return params.token;
     return '';
   }, [params.token]);
-  const [token, setToken] = useState(initialToken);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialToken) setToken(initialToken);
-  }, [initialToken]);
+  const token = initialToken.trim();
+  const canRequestNewLink = !token || (!isSuccess && feedback?.toLowerCase().includes('token'));
 
   useEffect(() => () => {
     if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
@@ -45,8 +42,8 @@ export default function ResetPasswordScreen() {
     setFeedback(null);
     setIsSuccess(false);
 
-    if (!token.trim() || !password || !confirmPassword) {
-      setFeedback('Informe o token e a nova senha.');
+    if (!token || !password || !confirmPassword) {
+      setFeedback(token ? 'Informe a nova senha.' : 'Link de recuperacao invalido ou incompleto.');
       return;
     }
 
@@ -62,7 +59,7 @@ export default function ResetPasswordScreen() {
 
     try {
       setIsSubmitting(true);
-      const response = await resetPassword({ token: token.trim(), password });
+      const response = await resetPassword({ token, newPassword: password });
       setFeedback(response.message);
       setIsSuccess(true);
       redirectTimeoutRef.current = setTimeout(() => router.replace('/login'), 1200);
@@ -85,26 +82,42 @@ export default function ResetPasswordScreen() {
 
       <View style={styles.heading}>
         <Text style={styles.title}>Crie uma nova senha</Text>
-        <Text style={styles.subtitle}>Use o token recebido por e-mail e informe uma senha com pelo menos 6 caracteres.</Text>
+        <Text style={styles.subtitle}>Use o link recebido por e-mail e informe uma senha com pelo menos 6 caracteres.</Text>
       </View>
 
       <View style={styles.form}>
-        <AppTextInput label="Token de recuperacao" icon={KeyRound} placeholder="Token recebido por e-mail" value={token} onChangeText={setToken} autoCapitalize="none" />
-        <AppTextInput label="Nova senha" icon={Lock} placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
-        <AppTextInput label="Confirmar nova senha" icon={Lock} placeholder="••••••••" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+        {token ? (
+          <>
+            <AppTextInput label="Nova senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry />
+            <AppTextInput label="Confirmar nova senha" icon={Lock} placeholder="********" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
-        <View style={styles.rules}>
-          <Text style={styles.rule}>• Minimo 6 caracteres</Text>
-          <Text style={styles.rule}>• O token expira e so pode ser usado uma vez</Text>
-        </View>
+            <View style={styles.rules}>
+              <Text style={styles.rule}>- Minimo 6 caracteres</Text>
+              <Text style={styles.rule}>- O link expira e so pode ser usado uma vez</Text>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.feedbackText}>Link de recuperacao invalido ou incompleto.</Text>
+        )}
 
         {feedback ? <Text style={[styles.feedbackText, isSuccess && styles.successText]}>{feedback}</Text> : null}
 
-        <PrimaryButton
-          label={isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
-          onPress={handleResetPassword}
-          disabled={isSubmitting || isSuccess}
-        />
+        {token ? (
+          <PrimaryButton
+            label={isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
+            onPress={handleResetPassword}
+            disabled={isSubmitting || isSuccess}
+          />
+        ) : null}
+
+        {canRequestNewLink ? (
+          <PrimaryButton
+            label="Solicitar novo link"
+            variant="secondary"
+            onPress={() => router.replace('/forgot-password')}
+            disabled={isSubmitting}
+          />
+        ) : null}
       </View>
     </ScreenContainer>
   );

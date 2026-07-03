@@ -153,7 +153,7 @@ export type ForgotPasswordRequest = {
 
 export type ResetPasswordRequest = {
   token: string;
-  password: string;
+  newPassword: string;
 };
 
 export type MessageResponse = {

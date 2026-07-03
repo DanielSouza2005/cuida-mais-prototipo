@@ -60,7 +60,9 @@ public class AuthService {
   private final TokenService tokenService;
   private final EmailService emailService;
   private final SecureRandom secureRandom = new SecureRandom();
-  private final String resetPasswordUrl;
+  private final String mobileResetPasswordUrl;
+  private final String webResetPasswordUrl;
+  private final boolean preferMobileResetLink;
   private final Set<String> allowedOrigins;
   private final long resetExpirationMinutes;
 
@@ -75,7 +77,9 @@ public class AuthService {
     PasswordEncoder passwordEncoder,
     TokenService tokenService,
     EmailService emailService,
-    @Value("${app.frontend.reset-password-url}") String resetPasswordUrl,
+    @Value("${app.password-reset.mobile-url}") String mobileResetPasswordUrl,
+    @Value("${app.password-reset.web-url}") String webResetPasswordUrl,
+    @Value("${app.password-reset.prefer-mobile-link}") boolean preferMobileResetLink,
     @Value("${app.cors.allowed-origins}") String allowedOrigins,
     @Value("${app.password-reset.expiration-minutes}") long resetExpirationMinutes
   ) {
@@ -89,10 +93,13 @@ public class AuthService {
     this.passwordEncoder = passwordEncoder;
     this.tokenService = tokenService;
     this.emailService = emailService;
-    this.resetPasswordUrl = resetPasswordUrl;
+    this.mobileResetPasswordUrl = mobileResetPasswordUrl;
+    this.webResetPasswordUrl = webResetPasswordUrl;
+    this.preferMobileResetLink = preferMobileResetLink;
     this.allowedOrigins = Arrays
       .stream(allowedOrigins.split(","))
       .map(String::trim)
+      .map(this::stripTrailingSlash)
       .filter(origin -> !origin.isBlank())
       .collect(Collectors.toSet());
     this.resetExpirationMinutes = resetExpirationMinutes;
@@ -225,7 +232,12 @@ public class AuthService {
       resetToken.setExpiresAt(Instant.now().plusSeconds(resetExpirationMinutes * 60));
       passwordResetTokenRepository.save(resetToken);
 
-      emailService.sendPasswordResetEmail(user.getEmail(), buildResetLink(token, origin));
+      emailService.sendPasswordResetEmail(
+        user.getEmail(),
+        buildPrimaryResetLink(token),
+        buildWebResetLink(token, origin),
+        resetExpirationMinutes
+      );
     });
 
     return new MessageResponse(RESET_MESSAGE);
@@ -246,7 +258,7 @@ public class AuthService {
     }
 
     User user = resetToken.getUser();
-    user.setPasswordHash(passwordEncoder.encode(request.password()));
+    user.setPasswordHash(passwordEncoder.encode(request.resolvedPassword()));
     resetToken.setUsedAt(Instant.now());
     userRepository.save(user);
     passwordResetTokenRepository.save(resetToken);
@@ -341,20 +353,46 @@ public class AuthService {
     }
   }
 
-  private String buildResetLink(String token, String origin) {
-    String baseUrl = resolveResetPasswordUrl(origin);
+  private String buildPrimaryResetLink(String token) {
+    String baseUrl = preferMobileResetLink ? mobileResetPasswordUrl : webResetPasswordUrl;
+    return appendToken(ensureResetPasswordPath(baseUrl), token);
+  }
+
+  private String buildWebResetLink(String token, String origin) {
+    return appendToken(resolveWebResetPasswordUrl(origin), token);
+  }
+
+  private String resolveWebResetPasswordUrl(String origin) {
+    if (origin != null) {
+      String normalizedOrigin = stripTrailingSlash(origin.trim());
+      if (allowedOrigins.contains(normalizedOrigin)) {
+        return ensureResetPasswordPath(normalizedOrigin);
+      }
+    }
+
+    return ensureResetPasswordPath(webResetPasswordUrl);
+  }
+
+  private String appendToken(String baseUrl, String token) {
     String separator = baseUrl.contains("?") ? "&" : "?";
     return baseUrl + separator + "token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
   }
 
-  private String resolveResetPasswordUrl(String origin) {
-    if (origin != null) {
-      String normalizedOrigin = origin.trim();
-      if (allowedOrigins.contains(normalizedOrigin)) {
-        return normalizedOrigin;
-      }
+  private String ensureResetPasswordPath(String url) {
+    String normalizedUrl = stripTrailingSlash(url.trim());
+    if (normalizedUrl.endsWith("/reset-password")) {
+      return normalizedUrl;
     }
 
-    return resetPasswordUrl;
+    return normalizedUrl + "/reset-password";
+  }
+
+  private String stripTrailingSlash(String value) {
+    String normalizedValue = value;
+    while (normalizedValue.endsWith("/")) {
+      normalizedValue = normalizedValue.substring(0, normalizedValue.length() - 1);
+    }
+
+    return normalizedValue;
   }
 }
