@@ -5,16 +5,17 @@ import { Brand } from '@/components/brand';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 type Props = {
+  backDisabled?: boolean;
   title?: string;
   subtitle?: string;
   showBack?: boolean;
 };
 
-export function AppHeader({ title, subtitle, showBack = false }: Props) {
+export function AppHeader({ backDisabled = false, title, subtitle, showBack = false }: Props) {
   return (
     <View style={styles.wrapper}>
       <View style={styles.topRow}>
-        {showBack ? <BackButton /> : <Brand />}
+        {showBack ? <BackButton disabled={backDisabled} /> : <Brand />}
         {showBack ? <Brand /> : null}
       </View>
       {title ? (

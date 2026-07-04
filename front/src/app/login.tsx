@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/back-button';
 import { BrandMark } from '@/components/brand';
@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { ApiError } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
@@ -28,8 +29,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useBlockNavigationWhenBusy(isSubmitting);
 
   async function handleLogin() {
+    if (isSubmitting) return;
+
     setFeedback(null);
 
     if (!email.trim() || !password) {
@@ -56,7 +60,7 @@ export default function LoginScreen() {
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
       <View style={styles.topRow}>
-        <BackButton />
+        <BackButton disabled={isSubmitting} />
         <BrandMark />
       </View>
 
@@ -68,21 +72,28 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.form}>
-        <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" disabled={isSubmitting} />
         <View style={styles.passwordBlock}>
-          <AppTextInput label="Senha" icon={Lock} placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
-          <Link href="/forgot-password" style={styles.forgotLink}>
-            Esqueci minha senha
-          </Link>
+          <AppTextInput label="Senha" icon={Lock} placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry disabled={isSubmitting} />
+          <Pressable disabled={isSubmitting} onPress={() => router.push('/forgot-password')} style={styles.forgotButton}>
+            <Text style={[styles.forgotLink, isSubmitting && styles.disabledLink]}>Esqueci minha senha</Text>
+          </Pressable>
         </View>
 
         {feedback ? <Text style={styles.errorText}>{feedback}</Text> : null}
 
-        <PrimaryButton label={isSubmitting ? 'Entrando...' : 'Entrar'} onPress={handleLogin} disabled={isSubmitting} />
+        <PrimaryButton label={isSubmitting ? 'Entrando...' : 'Entrar'} onPress={handleLogin} disabled={isSubmitting} loading={isSubmitting} />
       </View>
 
       <Text style={styles.footerText}>
-        Não tem uma conta? <Link href="/signup" style={styles.footerLink}>Cadastre-se</Link>
+        Não tem uma conta?{' '}
+        <Text
+          accessibilityRole="link"
+          onPress={isSubmitting ? undefined : () => router.push('/signup')}
+          style={[styles.footerLink, isSubmitting && styles.disabledLink]}
+        >
+          Cadastre-se
+        </Text>
       </Text>
     </ScreenContainer>
   );
@@ -126,10 +137,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   forgotLink: {
+    textAlign: 'right',
     alignSelf: 'flex-end',
     fontFamily: fontFamily.semiBold,
     fontSize: 12,
     color: colors.primary,
+  },
+  forgotButton: {
+    alignSelf: 'flex-end',
   },
   errorText: {
     fontFamily: fontFamily.medium,
@@ -148,5 +163,9 @@ const styles = StyleSheet.create({
   footerLink: {
     fontFamily: fontFamily.semiBold,
     color: colors.primary,
+  },
+  disabledLink: {
+    color: colors.mutedForeground,
+    opacity: 0.55,
   },
 });

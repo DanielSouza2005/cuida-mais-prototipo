@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { KeyRound, Mail } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { BackButton } from '@/components/back-button';
 import { AppTextInput } from '@/components/app-text-input';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { forgotPassword } from '@/services/authService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
@@ -19,8 +20,11 @@ export default function ForgotPasswordScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useBlockNavigationWhenBusy(isSubmitting);
 
   async function handleForgotPassword() {
+    if (isSubmitting) return;
+
     setFeedback(null);
     setIsSuccess(false);
 
@@ -49,7 +53,7 @@ export default function ForgotPasswordScreen() {
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
       <View style={styles.topRow}>
-        <BackButton />
+        <BackButton disabled={isSubmitting} />
       </View>
 
       <View style={styles.iconBox}>
@@ -64,13 +68,20 @@ export default function ForgotPasswordScreen() {
       </View>
 
       <View style={styles.form}>
-        <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" disabled={isSubmitting} />
         {feedback ? <Text style={[styles.feedbackText, isSuccess && styles.successText]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSubmitting ? 'Enviando...' : 'Enviar link de recuperação'} onPress={handleForgotPassword} disabled={isSubmitting} />
+        <PrimaryButton label={isSubmitting ? 'Enviando...' : 'Enviar link de recuperação'} onPress={handleForgotPassword} disabled={isSubmitting} loading={isSubmitting} />
       </View>
 
       <Text style={styles.footerText}>
-        Lembrou a senha? <Link href="/login" style={styles.footerLink}>Entrar</Link>
+        Lembrou a senha?{' '}
+        <Text
+          accessibilityRole="link"
+          onPress={isSubmitting ? undefined : () => router.push('/login')}
+          style={[styles.footerLink, isSubmitting && styles.disabledLink]}
+        >
+          Entrar
+        </Text>
       </Text>
     </ScreenContainer>
   );
@@ -137,5 +148,9 @@ const styles = StyleSheet.create({
   footerLink: {
     fontFamily: fontFamily.semiBold,
     color: colors.primary,
+  },
+  disabledLink: {
+    color: colors.mutedForeground,
+    opacity: 0.55,
   },
 });

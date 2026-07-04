@@ -7,6 +7,7 @@ import { BackButton } from '@/components/back-button';
 import { AppTextInput } from '@/components/app-text-input';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { resetPassword } from '@/services/authService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
@@ -33,12 +34,15 @@ export default function ResetPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const token = initialToken.trim();
   const canRequestNewLink = !token || (!isSuccess && feedback?.toLowerCase().includes('token'));
+  useBlockNavigationWhenBusy(isSubmitting);
 
   useEffect(() => () => {
     if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
   }, []);
 
   async function handleResetPassword() {
+    if (isSubmitting) return;
+
     setFeedback(null);
     setIsSuccess(false);
 
@@ -73,7 +77,7 @@ export default function ResetPasswordScreen() {
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
       <View style={styles.topRow}>
-        <BackButton />
+        <BackButton disabled={isSubmitting} />
       </View>
 
       <View style={styles.iconBox}>
@@ -88,8 +92,8 @@ export default function ResetPasswordScreen() {
       <View style={styles.form}>
         {token ? (
           <>
-            <AppTextInput label="Nova senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry />
-            <AppTextInput label="Confirmar nova senha" icon={Lock} placeholder="********" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+            <AppTextInput label="Nova senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry disabled={isSubmitting || isSuccess} />
+            <AppTextInput label="Confirmar nova senha" icon={Lock} placeholder="********" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry disabled={isSubmitting || isSuccess} />
 
             <View style={styles.rules}>
               <Text style={styles.rule}>- Minimo 6 caracteres</Text>
@@ -107,6 +111,7 @@ export default function ResetPasswordScreen() {
             label={isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
             onPress={handleResetPassword}
             disabled={isSubmitting || isSuccess}
+            loading={isSubmitting}
           />
         ) : null}
 

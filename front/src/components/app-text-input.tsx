@@ -12,6 +12,7 @@ import { Eye, EyeOff } from 'lucide-react-native';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 type Props = TextInputProps & {
+  disabled?: boolean;
   label: string;
   icon?: LucideIcon;
   optional?: boolean;
@@ -25,6 +26,8 @@ export function AppTextInput({
   optional,
   required,
   secureTextEntry,
+  disabled,
+  editable: editableProp,
   visualState = 'default',
   style,
   ...props
@@ -34,6 +37,7 @@ export function AppTextInput({
   const PasswordIcon = hidden ? EyeOff : Eye;
   const isSuccess = visualState === 'success';
   const isError = visualState === 'error';
+  const editable = editableProp ?? !disabled;
 
   return (
     <View style={styles.wrapper}>
@@ -48,12 +52,14 @@ export function AppTextInput({
           focused && styles.focused,
           isSuccess && styles.success,
           isError && styles.error,
+          !editable && styles.disabledShell,
         ]}
       >
         {Icon ? <Icon color={focused ? colors.primary : colors.mutedForeground} size={19} /> : null}
         <TextInput
           placeholderTextColor={colors.mutedForeground}
           secureTextEntry={hidden}
+          editable={editable}
           onFocus={(event) => {
             setFocused(true);
             props.onFocus?.(event);
@@ -65,7 +71,7 @@ export function AppTextInput({
           style={[styles.input, style]}
           {...props}
         />
-        {secureTextEntry ? (
+        {secureTextEntry && editable ? (
           <PasswordIcon
             color={colors.mutedForeground}
             size={19}
@@ -109,6 +115,9 @@ const styles = StyleSheet.create({
   },
   error: {
     borderColor: colors.destructive,
+  },
+  disabledShell: {
+    opacity: 0.62,
   },
   input: {
     flex: 1,

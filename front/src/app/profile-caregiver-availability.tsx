@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { LoadingState } from '@/components/loading-state';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import {
   careModalityOptions,
   dayPeriodOptions,
@@ -32,6 +34,8 @@ export default function ProfileCaregiverAvailabilityScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const usesCustomSchedule = periodos.includes('HORARIO_PERSONALIZADO');
+  const formDisabled = isLoading || isSaving;
+  useBlockNavigationWhenBusy(isSaving);
 
   useEffect(() => {
     let active = true;
@@ -89,23 +93,29 @@ export default function ProfileCaregiverAvailabilityScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Disponibilidade" subtitle="Horários, modalidade de atendimento e agenda" />
+      <AppHeader showBack backDisabled={isSaving} title="Disponibilidade" subtitle="Horários, modalidade de atendimento e agenda" />
       <View style={styles.card}>
-        <OptionGroup required multiple label="Dias da semana" options={weekDayOptions} value={diasSemana} onChange={(value) => setDiasSemana(value as WeekDay[])} />
-        <OptionGroup required multiple label="Períodos" options={dayPeriodOptions} value={periodos} onChange={(value) => setPeriodos(value as DayPeriod[])} />
-        {usesCustomSchedule ? (
+        {isLoading ? (
+          <LoadingState />
+        ) : (
           <>
-            <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={horarioInicio} onChangeText={setHorarioInicio} editable={!isLoading} />
-            <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={horarioFim} onChangeText={setHorarioFim} editable={!isLoading} />
+            <OptionGroup required multiple label="Dias da semana" options={weekDayOptions} value={diasSemana} onChange={(value) => setDiasSemana(value as WeekDay[])} disabled={formDisabled} />
+            <OptionGroup required multiple label="Períodos" options={dayPeriodOptions} value={periodos} onChange={(value) => setPeriodos(value as DayPeriod[])} disabled={formDisabled} />
+            {usesCustomSchedule ? (
+              <>
+                <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={horarioInicio} onChangeText={setHorarioInicio} disabled={formDisabled} />
+                <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={horarioFim} onChangeText={setHorarioFim} disabled={formDisabled} />
+              </>
+            ) : null}
+            <OptionGroup required multiple label="Modalidades de atendimento" options={careModalityOptions} value={modalidades} onChange={(value) => setModalidades(value as CareModality[])} disabled={formDisabled} />
+            {modalidades.includes('OUTRO') ? (
+              <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={modalidadeOutro} onChangeText={setModalidadeOutro} disabled={formDisabled} />
+            ) : null}
+            <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={observacao} onChangeText={setObservacao} multiline disabled={formDisabled} />
           </>
-        ) : null}
-        <OptionGroup required multiple label="Modalidades de atendimento" options={careModalityOptions} value={modalidades} onChange={(value) => setModalidades(value as CareModality[])} />
-        {modalidades.includes('OUTRO') ? (
-          <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={modalidadeOutro} onChangeText={setModalidadeOutro} editable={!isLoading} />
-        ) : null}
-        <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={observacao} onChangeText={setObservacao} multiline editable={!isLoading} />
+        )}
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={formDisabled} loading={isSaving} />
       </View>
     </ScreenContainer>
   );

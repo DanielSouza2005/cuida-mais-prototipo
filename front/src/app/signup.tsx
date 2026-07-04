@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, router } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import {
   Calendar,
   Check,
@@ -46,6 +46,7 @@ import {
   type WeekDay,
 } from '@/constants/enums';
 import { useAuth } from '@/hooks/useAuth';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { CepError, getAddressByCep } from '@/services/cepService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
@@ -159,11 +160,18 @@ export default function SignupScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const today = useMemo(() => new Date(), []);
+  const caregiverCepRequestRef = useRef('');
+  const careCepRequestRef = useRef('');
 
   const maxStep = role === 'family' ? 4 : 4;
   const showAllergyDetails = needsDetail(allergies);
   const showFoodRestrictionDetails = needsDetail(foodRestrictions);
   const usesCustomAvailability = dayPeriods.includes('HORARIO_PERSONALIZADO');
+  const screenBusy = isSubmitting || isFetchingCep || isFetchingCareCep;
+  const formDisabled = screenBusy;
+  const careAddressDisabled = screenBusy;
+  const caregiverAddressDisabled = screenBusy;
+  useBlockNavigationWhenBusy(screenBusy);
 
   const title = useMemo(() => {
     if (step === 0) return 'Escolha o tipo de conta';
@@ -180,10 +188,14 @@ export default function SignupScreen() {
   useEffect(() => {
     const cleanCep = unformatCep(caregiverAddress.cep);
     if (role !== 'caregiver' || cleanCep.length !== 8) {
+      caregiverCepRequestRef.current = '';
       setCepFeedback(null);
       setCepFeedbackKind('info');
       return;
     }
+
+    if (caregiverCepRequestRef.current === cleanCep) return;
+    caregiverCepRequestRef.current = cleanCep;
 
     let active = true;
 
@@ -226,10 +238,14 @@ export default function SignupScreen() {
   useEffect(() => {
     const cleanCep = unformatCep(careAddress.cep);
     if (role !== 'family' || cleanCep.length !== 8) {
+      careCepRequestRef.current = '';
       setCareCepFeedback(null);
       setCareCepFeedbackKind('info');
       return;
     }
+
+    if (careCepRequestRef.current === cleanCep) return;
+    careCepRequestRef.current = cleanCep;
 
     let active = true;
 
@@ -427,6 +443,8 @@ export default function SignupScreen() {
   }
 
   async function handleNext() {
+    if (isSubmitting || isFetchingCep || isFetchingCareCep) return;
+
     setFeedback(null);
 
     const validationFeedback = validateCurrentStep();
@@ -478,7 +496,7 @@ export default function SignupScreen() {
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
       <View style={styles.topRow}>
-        <BackButton />
+        <BackButton disabled={screenBusy} />
         <BrandMark />
       </View>
 
@@ -487,18 +505,18 @@ export default function SignupScreen() {
         <Text style={styles.subtitle}>{title}</Text>
       </View>
 
-      {step === 0 ? <RoleSelector value={role} onChange={setRole} /> : null}
+      {step === 0 ? <RoleSelector value={role} onChange={setRole} disabled={screenBusy} /> : null}
 
       <View style={styles.form}>
         {step === 1 ? (
           <>
-            <AppTextInput required label="Nome completo" icon={User} placeholder="Maria da Silva" value={fullName} onChangeText={setFullName} autoCapitalize="words" />
-            <AppTextInput required label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" />
-            <AppTextInput required label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} visualState={email && !isValidEmailFormat(email) ? 'error' : 'default'} />
-            <AppTextInput required label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={(value) => setPhone(formatPhone(value))} keyboardType="phone-pad" />
-            <DatePickerField required label="Data de nascimento" value={birthDate} onChange={setBirthDate} maxDate={today} />
-            <AppTextInput required label="Senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry />
-            <AppTextInput required label="Confirmar senha" icon={Lock} placeholder="********" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry />
+            <AppTextInput required label="Nome completo" icon={User} placeholder="Maria da Silva" value={fullName} onChangeText={setFullName} autoCapitalize="words" disabled={formDisabled} />
+            <AppTextInput required label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" disabled={formDisabled} />
+            <AppTextInput required label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} visualState={email && !isValidEmailFormat(email) ? 'error' : 'default'} disabled={formDisabled} />
+            <AppTextInput required label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={(value) => setPhone(formatPhone(value))} keyboardType="phone-pad" disabled={formDisabled} />
+            <DatePickerField required label="Data de nascimento" value={birthDate} onChange={setBirthDate} maxDate={today} disabled={formDisabled} />
+            <AppTextInput required label="Senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry disabled={formDisabled} />
+            <AppTextInput required label="Confirmar senha" icon={Lock} placeholder="********" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry disabled={formDisabled} />
             {role === 'family' ? (
               null
             ) : (
@@ -509,41 +527,41 @@ export default function SignupScreen() {
 
         {role === 'family' && step === 2 ? (
           <>
-            <OptionGroup required label="Parentesco ou vínculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} />
+            <OptionGroup required label="Parentesco ou vínculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} disabled={formDisabled} />
             {relationship === 'OUTRO' ? (
-              <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} />
+              <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} disabled={formDisabled} />
             ) : null}
-            <OptionGroup required label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
+            <OptionGroup required label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} disabled={formDisabled} />
           </>
         ) : null}
 
         {role === 'family' && step === 3 ? (
           <>
-            <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={assistedName} onChangeText={setAssistedName} />
-            <DatePickerField required label="Data de nascimento" value={assistedBirthDate} onChange={setAssistedBirthDate} maxDate={today} />
-            <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={assistedCpf} onChangeText={(value) => setAssistedCpf(formatCpf(value))} keyboardType="number-pad" />
-            <OptionGroup required label="Grau de dependência" options={dependencyLevelOptions} value={dependencyLevel} onChange={(value) => setDependencyLevel(value as DependencyLevel)} />
-            <OptionGroup required label="Mobilidade" options={mobilityOptions} value={mobility} onChange={(value) => setMobility(value as Mobility)} />
+            <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={assistedName} onChangeText={setAssistedName} disabled={formDisabled} />
+            <DatePickerField required label="Data de nascimento" value={assistedBirthDate} onChange={setAssistedBirthDate} maxDate={today} disabled={formDisabled} />
+            <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={assistedCpf} onChangeText={(value) => setAssistedCpf(formatCpf(value))} keyboardType="number-pad" disabled={formDisabled} />
+            <OptionGroup required label="Grau de dependência" options={dependencyLevelOptions} value={dependencyLevel} onChange={(value) => setDependencyLevel(value as DependencyLevel)} disabled={formDisabled} />
+            <OptionGroup required label="Mobilidade" options={mobilityOptions} value={mobility} onChange={(value) => setMobility(value as Mobility)} disabled={formDisabled} />
             {mobility === 'OUTRO' ? (
-              <AppTextInput required label="Mobilidade personalizada" icon={HeartPulse} placeholder="Descreva a mobilidade" value={mobilityCustom} onChangeText={setMobilityCustom} />
+              <AppTextInput required label="Mobilidade personalizada" icon={HeartPulse} placeholder="Descreva a mobilidade" value={mobilityCustom} onChangeText={setMobilityCustom} disabled={formDisabled} />
             ) : null}
-            <AppTextInput required label="Necessidades de cuidado" icon={HeartPulse} placeholder="Separadas por vírgula" value={careNeeds} onChangeText={setCareNeeds} />
-            <OptionGroup required multiple label="Alergias" options={allergyOptions} value={allergies} onChange={(value) => setAllergies(normalizeExclusiveHealthOptions(value as Allergy[]))} />
+            <AppTextInput required label="Necessidades de cuidado" icon={HeartPulse} placeholder="Separadas por vírgula" value={careNeeds} onChangeText={setCareNeeds} disabled={formDisabled} />
+            <OptionGroup required multiple label="Alergias" options={allergyOptions} value={allergies} onChange={(value) => setAllergies(normalizeExclusiveHealthOptions(value as Allergy[]))} disabled={formDisabled} />
             {showAllergyDetails ? (
-              <AppTextInput required label="Detalhes da alergia" icon={HeartPulse} placeholder="Informe detalhes importantes" value={allergyDetails} onChangeText={setAllergyDetails} />
+              <AppTextInput required label="Detalhes da alergia" icon={HeartPulse} placeholder="Informe detalhes importantes" value={allergyDetails} onChangeText={setAllergyDetails} disabled={formDisabled} />
             ) : null}
-            <AppTextInput optional label="Medicamentos" icon={HeartPulse} placeholder="Liste se houver" value={medications} onChangeText={setMedications} />
-            <OptionGroup required multiple label="Restrições alimentares" options={foodRestrictionOptions} value={foodRestrictions} onChange={(value) => setFoodRestrictions(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} />
+            <AppTextInput optional label="Medicamentos" icon={HeartPulse} placeholder="Liste se houver" value={medications} onChangeText={setMedications} disabled={formDisabled} />
+            <OptionGroup required multiple label="Restrições alimentares" options={foodRestrictionOptions} value={foodRestrictions} onChange={(value) => setFoodRestrictions(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} disabled={formDisabled} />
             {showFoodRestrictionDetails ? (
-              <AppTextInput required label="Detalhes da restrição alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={foodRestrictionDetails} onChangeText={setFoodRestrictionDetails} />
+              <AppTextInput required label="Detalhes da restrição alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={foodRestrictionDetails} onChangeText={setFoodRestrictionDetails} disabled={formDisabled} />
             ) : null}
-            <AppTextInput optional label="Observações importantes" icon={HeartPulse} placeholder="Informações adicionais" value={notes} onChangeText={setNotes} />
+            <AppTextInput optional label="Observações importantes" icon={HeartPulse} placeholder="Informações adicionais" value={notes} onChangeText={setNotes} disabled={formDisabled} />
           </>
         ) : null}
 
         {role === 'family' && step === 4 ? (
           <>
-            <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={careAddress.cep} onChangeText={(value) => updateCareAddress('cep', value)} keyboardType="number-pad" />
+            <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={careAddress.cep} onChangeText={(value) => updateCareAddress('cep', value)} keyboardType="number-pad" disabled={careAddressDisabled} />
             {careCepFeedback ? (
               <Text style={[
                 styles.feedbackText,
@@ -553,18 +571,19 @@ export default function SignupScreen() {
                 {careCepFeedback}
               </Text>
             ) : null}
-            <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua do cuidado" value={careAddress.rua} onChangeText={(value) => updateCareAddress('rua', value)} />
-            <AppTextInput required label="Número" icon={MapPin} placeholder="123" value={careAddress.numero} onChangeText={(value) => updateCareAddress('numero', value)} />
-            <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={careAddress.complemento} onChangeText={(value) => updateCareAddress('complemento', value)} />
-            <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={careAddress.bairro} onChangeText={(value) => updateCareAddress('bairro', value)} />
-            <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={careAddress.cidade} onChangeText={(value) => updateCareAddress('cidade', value)} />
-            <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={careAddress.estado} onChangeText={(value) => updateCareAddress('estado', value)} autoCapitalize="characters" />
-            <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={careAddress.pontoReferencia} onChangeText={(value) => updateCareAddress('pontoReferencia', value)} />
+            <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua do cuidado" value={careAddress.rua} onChangeText={(value) => updateCareAddress('rua', value)} disabled={careAddressDisabled} />
+            <AppTextInput required label="Número" icon={MapPin} placeholder="123" value={careAddress.numero} onChangeText={(value) => updateCareAddress('numero', value)} disabled={careAddressDisabled} />
+            <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={careAddress.complemento} onChangeText={(value) => updateCareAddress('complemento', value)} disabled={careAddressDisabled} />
+            <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={careAddress.bairro} onChangeText={(value) => updateCareAddress('bairro', value)} disabled={careAddressDisabled} />
+            <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={careAddress.cidade} onChangeText={(value) => updateCareAddress('cidade', value)} disabled={careAddressDisabled} />
+            <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={careAddress.estado} onChangeText={(value) => updateCareAddress('estado', value)} autoCapitalize="characters" disabled={careAddressDisabled} />
+            <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={careAddress.pontoReferencia} onChangeText={(value) => updateCareAddress('pontoReferencia', value)} disabled={careAddressDisabled} />
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{ checked: useResponsibleAsEmergencyContact }}
+              disabled={formDisabled}
               onPress={() => setUseResponsibleAsEmergencyContact((value) => !value)}
-              style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.termsRow, formDisabled && styles.disabled, pressed && styles.pressed]}
             >
               <View style={[styles.checkbox, useResponsibleAsEmergencyContact && styles.checkboxChecked]}>
                 {useResponsibleAsEmergencyContact ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
@@ -582,9 +601,9 @@ export default function SignupScreen() {
               </View>
             ) : (
               <>
-                <AppTextInput required label="Contato de emergência" icon={User} placeholder="Nome completo" value={emergencyName} onChangeText={setEmergencyName} />
-                <AppTextInput required label="Telefone de emergência" icon={Phone} placeholder="(00) 00000-0000" value={emergencyPhone} onChangeText={(value) => setEmergencyPhone(formatPhone(value))} keyboardType="phone-pad" />
-                <AppTextInput required label="Vínculo do contato" icon={HeartPulse} placeholder="Irmã, vizinho, amigo..." value={emergencyRelation} onChangeText={setEmergencyRelation} />
+                <AppTextInput required label="Contato de emergência" icon={User} placeholder="Nome completo" value={emergencyName} onChangeText={setEmergencyName} disabled={formDisabled} />
+                <AppTextInput required label="Telefone de emergência" icon={Phone} placeholder="(00) 00000-0000" value={emergencyPhone} onChangeText={(value) => setEmergencyPhone(formatPhone(value))} keyboardType="phone-pad" disabled={formDisabled} />
+                <AppTextInput required label="Vínculo do contato" icon={HeartPulse} placeholder="Irmã, vizinho, amigo..." value={emergencyRelation} onChangeText={setEmergencyRelation} disabled={formDisabled} />
               </>
             )}
           </>
@@ -592,7 +611,7 @@ export default function SignupScreen() {
 
         {role === 'caregiver' && step === 2 ? (
           <>
-            <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={caregiverAddress.cep} onChangeText={(value) => updateCaregiverAddress('cep', value)} keyboardType="number-pad" />
+            <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={caregiverAddress.cep} onChangeText={(value) => updateCaregiverAddress('cep', value)} keyboardType="number-pad" disabled={caregiverAddressDisabled} />
             {cepFeedback ? (
               <Text style={[
                 styles.feedbackText,
@@ -602,45 +621,45 @@ export default function SignupScreen() {
                 {cepFeedback}
               </Text>
             ) : null}
-            <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua" value={caregiverAddress.rua} onChangeText={(value) => updateCaregiverAddress('rua', value)} />
-            <AppTextInput required label="Número" icon={MapPin} placeholder="123" value={caregiverAddress.numero} onChangeText={(value) => updateCaregiverAddress('numero', value)} />
-            <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={caregiverAddress.complemento} onChangeText={(value) => updateCaregiverAddress('complemento', value)} />
-            <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={caregiverAddress.bairro} onChangeText={(value) => updateCaregiverAddress('bairro', value)} />
-            <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={caregiverAddress.cidade} onChangeText={(value) => updateCaregiverAddress('cidade', value)} />
-            <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={caregiverAddress.estado} onChangeText={(value) => updateCaregiverAddress('estado', value)} autoCapitalize="characters" />
-            <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={caregiverAddress.pontoReferencia} onChangeText={(value) => updateCaregiverAddress('pontoReferencia', value)} />
+            <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua" value={caregiverAddress.rua} onChangeText={(value) => updateCaregiverAddress('rua', value)} disabled={caregiverAddressDisabled} />
+            <AppTextInput required label="Número" icon={MapPin} placeholder="123" value={caregiverAddress.numero} onChangeText={(value) => updateCaregiverAddress('numero', value)} disabled={caregiverAddressDisabled} />
+            <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={caregiverAddress.complemento} onChangeText={(value) => updateCaregiverAddress('complemento', value)} disabled={caregiverAddressDisabled} />
+            <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={caregiverAddress.bairro} onChangeText={(value) => updateCaregiverAddress('bairro', value)} disabled={caregiverAddressDisabled} />
+            <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={caregiverAddress.cidade} onChangeText={(value) => updateCaregiverAddress('cidade', value)} disabled={caregiverAddressDisabled} />
+            <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={caregiverAddress.estado} onChangeText={(value) => updateCaregiverAddress('estado', value)} autoCapitalize="characters" disabled={caregiverAddressDisabled} />
+            <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={caregiverAddress.pontoReferencia} onChangeText={(value) => updateCaregiverAddress('pontoReferencia', value)} disabled={caregiverAddressDisabled} />
           </>
         ) : null}
 
         {role === 'caregiver' && step === 3 ? (
           <>
-            <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experience} onChangeText={setExperience} />
-            <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation)} />
+            <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experience} onChangeText={setExperience} disabled={formDisabled} />
+            <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation)} disabled={formDisabled} />
             {education === 'OUTRO' ? (
-              <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={educationCustom} onChangeText={setEducationCustom} />
+              <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={educationCustom} onChangeText={setEducationCustom} disabled={formDisabled} />
             ) : null}
-            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={bio} onChangeText={setBio} />
+            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={bio} onChangeText={setBio} disabled={formDisabled} />
           </>
         ) : null}
 
         {role === 'caregiver' && step === 4 ? (
           <>
-            <OptionGroup required multiple label="Dias disponíveis" options={weekDayOptions} value={weekDays} onChange={(value) => setWeekDays(value as WeekDay[])} />
-            <OptionGroup required multiple label="Períodos disponíveis" options={dayPeriodOptions} value={dayPeriods} onChange={(value) => setDayPeriods(value as DayPeriod[])} />
+            <OptionGroup required multiple label="Dias disponíveis" options={weekDayOptions} value={weekDays} onChange={(value) => setWeekDays(value as WeekDay[])} disabled={formDisabled} />
+            <OptionGroup required multiple label="Períodos disponíveis" options={dayPeriodOptions} value={dayPeriods} onChange={(value) => setDayPeriods(value as DayPeriod[])} disabled={formDisabled} />
             {usesCustomAvailability ? (
               <View style={styles.inlineFields}>
-                <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={availabilityStart} onChangeText={setAvailabilityStart} />
-                <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={availabilityEnd} onChangeText={setAvailabilityEnd} />
+                <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={availabilityStart} onChangeText={setAvailabilityStart} disabled={formDisabled} />
+                <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={availabilityEnd} onChangeText={setAvailabilityEnd} disabled={formDisabled} />
               </View>
             ) : null}
-            <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={availabilityNote} onChangeText={setAvailabilityNote} />
-            <OptionGroup required multiple label="Modalidade de atendimento" options={careModalityOptions} value={careModes} onChange={(value) => setCareModes(value as CareModality[])} />
+            <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={availabilityNote} onChangeText={setAvailabilityNote} disabled={formDisabled} />
+            <OptionGroup required multiple label="Modalidade de atendimento" options={careModalityOptions} value={careModes} onChange={(value) => setCareModes(value as CareModality[])} disabled={formDisabled} />
             {careModes.includes('OUTRO') ? (
-              <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={careModeCustom} onChangeText={setCareModeCustom} />
+              <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={careModeCustom} onChangeText={setCareModeCustom} disabled={formDisabled} />
             ) : null}
-            <OptionGroup required multiple label="Serviços oferecidos" options={caregiverServiceOptions} value={services} onChange={(value) => setServices(value as CaregiverService[])} />
+            <OptionGroup required multiple label="Serviços oferecidos" options={caregiverServiceOptions} value={services} onChange={(value) => setServices(value as CaregiverService[])} disabled={formDisabled} />
             {services.includes('OUTRO') ? (
-              <AppTextInput required label="Serviço personalizado" icon={HeartPulse} placeholder="Informe o serviço" value={serviceCustom} onChangeText={setServiceCustom} />
+              <AppTextInput required label="Serviço personalizado" icon={HeartPulse} placeholder="Informe o serviço" value={serviceCustom} onChangeText={setServiceCustom} disabled={formDisabled} />
             ) : null}
           </>
         ) : null}
@@ -649,8 +668,9 @@ export default function SignupScreen() {
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: acceptedTerms }}
+            disabled={formDisabled}
             onPress={() => setAcceptedTerms((value) => !value)}
-            style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.termsRow, formDisabled && styles.disabled, pressed && styles.pressed]}
           >
             <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
               {acceptedTerms ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
@@ -666,18 +686,26 @@ export default function SignupScreen() {
 
         <View style={styles.actions}>
           {step > 0 ? (
-            <PrimaryButton label="Voltar" variant="secondary" onPress={() => setStep((current) => current - 1)} disabled={isSubmitting} />
+            <PrimaryButton label="Voltar" variant="secondary" onPress={() => setStep((current) => current - 1)} disabled={screenBusy} />
           ) : null}
           <PrimaryButton
             label={step < maxStep ? 'Continuar' : isSubmitting ? 'Criando conta...' : 'Criar conta'}
             onPress={handleNext}
             disabled={isSubmitting || isFetchingCep || isFetchingCareCep}
+            loading={isSubmitting}
           />
         </View>
       </View>
 
       <Text style={styles.footerText}>
-        Já tem conta? <Link href="/login" style={styles.footerLink}>Entrar</Link>
+        Já tem conta?{' '}
+        <Text
+          accessibilityRole="link"
+          onPress={screenBusy ? undefined : () => router.push('/login')}
+          style={[styles.footerLink, screenBusy && styles.disabledLink]}
+        >
+          Entrar
+        </Text>
       </Text>
     </ScreenContainer>
   );
@@ -729,6 +757,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+  },
+  disabled: {
+    opacity: 0.62,
   },
   checkbox: {
     width: 20,
@@ -805,5 +836,9 @@ const styles = StyleSheet.create({
   footerLink: {
     fontFamily: fontFamily.semiBold,
     color: colors.primary,
+  },
+  disabledLink: {
+    color: colors.mutedForeground,
+    opacity: 0.55,
   },
 });

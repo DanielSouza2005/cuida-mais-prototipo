@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { LoadingState } from '@/components/loading-state';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { caregiverServiceOptions, type CaregiverService } from '@/constants/enums';
 import { ApiError } from '@/services/api';
 import { getMyProfile, updateCaregiverServices } from '@/services/profileService';
@@ -19,6 +21,8 @@ export default function ProfileCaregiverServicesScreen() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const formDisabled = isLoading || isSaving;
+  useBlockNavigationWhenBusy(isSaving);
 
   useEffect(() => {
     let active = true;
@@ -60,14 +64,20 @@ export default function ProfileCaregiverServicesScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Serviços oferecidos" subtitle="Atividades de cuidado disponíveis" />
+      <AppHeader showBack backDisabled={isSaving} title="Serviços oferecidos" subtitle="Atividades de cuidado disponíveis" />
       <View style={styles.card}>
-        <OptionGroup required multiple label="Serviços oferecidos" options={caregiverServiceOptions} value={servicosOferecidos} onChange={(value) => setServicosOferecidos(value as CaregiverService[])} />
-        {servicosOferecidos.includes('OUTRO') ? (
-          <AppTextInput required label="Serviço personalizado" icon={HeartPulse} placeholder="Informe o serviço" value={servicoOutro} onChangeText={setServicoOutro} editable={!isLoading} />
-        ) : null}
+        {isLoading ? (
+          <LoadingState />
+        ) : (
+          <>
+            <OptionGroup required multiple label="Serviços oferecidos" options={caregiverServiceOptions} value={servicosOferecidos} onChange={(value) => setServicosOferecidos(value as CaregiverService[])} disabled={formDisabled} />
+            {servicosOferecidos.includes('OUTRO') ? (
+              <AppTextInput required label="Serviço personalizado" icon={HeartPulse} placeholder="Informe o serviço" value={servicoOutro} onChangeText={setServicoOutro} disabled={formDisabled} />
+            ) : null}
+          </>
+        )}
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={formDisabled} loading={isSaving} />
       </View>
     </ScreenContainer>
   );

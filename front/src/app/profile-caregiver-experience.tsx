@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { LoadingState } from '@/components/loading-state';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { caregiverEducationOptions, type CaregiverEducation } from '@/constants/enums';
 import { ApiError } from '@/services/api';
 import { getMyProfile, updateCaregiverExperience } from '@/services/profileService';
@@ -21,6 +23,8 @@ export default function ProfileCaregiverExperienceScreen() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const formDisabled = isLoading || isSaving;
+  useBlockNavigationWhenBusy(isSaving);
 
   useEffect(() => {
     let active = true;
@@ -66,16 +70,22 @@ export default function ProfileCaregiverExperienceScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Experiência" subtitle="Trajetória, formação e biografia profissional" />
+      <AppHeader showBack backDisabled={isSaving} title="Experiência" subtitle="Trajetória, formação e biografia profissional" />
       <View style={styles.card}>
-        <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experiencia} onChangeText={setExperiencia} multiline editable={!isLoading} />
-        <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={formacao} onChange={(value) => setFormacao(value as CaregiverEducation)} />
-        {formacao === 'OUTRO' ? (
-          <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={formacaoOutro} onChangeText={setFormacaoOutro} editable={!isLoading} />
-        ) : null}
-        <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={biografia} onChangeText={setBiografia} multiline editable={!isLoading} />
+        {isLoading ? (
+          <LoadingState />
+        ) : (
+          <>
+            <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experiencia} onChangeText={setExperiencia} multiline disabled={formDisabled} />
+            <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={formacao} onChange={(value) => setFormacao(value as CaregiverEducation)} disabled={formDisabled} />
+            {formacao === 'OUTRO' ? (
+              <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={formacaoOutro} onChangeText={setFormacaoOutro} disabled={formDisabled} />
+            ) : null}
+            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={biografia} onChangeText={setBiografia} multiline disabled={formDisabled} />
+          </>
+        )}
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={formDisabled} loading={isSaving} />
       </View>
     </ScreenContainer>
   );

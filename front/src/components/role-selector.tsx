@@ -7,6 +7,7 @@ import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 export type Role = 'family' | 'caregiver';
 
 type Props = {
+  disabled?: boolean;
   value: Role;
   onChange: (role: Role) => void;
 };
@@ -26,7 +27,7 @@ const roles: { value: Role; title: string; description: string; icon: LucideIcon
   },
 ];
 
-export function RoleSelector({ value, onChange }: Props) {
+export function RoleSelector({ disabled = false, value, onChange }: Props) {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>Tipo de conta</Text>
@@ -38,12 +39,14 @@ export function RoleSelector({ value, onChange }: Props) {
             <Pressable
               key={roleValue}
               accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
+              accessibilityState={{ selected: active, disabled }}
+              disabled={disabled}
               onPress={() => onChange(roleValue)}
               style={({ pressed }) => [
                 styles.option,
                 active && styles.activeOption,
-                pressed && styles.pressed,
+                disabled && styles.disabledOption,
+                pressed && !disabled && styles.pressed,
               ]}
             >
               <View style={[styles.iconBox, active && styles.activeIconBox]}>
@@ -85,6 +88,9 @@ const styles = StyleSheet.create({
   activeOption: {
     borderColor: colors.primary,
     backgroundColor: colors.secondary,
+  },
+  disabledOption: {
+    opacity: 0.55,
   },
   pressed: {
     opacity: 0.82,

@@ -4,8 +4,10 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { LoadingState } from '@/components/loading-state';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { CepError, getAddressByCep } from '@/services/cepService';
 import { getMyProfile, updateCareAddress } from '@/services/profileService';
@@ -32,6 +34,10 @@ export default function ProfileCareAddressScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const formDisabled = isLoading || isSaving;
+  const addressDisabled = formDisabled || isSearchingCep;
+  const screenBusy = isSaving || isSearchingCep;
+  useBlockNavigationWhenBusy(screenBusy);
 
   useEffect(() => {
     let active = true;
@@ -64,7 +70,7 @@ export default function ProfileCareAddressScreen() {
   }
 
   async function searchCep() {
-    if (unformatCep(address.cep).length !== 8) return;
+    if (addressDisabled || unformatCep(address.cep).length !== 8) return;
 
     try {
       setIsSearchingCep(true);
@@ -117,19 +123,23 @@ export default function ProfileCareAddressScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Endereço do cuidado" subtitle="Local onde o cuidado será realizado" />
+      <AppHeader showBack backDisabled={screenBusy} title="Endereço do cuidado" subtitle="Local onde o cuidado será realizado" />
+      {isLoading ? (
+        <LoadingState />
+      ) : (
       <View style={styles.card}>
-        <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={address.cep} onChangeText={(value) => updateAddress('cep', value)} onBlur={searchCep} keyboardType="number-pad" editable={!isLoading} />
-        <AppTextInput required label="Rua" icon={Home} placeholder="Rua do cuidado" value={address.rua} onChangeText={(value) => updateAddress('rua', value)} editable={!isLoading} />
-        <AppTextInput required label="Número" icon={Home} placeholder="123" value={address.numero} onChangeText={(value) => updateAddress('numero', value)} editable={!isLoading} />
-        <AppTextInput optional label="Complemento" icon={Home} placeholder="Apto, bloco ou casa" value={address.complemento} onChangeText={(value) => updateAddress('complemento', value)} editable={!isLoading} />
-        <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={address.bairro} onChangeText={(value) => updateAddress('bairro', value)} editable={!isLoading} />
-        <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={address.cidade} onChangeText={(value) => updateAddress('cidade', value)} editable={!isLoading} />
-        <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={address.estado} onChangeText={(value) => updateAddress('estado', value.toUpperCase().slice(0, 2))} autoCapitalize="characters" editable={!isLoading} />
-        <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={address.pontoReferencia} onChangeText={(value) => updateAddress('pontoReferencia', value)} editable={!isLoading} />
+        <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={address.cep} onChangeText={(value) => updateAddress('cep', value)} onBlur={searchCep} keyboardType="number-pad" disabled={addressDisabled} />
+        <AppTextInput required label="Rua" icon={Home} placeholder="Rua do cuidado" value={address.rua} onChangeText={(value) => updateAddress('rua', value)} disabled={addressDisabled} />
+        <AppTextInput required label="Número" icon={Home} placeholder="123" value={address.numero} onChangeText={(value) => updateAddress('numero', value)} disabled={addressDisabled} />
+        <AppTextInput optional label="Complemento" icon={Home} placeholder="Apto, bloco ou casa" value={address.complemento} onChangeText={(value) => updateAddress('complemento', value)} disabled={addressDisabled} />
+        <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={address.bairro} onChangeText={(value) => updateAddress('bairro', value)} disabled={addressDisabled} />
+        <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={address.cidade} onChangeText={(value) => updateAddress('cidade', value)} disabled={addressDisabled} />
+        <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={address.estado} onChangeText={(value) => updateAddress('estado', value.toUpperCase().slice(0, 2))} autoCapitalize="characters" disabled={addressDisabled} />
+        <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={address.pontoReferencia} onChangeText={(value) => updateAddress('pontoReferencia', value)} disabled={addressDisabled} />
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : isSearchingCep ? 'Consultando CEP...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving || isSearchingCep} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : isSearchingCep ? 'Consultando CEP...' : 'Salvar alterações'} icon={Save} loading={isSaving || isSearchingCep} onPress={handleSave} disabled={addressDisabled} />
       </View>
+      )}
     </ScreenContainer>
   );
 }

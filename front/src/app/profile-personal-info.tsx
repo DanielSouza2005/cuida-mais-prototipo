@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { LoadingState } from '@/components/loading-state';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { getMyProfile, updatePersonalInfo } from '@/services/profileService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
@@ -23,6 +25,8 @@ export default function ProfilePersonalInfoScreen() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const formDisabled = isLoading || isSaving;
+  useBlockNavigationWhenBusy(isSaving);
 
   useEffect(() => {
     let active = true;
@@ -68,16 +72,20 @@ export default function ProfilePersonalInfoScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Informações pessoais" subtitle="Nome, CPF, e-mail, telefone e nascimento" />
+      <AppHeader showBack backDisabled={isSaving} title="Informações pessoais" subtitle="Nome, CPF, e-mail, telefone e nascimento" />
+      {isLoading ? (
+        <LoadingState />
+      ) : (
       <View style={styles.card}>
-        <AppTextInput required label="Nome completo" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} editable={!isLoading} />
+        <AppTextInput required label="Nome completo" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} disabled={formDisabled} />
         <AppTextInput label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} editable={false} />
         <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} editable={false} />
-        <AppTextInput required label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={telefone} onChangeText={(value) => setTelefone(formatPhone(value))} keyboardType="phone-pad" editable={!isLoading} />
+        <AppTextInput required label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={telefone} onChangeText={(value) => setTelefone(formatPhone(value))} keyboardType="phone-pad" disabled={formDisabled} />
         <AppTextInput label="Data de nascimento" icon={Calendar} placeholder="00/00/0000" value={dataNascimento} editable={false} />
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} loading={isSaving} onPress={handleSave} disabled={formDisabled} />
       </View>
+      )}
     </ScreenContainer>
   );
 }

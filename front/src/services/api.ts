@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { applyArtificialApiDelay } from '@/config/apiConfig';
 import { AUTH_TOKEN_KEY, getSessionItem } from '@/services/sessionStorage';
 
 const DEFAULT_API_URL = 'http://localhost:8080';
@@ -158,6 +159,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response: Response;
   try {
+    await applyArtificialApiDelay();
     response = await fetch(`${API_BASE_URL}${path}`, requestOptions);
   } catch {
     throw new ApiError('Não foi possível conectar ao servidor.', 0);

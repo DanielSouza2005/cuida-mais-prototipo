@@ -4,9 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { LoadingState } from '@/components/loading-state';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { relationshipOptions, type Relationship } from '@/constants/enums';
 import { ApiError } from '@/services/api';
 import { getMyProfile, updateEmergencyContact } from '@/services/profileService';
@@ -46,6 +48,8 @@ export default function ProfileEmergencyContactScreen() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const formDisabled = isLoading || isSaving;
+  useBlockNavigationWhenBusy(isSaving);
 
   useEffect(() => {
     let active = true;
@@ -113,43 +117,49 @@ export default function ProfileEmergencyContactScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Contato de emergência" subtitle="Nome, telefone e vínculo de apoio" />
+      <AppHeader showBack backDisabled={isSaving} title="Contato de emergência" subtitle="Nome, telefone e vínculo de apoio" />
       <View style={styles.card}>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: isResponsibleContact }}
-          disabled={isLoading}
-          onPress={() => setIsResponsibleContact((value) => !value)}
-          style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
-        >
-          <View style={[styles.checkbox, isResponsibleContact && styles.checkboxChecked]}>
-            {isResponsibleContact ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
-          </View>
-          <View style={styles.checkboxTextBlock}>
-            <Text style={styles.checkTitle}>Sou o contato de emergência</Text>
-            <Text style={styles.helperText}>Usaremos seu nome, telefone e vínculo como contato principal.</Text>
-          </View>
-        </Pressable>
-
-        {isResponsibleContact ? (
-          <View style={styles.preview}>
-            <Text style={styles.previewText}>{responsibleName || 'Nome do responsável'}</Text>
-            <Text style={styles.previewText}>{responsiblePhone || 'Telefone do responsável'}</Text>
-            <Text style={styles.previewText}>{relationshipLabel(responsibleRelationship) || 'Vínculo informado'}</Text>
-          </View>
+        {isLoading ? (
+          <LoadingState />
         ) : (
           <>
-            <AppTextInput required label="Contato de emergência" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} editable={!isLoading} />
-            <AppTextInput required label="Telefone de emergência" icon={Phone} placeholder="(00) 00000-0000" value={telefone} onChangeText={(value) => setTelefone(formatPhone(value))} keyboardType="phone-pad" editable={!isLoading} />
-            <OptionGroup required label="Vínculo do contato" options={relationshipOptions} value={vinculo} onChange={(value) => setVinculo(value as Relationship)} />
-            {vinculo === 'OUTRO' ? (
-              <AppTextInput required label="Vínculo personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={vinculoOutro} onChangeText={setVinculoOutro} editable={!isLoading} />
-            ) : null}
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isResponsibleContact }}
+              disabled={formDisabled}
+              onPress={() => setIsResponsibleContact((value) => !value)}
+              style={({ pressed }) => [styles.checkRow, formDisabled && styles.disabled, pressed && styles.pressed]}
+            >
+              <View style={[styles.checkbox, isResponsibleContact && styles.checkboxChecked]}>
+                {isResponsibleContact ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
+              </View>
+              <View style={styles.checkboxTextBlock}>
+                <Text style={styles.checkTitle}>Sou o contato de emergência</Text>
+                <Text style={styles.helperText}>Usaremos seu nome, telefone e vínculo como contato principal.</Text>
+              </View>
+            </Pressable>
+
+            {isResponsibleContact ? (
+              <View style={styles.preview}>
+                <Text style={styles.previewText}>{responsibleName || 'Nome do responsável'}</Text>
+                <Text style={styles.previewText}>{responsiblePhone || 'Telefone do responsável'}</Text>
+                <Text style={styles.previewText}>{relationshipLabel(responsibleRelationship) || 'Vínculo informado'}</Text>
+              </View>
+            ) : (
+              <>
+                <AppTextInput required label="Contato de emergência" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} disabled={formDisabled} />
+                <AppTextInput required label="Telefone de emergência" icon={Phone} placeholder="(00) 00000-0000" value={telefone} onChangeText={(value) => setTelefone(formatPhone(value))} keyboardType="phone-pad" disabled={formDisabled} />
+                <OptionGroup required label="Vínculo do contato" options={relationshipOptions} value={vinculo} onChange={(value) => setVinculo(value as Relationship)} disabled={formDisabled} />
+                {vinculo === 'OUTRO' ? (
+                  <AppTextInput required label="Vínculo personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={vinculoOutro} onChangeText={setVinculoOutro} disabled={formDisabled} />
+                ) : null}
+              </>
+            )}
           </>
         )}
 
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={formDisabled} loading={isSaving} />
       </View>
     </ScreenContainer>
   );
@@ -177,6 +187,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+  },
+  disabled: {
+    opacity: 0.62,
   },
   checkbox: {
     width: 20,

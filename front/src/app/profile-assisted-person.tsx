@@ -5,9 +5,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
 import { DatePickerField } from '@/components/date-picker-field';
+import { LoadingState } from '@/components/loading-state';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import {
   allergyOptions,
   contactPreferenceOptions,
@@ -70,6 +72,8 @@ export default function ProfileAssistedPersonScreen() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const formDisabled = isLoading || isSaving;
+  useBlockNavigationWhenBusy(isSaving);
   const today = useMemo(() => new Date(), []);
 
   const showAllergyCustom = alergias.includes('OUTRO');
@@ -169,40 +173,44 @@ export default function ProfileAssistedPersonScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Pessoa assistida" subtitle="Perfil de cuidado e necessidades importantes" />
+      <AppHeader showBack backDisabled={isSaving} title="Pessoa assistida" subtitle="Perfil de cuidado e necessidades importantes" />
+      {isLoading ? (
+        <LoadingState />
+      ) : (
       <View style={styles.card}>
-        <OptionGroup required label="Parentesco ou vínculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} />
+        <OptionGroup required disabled={formDisabled} label="Parentesco ou vínculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} />
         {relationship === 'OUTRO' ? (
-          <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} editable={!isLoading} />
+          <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} disabled={formDisabled} />
         ) : null}
-        <OptionGroup required label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
-        <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} editable={!isLoading} />
-        <DatePickerField required label="Data de nascimento" value={dataNascimento} onChange={setDataNascimento} maxDate={today} disabled={isLoading} />
-        <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" editable={!isLoading} />
-        <OptionGroup required label="Grau de dependência" options={dependencyLevelOptions} value={grauDependencia} onChange={(value) => setGrauDependencia(value as DependencyLevel)} />
-        <OptionGroup required label="Mobilidade" options={mobilityOptions} value={mobilidade} onChange={(value) => setMobilidade(value as Mobility)} />
+        <OptionGroup required disabled={formDisabled} label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
+        <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} disabled={formDisabled} />
+        <DatePickerField required label="Data de nascimento" value={dataNascimento} onChange={setDataNascimento} maxDate={today} disabled={formDisabled} />
+        <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" disabled={formDisabled} />
+        <OptionGroup required disabled={formDisabled} label="Grau de dependência" options={dependencyLevelOptions} value={grauDependencia} onChange={(value) => setGrauDependencia(value as DependencyLevel)} />
+        <OptionGroup required disabled={formDisabled} label="Mobilidade" options={mobilityOptions} value={mobilidade} onChange={(value) => setMobilidade(value as Mobility)} />
         {mobilidade === 'OUTRO' ? (
-          <AppTextInput required label="Mobilidade personalizada" icon={HeartPulse} placeholder="Descreva a mobilidade" value={mobilidadeOutro} onChangeText={setMobilidadeOutro} editable={!isLoading} />
+          <AppTextInput required label="Mobilidade personalizada" icon={HeartPulse} placeholder="Descreva a mobilidade" value={mobilidadeOutro} onChangeText={setMobilidadeOutro} disabled={formDisabled} />
         ) : null}
-        <OptionGroup required multiple label="Alergias" options={allergyOptions} value={alergias} onChange={(value) => setAlergias(normalizeExclusiveHealthOptions(value as Allergy[]))} />
+        <OptionGroup required multiple disabled={formDisabled} label="Alergias" options={allergyOptions} value={alergias} onChange={(value) => setAlergias(normalizeExclusiveHealthOptions(value as Allergy[]))} />
         {showAllergyCustom ? (
-          <AppTextInput required label="Alergia personalizada" icon={HeartPulse} placeholder="Informe a alergia" value={alergiasOutro} onChangeText={setAlergiasOutro} editable={!isLoading} />
+          <AppTextInput required label="Alergia personalizada" icon={HeartPulse} placeholder="Informe a alergia" value={alergiasOutro} onChangeText={setAlergiasOutro} disabled={formDisabled} />
         ) : null}
         {showAllergyDetails ? (
-          <AppTextInput required label="Detalhes da alergia" icon={HeartPulse} placeholder="Informe detalhes importantes" value={alergiasDetalhes} onChangeText={setAlergiasDetalhes} editable={!isLoading} />
+          <AppTextInput required label="Detalhes da alergia" icon={HeartPulse} placeholder="Informe detalhes importantes" value={alergiasDetalhes} onChangeText={setAlergiasDetalhes} disabled={formDisabled} />
         ) : null}
-        <OptionGroup required multiple label="Restrições alimentares" options={foodRestrictionOptions} value={restricoesAlimentares} onChange={(value) => setRestricoesAlimentares(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} />
+        <OptionGroup required multiple disabled={formDisabled} label="Restrições alimentares" options={foodRestrictionOptions} value={restricoesAlimentares} onChange={(value) => setRestricoesAlimentares(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} />
         {showFoodRestrictionCustom ? (
-          <AppTextInput required label="Restrição personalizada" icon={HeartPulse} placeholder="Informe a restrição" value={restricoesAlimentaresOutro} onChangeText={setRestricoesAlimentaresOutro} editable={!isLoading} />
+          <AppTextInput required label="Restrição personalizada" icon={HeartPulse} placeholder="Informe a restrição" value={restricoesAlimentaresOutro} onChangeText={setRestricoesAlimentaresOutro} disabled={formDisabled} />
         ) : null}
         {showFoodRestrictionDetails ? (
-          <AppTextInput required label="Detalhes da restrição alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={restricoesAlimentaresDetalhes} onChangeText={setRestricoesAlimentaresDetalhes} editable={!isLoading} />
+          <AppTextInput required label="Detalhes da restrição alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={restricoesAlimentaresDetalhes} onChangeText={setRestricoesAlimentaresDetalhes} disabled={formDisabled} />
         ) : null}
-        <AppTextInput optional label="Medicamentos" icon={HeartPulse} placeholder="Liste se houver" value={medicamentos} onChangeText={setMedicamentos} editable={!isLoading} />
-        <AppTextInput optional label="Observações importantes" icon={HeartPulse} placeholder="Informações adicionais" value={observacoes} onChangeText={setObservacoes} editable={!isLoading} />
+        <AppTextInput optional label="Medicamentos" icon={HeartPulse} placeholder="Liste se houver" value={medicamentos} onChangeText={setMedicamentos} disabled={formDisabled} />
+        <AppTextInput optional label="Observações importantes" icon={HeartPulse} placeholder="Informações adicionais" value={observacoes} onChangeText={setObservacoes} disabled={formDisabled} />
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} loading={isSaving} onPress={handleSave} disabled={formDisabled} />
       </View>
+      )}
     </ScreenContainer>
   );
 }

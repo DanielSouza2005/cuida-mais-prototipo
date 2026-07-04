@@ -4,6 +4,7 @@ import type { Option } from '@/constants/enums';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 type Props<T extends string> = {
+  disabled?: boolean;
   label: string;
   multiple?: boolean;
   optional?: boolean;
@@ -14,6 +15,7 @@ type Props<T extends string> = {
 };
 
 export function OptionGroup<T extends string>({
+  disabled,
   label,
   multiple,
   optional,
@@ -25,6 +27,8 @@ export function OptionGroup<T extends string>({
   const selectedValues = Array.isArray(value) ? value : value ? [value] : [];
 
   function handlePress(optionValue: T) {
+    if (disabled) return;
+
     if (!multiple) {
       onChange(optionValue);
       return;
@@ -52,15 +56,17 @@ export function OptionGroup<T extends string>({
             <Pressable
               accessibilityRole={multiple ? 'checkbox' : 'radio'}
               accessibilityState={multiple ? { checked: selected } : { selected }}
+              disabled={disabled}
               key={option.value}
               onPress={() => handlePress(option.value)}
               style={({ pressed }) => [
                 styles.option,
                 selected && styles.selectedOption,
-                pressed && styles.pressed,
+                disabled && styles.disabledOption,
+                pressed && !disabled && styles.pressed,
               ]}
             >
-              <Text style={[styles.optionText, selected && styles.selectedOptionText]}>
+              <Text style={[styles.optionText, selected && styles.selectedOptionText, disabled && styles.disabledOptionText]}>
                 {option.label}
               </Text>
             </Pressable>
@@ -102,6 +108,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.secondary,
   },
+  disabledOption: {
+    opacity: 0.55,
+  },
   pressed: {
     opacity: 0.78,
   },
@@ -113,5 +122,8 @@ const styles = StyleSheet.create({
   },
   selectedOptionText: {
     color: colors.primary,
+  },
+  disabledOptionText: {
+    color: colors.mutedForeground,
   },
 });

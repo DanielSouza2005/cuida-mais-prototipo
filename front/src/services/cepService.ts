@@ -1,3 +1,4 @@
+import { applyArtificialApiDelay } from '@/config/apiConfig';
 import type { Address } from '@/types/auth';
 import { unformatCep } from '@/utils/masks';
 
@@ -27,6 +28,7 @@ export async function getAddressByCep(cep: string): Promise<Partial<Address>> {
 
   let response: Response;
   try {
+    await applyArtificialApiDelay();
     response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
   } catch {
     throw new CepError('Não foi possível consultar o CEP agora.');

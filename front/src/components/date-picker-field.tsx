@@ -24,7 +24,7 @@ type PickerMode = 'day' | 'month' | 'year';
 const monthNames = [
   'Janeiro',
   'Fevereiro',
-  'Marco',
+  'Março',
   'Abril',
   'Maio',
   'Junho',
@@ -187,7 +187,7 @@ export function AdvancedDatePickerField({
                 </Text>
               </Pressable>
               <Pressable accessibilityRole="button" onPress={() => pickerMode === 'year' ? changeYearRange(1) : pickerMode === 'month' ? changeYear(1) : changeMonth(1)} style={styles.monthButton}>
-                <Text style={styles.monthButtonText}>Avancar</Text>
+                <Text style={styles.monthButtonText}>Avançar</Text>
               </Pressable>
             </View>
 
