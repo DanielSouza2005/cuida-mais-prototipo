@@ -21,6 +21,7 @@ export type User = {
   fullName: string;
   cpf: string;
   email: string;
+  phone?: string | null;
   birthDate: string;
   userType: ApiUserType;
 };
@@ -131,6 +132,7 @@ export type RegisterRequest = {
   fullName: string;
   cpf: string;
   email: string;
+  phone?: string;
   password: string;
   birthDate: string;
   userType: ApiUserType;

@@ -112,6 +112,9 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
 };
 
 function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
+  if (status === 401) return 'Sua sessao expirou. Faca login novamente.';
+  if (status >= 500) return 'Nao foi possivel concluir agora. Tente novamente em instantes.';
+
   if (payload?.fields) {
     const firstFieldMessage = Object.values(payload.fields)[0];
     if (firstFieldMessage) return firstFieldMessage;
@@ -119,8 +122,6 @@ function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
 
   if (payload?.message) return payload.message;
 
-  if (status === 401) return 'E-mail ou senha invalidos.';
-  if (status >= 500) return 'Nao foi possivel concluir agora. Tente novamente em instantes.';
   return 'Nao foi possivel concluir a solicitacao.';
 }
 

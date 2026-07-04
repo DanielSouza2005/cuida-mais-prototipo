@@ -46,6 +46,7 @@ public class UserService {
     user.setFullName(request.fullName().trim());
     user.setCpf(cpf);
     user.setEmail(email);
+    user.setPhone(UserService.onlyDigits(request.phone()));
     user.setBirthDate(parseBirthDate(request.birthDate()));
     user.setUserType(request.userType());
 

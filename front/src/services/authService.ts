@@ -174,20 +174,22 @@ export function updateProfile(request: Omit<RegisterRequest, 'password' | 'accep
 export function updateResponsibleProfile(payload: RegisterResponsiblePayload, token?: string | null) {
   return updateProfile({
     fullName: payload.user.nome,
-    cpf: payload.user.cpf,
-    email: payload.user.email,
-    birthDate: payload.user.dataNascimento,
-    userType: 'family',
+      cpf: payload.user.cpf,
+      email: payload.user.email,
+      phone: payload.user.telefone,
+      birthDate: payload.user.dataNascimento,
+      userType: 'family',
   }, token);
 }
 
 export function updateCaregiverProfile(payload: RegisterCaregiverPayload, token?: string | null) {
   return updateProfile({
     fullName: payload.user.nome,
-    cpf: payload.user.cpf,
-    email: payload.user.email,
-    birthDate: payload.user.dataNascimento,
-    userType: 'caregiver',
+      cpf: payload.user.cpf,
+      email: payload.user.email,
+      phone: payload.user.telefone,
+      birthDate: payload.user.dataNascimento,
+      userType: 'caregiver',
   }, token);
 }
 

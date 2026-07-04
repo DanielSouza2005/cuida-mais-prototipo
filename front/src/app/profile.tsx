@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { Bell, HeartPulse, LogOut, MapPin, Pencil, Shield, User, Users } from 'lucide-react-native';
+import { Bell, HeartPulse, Home, LogOut, MapPin, Shield, User, Users } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
@@ -58,18 +58,21 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configuracoes</Text>
-        <SettingsRow
-          title="Editar perfil"
-          description={isCaregiver ? 'Dados pessoais e profissionais' : 'Dados pessoais e pessoa assistida'}
-          icon={Pencil}
-          onPress={() => router.push('/edit-profile')}
-        />
-        <SettingsRow title="Informacoes pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} />
+        {!isCaregiver ? (
+          <SettingsRow
+            title="Editar perfil"
+            description="Dados pessoais e pessoa assistida"
+            icon={User}
+            onPress={() => router.push('/edit-profile')}
+          />
+        ) : null}
+        <SettingsRow title="Informacoes pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
         {isCaregiver ? (
           <>
-            <SettingsRow title="Experiencia" description="Trajetoria, formacao e biografia profissional" icon={HeartPulse} />
-            <SettingsRow title="Disponibilidade" description="Horarios, regiao e modalidade de atendimento" icon={MapPin} />
-            <SettingsRow title="Servicos oferecidos" description="Atividades de cuidado disponiveis" icon={Users} />
+            <SettingsRow title="Endereco" description="Localizacao e dados de endereco" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />
+            <SettingsRow title="Experiencia" description="Trajetoria, formacao e biografia profissional" icon={HeartPulse} onPress={() => router.push('/profile-caregiver-experience')} />
+            <SettingsRow title="Disponibilidade" description="Horarios, modalidade de atendimento e agenda" icon={MapPin} onPress={() => router.push('/profile-caregiver-availability')} />
+            <SettingsRow title="Servicos oferecidos" description="Atividades de cuidado disponiveis" icon={Users} onPress={() => router.push('/profile-caregiver-services')} />
           </>
         ) : (
           <>
@@ -78,8 +81,8 @@ export default function ProfileScreen() {
             <SettingsRow title="Contato de emergencia" description="Nome, telefone e vinculo de apoio" icon={HeartPulse} />
           </>
         )}
-        <SettingsRow title="Notificacoes" description="Preferencias de comunicacao" icon={Bell} />
-        <SettingsRow title="Privacidade" description="Seguranca da conta e dados pessoais" icon={Shield} />
+        <SettingsRow title="Notificacoes" description="Preferencias de comunicacao" icon={Bell} onPress={() => router.push('/profile-notifications')} />
+        <SettingsRow title="Privacidade" description="Seguranca da conta e dados pessoais" icon={Shield} onPress={() => router.push('/profile-privacy')} />
         <SettingsRow
           title={isLoggingOut ? 'Saindo...' : 'Sair'}
           description="Encerrar sessao neste aparelho"

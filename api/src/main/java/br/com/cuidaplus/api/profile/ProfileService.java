@@ -1,0 +1,259 @@
+package br.com.cuidaplus.api.profile;
+
+import br.com.cuidaplus.api.auth.dto.AddressRequest;
+import br.com.cuidaplus.api.common.BusinessException;
+import br.com.cuidaplus.api.common.MessageResponse;
+import br.com.cuidaplus.api.profile.dto.CaregiverAvailabilityUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.CaregiverExperienceUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.CaregiverModalitiesUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.CaregiverServicesUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
+import br.com.cuidaplus.api.user.User;
+import br.com.cuidaplus.api.user.UserMapper;
+import br.com.cuidaplus.api.user.UserRepository;
+import br.com.cuidaplus.api.user.UserService;
+import br.com.cuidaplus.api.user.UserType;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ProfileService {
+
+  private final UserRepository userRepository;
+  private final UserService userService;
+  private final UserMapper userMapper;
+  private final ResponsibleProfileRepository responsibleProfileRepository;
+  private final AssistedPersonRepository assistedPersonRepository;
+  private final EmergencyContactRepository emergencyContactRepository;
+  private final CaregiverProfileRepository caregiverProfileRepository;
+
+  public ProfileService(
+    UserRepository userRepository,
+    UserService userService,
+    UserMapper userMapper,
+    ResponsibleProfileRepository responsibleProfileRepository,
+    AssistedPersonRepository assistedPersonRepository,
+    EmergencyContactRepository emergencyContactRepository,
+    CaregiverProfileRepository caregiverProfileRepository
+  ) {
+    this.userRepository = userRepository;
+    this.userService = userService;
+    this.userMapper = userMapper;
+    this.responsibleProfileRepository = responsibleProfileRepository;
+    this.assistedPersonRepository = assistedPersonRepository;
+    this.emergencyContactRepository = emergencyContactRepository;
+    this.caregiverProfileRepository = caregiverProfileRepository;
+  }
+
+  @Transactional(readOnly = true)
+  public Map<String, Object> findMyProfile(UUID userId) {
+    User user = userService.findById(userId);
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("user", userMapper.toResponse(user));
+
+    responsibleProfileRepository.findByUser(user).ifPresent(profile -> {
+      Map<String, Object> responsibleProfile = new LinkedHashMap<>();
+      responsibleProfile.put("parentesco", profile.getParentesco());
+      responsibleProfile.put("parentescoOutro", profile.getParentescoOutro());
+      responsibleProfile.put("preferenciaContato", profile.getPreferenciaContato());
+      response.put("responsibleProfile", responsibleProfile);
+      response.put("assistedPersons", assistedPersonRepository.findByResponsibleUser(user).stream().map(this::toAssistedPersonResponse).toList());
+    });
+
+    caregiverProfileRepository.findByUser(user).ifPresent(profile -> {
+      CaregiverAvailability availabilityData = safeAvailability(profile);
+      Map<String, Object> availability = new LinkedHashMap<>();
+      availability.put("diasSemana", new LinkedHashSet<>(availabilityData.getDiasSemana()));
+      availability.put("periodos", new LinkedHashSet<>(availabilityData.getPeriodos()));
+      availability.put("horarioInicio", availabilityData.getHorarioInicio());
+      availability.put("horarioFim", availabilityData.getHorarioFim());
+      availability.put("observacao", availabilityData.getObservacao());
+
+      Map<String, Object> caregiverProfile = new LinkedHashMap<>();
+      caregiverProfile.put("formacao", profile.getFormacao());
+      caregiverProfile.put("formacaoOutro", profile.getFormacaoOutro());
+      caregiverProfile.put("experiencia", profile.getExperiencia());
+      caregiverProfile.put("biografia", profile.getBiografia());
+      caregiverProfile.put("enderecoAtendimento", toAddressResponse(safeAddress(profile)));
+      caregiverProfile.put("modalidades", new LinkedHashSet<>(profile.getModalidades()));
+      caregiverProfile.put("modalidadeOutro", profile.getModalidadeOutro());
+      caregiverProfile.put("servicosOferecidos", new LinkedHashSet<>(profile.getServicosOferecidos()));
+      caregiverProfile.put("servicoOutro", profile.getServicoOutro());
+      caregiverProfile.put("disponibilidade", availability);
+      response.put("caregiverProfile", caregiverProfile);
+    });
+
+    return response;
+  }
+
+  @Transactional
+  public MessageResponse updatePersonalInfo(UUID userId, PersonalInfoUpdateRequest request) {
+    User user = userService.findById(userId);
+    String email = UserService.normalizeEmail(request.email());
+
+    if (userRepository.existsByEmailAndIdNot(email, userId)) {
+      throw new BusinessException("E-mail ja cadastrado.");
+    }
+
+    user.setFullName(request.nome().trim());
+    user.setEmail(email);
+    user.setPhone(UserService.onlyDigits(request.telefone()));
+    user.setBirthDate(request.dataNascimento());
+
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateCaregiverAddress(UUID userId, AddressRequest request) {
+    CaregiverProfile profile = findCaregiverProfile(userId);
+    profile.setEnderecoAtendimento(toAddress(request));
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateCaregiverExperience(UUID userId, CaregiverExperienceUpdateRequest request) {
+    CaregiverProfile profile = findCaregiverProfile(userId);
+    profile.setExperiencia(trimToNull(request.experiencia()));
+    profile.setFormacao(request.formacao());
+    profile.setFormacaoOutro(trimToNull(request.formacaoOutro()));
+    profile.setBiografia(trimToNull(request.biografia()));
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateCaregiverAvailability(UUID userId, CaregiverAvailabilityUpdateRequest request) {
+    CaregiverProfile profile = findCaregiverProfile(userId);
+    CaregiverAvailability availability = profile.getDisponibilidade();
+    if (availability == null) {
+      availability = new CaregiverAvailability();
+      profile.setDisponibilidade(availability);
+    }
+
+    availability.setDiasSemana(new LinkedHashSet<>(request.diasSemana()));
+    availability.setPeriodos(new LinkedHashSet<>(request.periodos()));
+    availability.setHorarioInicio(request.horarioInicio());
+    availability.setHorarioFim(request.horarioFim());
+    availability.setObservacao(trimToNull(request.observacao()));
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateCaregiverModalities(UUID userId, CaregiverModalitiesUpdateRequest request) {
+    CaregiverProfile profile = findCaregiverProfile(userId);
+    profile.setModalidades(new LinkedHashSet<>(request.modalidades()));
+    profile.setModalidadeOutro(trimToNull(request.modalidadeOutro()));
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateCaregiverServices(UUID userId, CaregiverServicesUpdateRequest request) {
+    CaregiverProfile profile = findCaregiverProfile(userId);
+    profile.setServicosOferecidos(new LinkedHashSet<>(request.servicosOferecidos()));
+    profile.setServicoOutro(trimToNull(request.servicoOutro()));
+    return updated();
+  }
+
+  private CaregiverProfile findCaregiverProfile(UUID userId) {
+    User user = userService.findById(userId);
+    if (user.getUserType() != UserType.CUIDADOR && user.getUserType() != UserType.CAREGIVER) {
+      throw new BusinessException("Perfil de cuidador nao encontrado.", HttpStatus.FORBIDDEN);
+    }
+
+    return caregiverProfileRepository
+      .findByUser(user)
+      .orElseGet(() -> {
+        CaregiverProfile profile = new CaregiverProfile();
+        profile.setUser(user);
+        return caregiverProfileRepository.save(profile);
+      });
+  }
+
+  private Map<String, Object> toAssistedPersonResponse(AssistedPerson assistedPerson) {
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("id", assistedPerson.getId());
+    response.put("nome", assistedPerson.getNome());
+    response.put("cpf", assistedPerson.getCpf());
+    response.put("dataNascimento", assistedPerson.getDataNascimento());
+    response.put("grauDependencia", assistedPerson.getGrauDependencia());
+    response.put("mobilidade", assistedPerson.getMobilidade());
+    response.put("mobilidadeOutro", assistedPerson.getMobilidadeOutro());
+    response.put("alergias", new LinkedHashSet<>(assistedPerson.getAlergias()));
+    response.put("alergiasOutro", assistedPerson.getAlergiasOutro());
+    response.put("alergiasDetalhes", assistedPerson.getAlergiasDetalhes());
+    response.put("restricoesAlimentares", new LinkedHashSet<>(assistedPerson.getRestricoesAlimentares()));
+    response.put("restricoesAlimentaresOutro", assistedPerson.getRestricoesAlimentaresOutro());
+    response.put("restricoesAlimentaresDetalhes", assistedPerson.getRestricoesAlimentaresDetalhes());
+    response.put("medicamentos", assistedPerson.getMedicamentos());
+    response.put("observacoes", assistedPerson.getObservacoes());
+    response.put("enderecoCuidado", toAddressResponse(assistedPerson.getEnderecoCuidado()));
+    emergencyContactRepository.findByAssistedPerson(assistedPerson).ifPresent(contact -> {
+      Map<String, Object> emergencyContact = new LinkedHashMap<>();
+      emergencyContact.put("nome", contact.getNome());
+      emergencyContact.put("telefone", contact.getTelefone());
+      emergencyContact.put("vinculo", contact.getVinculo());
+      emergencyContact.put("isResponsibleContact", contact.isResponsibleContact());
+      response.put("contatoEmergencia", emergencyContact);
+    });
+    return response;
+  }
+
+  private Map<String, Object> toAddressResponse(AddressFields address) {
+    AddressFields safeAddress = address == null ? new AddressFields() : address;
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("cep", safeAddress.getCep());
+    response.put("rua", safeAddress.getRua());
+    response.put("numero", safeAddress.getNumero());
+    response.put("complemento", safeAddress.getComplemento());
+    response.put("bairro", safeAddress.getBairro());
+    response.put("cidade", safeAddress.getCidade());
+    response.put("estado", safeAddress.getEstado());
+    response.put("pontoReferencia", safeAddress.getPontoReferencia());
+    return response;
+  }
+
+  private CaregiverAvailability safeAvailability(CaregiverProfile profile) {
+    if (profile.getDisponibilidade() != null) {
+      return profile.getDisponibilidade();
+    }
+
+    return new CaregiverAvailability();
+  }
+
+  private AddressFields safeAddress(CaregiverProfile profile) {
+    if (profile.getEnderecoAtendimento() != null) {
+      return profile.getEnderecoAtendimento();
+    }
+
+    return new AddressFields();
+  }
+
+  private AddressFields toAddress(AddressRequest request) {
+    AddressFields address = new AddressFields();
+    address.setCep(UserService.onlyDigits(request.cep()));
+    address.setRua(request.rua().trim());
+    address.setNumero(request.numero().trim());
+    address.setComplemento(trimToNull(request.complemento()));
+    address.setBairro(request.bairro().trim());
+    address.setCidade(request.cidade().trim());
+    address.setEstado(request.estado().trim().toUpperCase());
+    address.setPontoReferencia(trimToNull(request.pontoReferencia()));
+    return address;
+  }
+
+  private String trimToNull(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    return value.trim();
+  }
+
+  private MessageResponse updated() {
+    return new MessageResponse("Perfil atualizado com sucesso.");
+  }
+}

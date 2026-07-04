@@ -21,6 +21,10 @@ public record UpdateProfileRequest(
   @Size(max = 180, message = "O e-mail deve ter no máximo 180 caracteres.")
   String email,
 
+  @NotBlank(message = "Informe seu telefone.")
+  @Size(max = 20, message = "O telefone deve ter no maximo 20 caracteres.")
+  String phone,
+
   @NotBlank(message = "Informe a data no formato dd/mm/aaaa.")
   @Pattern(regexp = "\\d{2}/\\d{2}/\\d{4}", message = "Informe a data no formato dd/mm/aaaa.")
   String birthDate,

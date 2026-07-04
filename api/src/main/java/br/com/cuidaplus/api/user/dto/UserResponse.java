@@ -8,6 +8,7 @@ public record UserResponse(
   String fullName,
   String cpf,
   String email,
+  String phone,
   String birthDate,
   UserType userType
 ) {}
