@@ -5,9 +5,12 @@ import type {
   CaregiverExperienceUpdatePayload,
   CaregiverModalitiesUpdatePayload,
   CaregiverServicesUpdatePayload,
+  AssistedPersonUpdatePayload,
+  EmergencyContactUpdatePayload,
   MyProfile,
   PersonalInfoUpdatePayload,
   ProfileMessageResponse,
+  ResponsibleProfileUpdatePayload,
 } from '@/types/profile';
 
 function toIsoDate(value: string) {
@@ -25,10 +28,38 @@ export function getMyProfile() {
 export function updatePersonalInfo(payload: PersonalInfoUpdatePayload) {
   return apiRequest<ProfileMessageResponse>('/api/profile/personal-info', {
     method: 'PATCH',
+    body: payload,
+  });
+}
+
+export function updateResponsibleProfile(payload: ResponsibleProfileUpdatePayload) {
+  return apiRequest<ProfileMessageResponse>('/api/profile/responsible', {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
+export function updateAssistedPerson(id: string, payload: AssistedPersonUpdatePayload) {
+  return apiRequest<ProfileMessageResponse>(`/api/profile/assisted-persons/${id}`, {
+    method: 'PATCH',
     body: {
       ...payload,
       dataNascimento: toIsoDate(payload.dataNascimento),
     },
+  });
+}
+
+export function updateCareAddress(id: string, payload: Address) {
+  return apiRequest<ProfileMessageResponse>(`/api/profile/assisted-persons/${id}/care-address`, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
+export function updateEmergencyContact(id: string, payload: EmergencyContactUpdatePayload) {
+  return apiRequest<ProfileMessageResponse>(`/api/profile/assisted-persons/${id}/emergency-contact`, {
+    method: 'PATCH',
+    body: payload,
   });
 }
 

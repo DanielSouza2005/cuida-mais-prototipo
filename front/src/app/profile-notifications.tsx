@@ -8,7 +8,7 @@ import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 export default function ProfileNotificationsScreen() {
   return (
     <ScreenContainer contentStyle={styles.content}>
-      <AppHeader showBack title="Notificacoes" subtitle="Preferencias de comunicacao" />
+      <AppHeader showBack title="Notificações" subtitle="Preferências de comunicação" />
       <View style={styles.card}>
         <Bell color={colors.primary} size={30} />
         <Text style={styles.title}>Funcionalidade em desenvolvimento.</Text>

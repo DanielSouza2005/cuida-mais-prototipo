@@ -18,25 +18,25 @@ export default function EditProfileScreen() {
       <AppHeader
         showBack
         title="Editar perfil"
-        subtitle={isCaregiver ? 'Escolha uma secao do perfil do cuidador.' : 'Escolha uma secao do perfil.'}
+        subtitle={isCaregiver ? 'Escolha uma seção do perfil do cuidador.' : 'Escolha uma seção do perfil.'}
       />
 
       <View style={styles.card}>
-        <ProfileAvatar initials="CP" name={user?.fullName} subtitle={isCaregiver ? 'Cuidador' : 'Responsavel'} />
+        <ProfileAvatar initials="CP" name={user?.fullName} subtitle={isCaregiver ? 'Cuidador' : 'Responsável'} />
         <Text style={styles.note}>Atualize seus dados cadastrais por grupo para manter o perfil organizado.</Text>
       </View>
 
       <View style={styles.section}>
-        <SettingsRow title="Informacoes pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
+        <SettingsRow title="Informações pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
         {isCaregiver ? (
           <>
-            <SettingsRow title="Endereco" description="Localizacao e dados de endereco" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />
-            <SettingsRow title="Experiencia" description="Trajetoria, formacao e biografia profissional" icon={HeartPulse} onPress={() => router.push('/profile-caregiver-experience')} />
-            <SettingsRow title="Disponibilidade" description="Horarios, modalidade de atendimento e agenda" icon={MapPin} onPress={() => router.push('/profile-caregiver-availability')} />
-            <SettingsRow title="Servicos oferecidos" description="Atividades de cuidado disponiveis" icon={Users} onPress={() => router.push('/profile-caregiver-services')} />
+            <SettingsRow title="Endereço" description="Localização e dados de endereço" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />
+            <SettingsRow title="Experiência" description="Trajetória, formação e biografia profissional" icon={HeartPulse} onPress={() => router.push('/profile-caregiver-experience')} />
+            <SettingsRow title="Disponibilidade" description="Horários, modalidade de atendimento e agenda" icon={MapPin} onPress={() => router.push('/profile-caregiver-availability')} />
+            <SettingsRow title="Serviços oferecidos" description="Atividades de cuidado disponíveis" icon={Users} onPress={() => router.push('/profile-caregiver-services')} />
           </>
         ) : null}
-        <SettingsRow title="Notificacoes" description="Funcionalidade em desenvolvimento" icon={Bell} onPress={() => router.push('/profile-notifications')} />
+        <SettingsRow title="Notificações" description="Funcionalidade em desenvolvimento" icon={Bell} onPress={() => router.push('/profile-notifications')} />
         <SettingsRow title="Privacidade" description="Funcionalidade em desenvolvimento" icon={Shield} onPress={() => router.push('/profile-privacy')} />
       </View>
     </ScreenContainer>

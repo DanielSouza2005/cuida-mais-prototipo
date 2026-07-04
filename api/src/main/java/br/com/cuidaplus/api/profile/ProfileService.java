@@ -7,10 +7,12 @@ import br.com.cuidaplus.api.profile.dto.CaregiverAvailabilityUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.CaregiverExperienceUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.CaregiverModalitiesUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.CaregiverServicesUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.AssistedPersonUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.EmergencyContactUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.ResponsibleProfileUpdateRequest;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserMapper;
-import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserService;
 import br.com.cuidaplus.api.user.UserType;
 import java.util.LinkedHashSet;
@@ -24,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProfileService {
 
-  private final UserRepository userRepository;
   private final UserService userService;
   private final UserMapper userMapper;
   private final ResponsibleProfileRepository responsibleProfileRepository;
@@ -33,7 +34,6 @@ public class ProfileService {
   private final CaregiverProfileRepository caregiverProfileRepository;
 
   public ProfileService(
-    UserRepository userRepository,
     UserService userService,
     UserMapper userMapper,
     ResponsibleProfileRepository responsibleProfileRepository,
@@ -41,7 +41,6 @@ public class ProfileService {
     EmergencyContactRepository emergencyContactRepository,
     CaregiverProfileRepository caregiverProfileRepository
   ) {
-    this.userRepository = userRepository;
     this.userService = userService;
     this.userMapper = userMapper;
     this.responsibleProfileRepository = responsibleProfileRepository;
@@ -94,17 +93,69 @@ public class ProfileService {
   @Transactional
   public MessageResponse updatePersonalInfo(UUID userId, PersonalInfoUpdateRequest request) {
     User user = userService.findById(userId);
-    String email = UserService.normalizeEmail(request.email());
-
-    if (userRepository.existsByEmailAndIdNot(email, userId)) {
-      throw new BusinessException("E-mail ja cadastrado.");
-    }
 
     user.setFullName(request.nome().trim());
-    user.setEmail(email);
     user.setPhone(UserService.onlyDigits(request.telefone()));
-    user.setBirthDate(request.dataNascimento());
 
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateResponsibleProfile(UUID userId, ResponsibleProfileUpdateRequest request) {
+    ResponsibleProfile profile = findResponsibleProfile(userId);
+    profile.setParentesco(request.parentesco());
+    profile.setParentescoOutro(trimToNull(request.parentescoOutro()));
+    profile.setPreferenciaContato(request.preferenciaContato());
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateAssistedPerson(UUID userId, UUID assistedPersonId, AssistedPersonUpdateRequest request) {
+    AssistedPerson assistedPerson = findResponsibleAssistedPerson(userId, assistedPersonId);
+    assistedPerson.setNome(request.nome().trim());
+    assistedPerson.setCpf(optionalDigits(request.cpf()));
+    assistedPerson.setDataNascimento(request.dataNascimento());
+    assistedPerson.setGrauDependencia(request.grauDependencia());
+    assistedPerson.setMobilidade(request.mobilidade());
+    assistedPerson.setMobilidadeOutro(trimToNull(request.mobilidadeOutro()));
+    assistedPerson.setAlergias(new LinkedHashSet<>(request.alergias()));
+    assistedPerson.setAlergiasOutro(trimToNull(request.alergiasOutro()));
+    assistedPerson.setAlergiasDetalhes(trimToNull(request.alergiasDetalhes()));
+    assistedPerson.setRestricoesAlimentares(new LinkedHashSet<>(request.restricoesAlimentares()));
+    assistedPerson.setRestricoesAlimentaresOutro(trimToNull(request.restricoesAlimentaresOutro()));
+    assistedPerson.setRestricoesAlimentaresDetalhes(trimToNull(request.restricoesAlimentaresDetalhes()));
+    assistedPerson.setMedicamentos(trimToNull(request.medicamentos()));
+    assistedPerson.setObservacoes(trimToNull(request.observacoes()));
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateCareAddress(UUID userId, UUID assistedPersonId, AddressRequest request) {
+    AssistedPerson assistedPerson = findResponsibleAssistedPerson(userId, assistedPersonId);
+    assistedPerson.setEnderecoCuidado(toAddress(request));
+    return updated();
+  }
+
+  @Transactional
+  public MessageResponse updateEmergencyContact(UUID userId, UUID assistedPersonId, EmergencyContactUpdateRequest request) {
+    AssistedPerson assistedPerson = findResponsibleAssistedPerson(userId, assistedPersonId);
+    ResponsibleProfile responsibleProfile = findResponsibleProfile(userId);
+    User user = responsibleProfile.getUser();
+    EmergencyContact contact = emergencyContactRepository
+      .findByAssistedPerson(assistedPerson)
+      .orElseGet(() -> {
+        EmergencyContact newContact = new EmergencyContact();
+        newContact.setAssistedPerson(assistedPerson);
+        return newContact;
+      });
+
+    contact.setResponsibleContact(request.isResponsibleContact());
+    contact.setNome(request.isResponsibleContact() ? user.getFullName() : request.nome().trim());
+    contact.setTelefone(request.isResponsibleContact() ? user.getPhone() : UserService.onlyDigits(request.telefone()));
+    contact.setVinculo(request.isResponsibleContact()
+      ? resolveResponsibleRelationship(responsibleProfile)
+      : request.vinculo().trim());
+    emergencyContactRepository.save(contact);
     return updated();
   }
 
@@ -161,7 +212,7 @@ public class ProfileService {
   private CaregiverProfile findCaregiverProfile(UUID userId) {
     User user = userService.findById(userId);
     if (user.getUserType() != UserType.CUIDADOR && user.getUserType() != UserType.CAREGIVER) {
-      throw new BusinessException("Perfil de cuidador nao encontrado.", HttpStatus.FORBIDDEN);
+      throw new BusinessException("Perfil de cuidador não encontrado.", HttpStatus.FORBIDDEN);
     }
 
     return caregiverProfileRepository
@@ -171,6 +222,28 @@ public class ProfileService {
         profile.setUser(user);
         return caregiverProfileRepository.save(profile);
       });
+  }
+
+  private ResponsibleProfile findResponsibleProfile(UUID userId) {
+    User user = userService.findById(userId);
+    if (user.getUserType() != UserType.RESPONSAVEL && user.getUserType() != UserType.FAMILY) {
+      throw new BusinessException("Perfil de responsável não encontrado.", HttpStatus.FORBIDDEN);
+    }
+
+    return responsibleProfileRepository
+      .findByUser(user)
+      .orElseThrow(() -> new BusinessException("Perfil de responsável não encontrado.", HttpStatus.NOT_FOUND));
+  }
+
+  private AssistedPerson findResponsibleAssistedPerson(UUID userId, UUID assistedPersonId) {
+    User user = userService.findById(userId);
+    if (user.getUserType() != UserType.RESPONSAVEL && user.getUserType() != UserType.FAMILY) {
+      throw new BusinessException("Pessoa assistida não encontrada.", HttpStatus.FORBIDDEN);
+    }
+
+    return assistedPersonRepository
+      .findByIdAndResponsibleUser(assistedPersonId, user)
+      .orElseThrow(() -> new BusinessException("Pessoa assistida não encontrada.", HttpStatus.NOT_FOUND));
   }
 
   private Map<String, Object> toAssistedPersonResponse(AssistedPerson assistedPerson) {
@@ -243,6 +316,19 @@ public class ProfileService {
     address.setEstado(request.estado().trim().toUpperCase());
     address.setPontoReferencia(trimToNull(request.pontoReferencia()));
     return address;
+  }
+
+  private String optionalDigits(String value) {
+    String digits = UserService.onlyDigits(value);
+    return digits.isBlank() ? null : digits;
+  }
+
+  private String resolveResponsibleRelationship(ResponsibleProfile profile) {
+    if (profile.getParentescoOutro() != null && !profile.getParentescoOutro().isBlank()) {
+      return profile.getParentescoOutro();
+    }
+
+    return profile.getParentesco().name();
   }
 
   private String trimToNull(String value) {

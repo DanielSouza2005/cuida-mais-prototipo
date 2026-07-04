@@ -6,12 +6,17 @@ import br.com.cuidaplus.api.profile.dto.CaregiverAvailabilityUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.CaregiverExperienceUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.CaregiverModalitiesUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.CaregiverServicesUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.AssistedPersonUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.EmergencyContactUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.ResponsibleProfileUpdateRequest;
 import br.com.cuidaplus.api.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +41,35 @@ public class ProfileController {
   @PatchMapping("/personal-info")
   public MessageResponse updatePersonalInfo(@Valid @RequestBody PersonalInfoUpdateRequest request) {
     return profileService.updatePersonalInfo(AuthenticatedUser.id(), request);
+  }
+
+  @PatchMapping("/responsible")
+  public MessageResponse updateResponsibleProfile(@Valid @RequestBody ResponsibleProfileUpdateRequest request) {
+    return profileService.updateResponsibleProfile(AuthenticatedUser.id(), request);
+  }
+
+  @PatchMapping("/assisted-persons/{id}")
+  public MessageResponse updateAssistedPerson(
+    @PathVariable UUID id,
+    @Valid @RequestBody AssistedPersonUpdateRequest request
+  ) {
+    return profileService.updateAssistedPerson(AuthenticatedUser.id(), id, request);
+  }
+
+  @PatchMapping("/assisted-persons/{id}/care-address")
+  public MessageResponse updateCareAddress(
+    @PathVariable UUID id,
+    @Valid @RequestBody AddressRequest request
+  ) {
+    return profileService.updateCareAddress(AuthenticatedUser.id(), id, request);
+  }
+
+  @PatchMapping("/assisted-persons/{id}/emergency-contact")
+  public MessageResponse updateEmergencyContact(
+    @PathVariable UUID id,
+    @Valid @RequestBody EmergencyContactUpdateRequest request
+  ) {
+    return profileService.updateEmergencyContact(AuthenticatedUser.id(), id, request);
   }
 
   @PatchMapping("/caregiver/address")

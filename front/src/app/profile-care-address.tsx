@@ -8,7 +8,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { ApiError } from '@/services/api';
 import { CepError, getAddressByCep } from '@/services/cepService';
-import { getMyProfile, updateCaregiverAddress } from '@/services/profileService';
+import { getMyProfile, updateCareAddress } from '@/services/profileService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { Address } from '@/types/auth';
 import { formatCep, unformatCep } from '@/utils/masks';
@@ -24,7 +24,8 @@ const emptyAddress: Address = {
   pontoReferencia: '',
 };
 
-export default function ProfileCaregiverAddressScreen() {
+export default function ProfileCareAddressScreen() {
+  const [assistedPersonId, setAssistedPersonId] = useState('');
   const [address, setAddress] = useState<Address>(emptyAddress);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -37,13 +38,20 @@ export default function ProfileCaregiverAddressScreen() {
     getMyProfile()
       .then((profile) => {
         if (!active) return;
+        const assistedPerson = profile.assistedPersons?.[0];
+        if (!assistedPerson) {
+          setFeedback('Nenhuma pessoa assistida encontrada para este perfil.');
+          return;
+        }
+
+        setAssistedPersonId(assistedPerson.id);
         setAddress({
           ...emptyAddress,
-          ...(profile.caregiverProfile?.enderecoAtendimento ?? {}),
-          cep: formatCep(profile.caregiverProfile?.enderecoAtendimento?.cep ?? ''),
+          ...(assistedPerson.enderecoCuidado ?? {}),
+          cep: formatCep(assistedPerson.enderecoCuidado?.cep ?? ''),
         });
       })
-      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Não foi possível carregar o endereço.'))
+      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Não foi possível carregar o endereço do cuidado.'))
       .finally(() => active && setIsLoading(false));
 
     return () => {
@@ -60,15 +68,24 @@ export default function ProfileCaregiverAddressScreen() {
 
     try {
       setIsSearchingCep(true);
+      setFeedback('Consultando CEP...');
+      setIsSuccess(false);
       const found = await getAddressByCep(address.cep);
       setAddress((current) => ({
         ...current,
-        ...found,
         cep: formatCep(found.cep ?? current.cep),
+        rua: found.rua ?? current.rua,
+        bairro: found.bairro ?? current.bairro,
+        cidade: found.cidade ?? current.cidade,
+        estado: found.estado ?? current.estado,
+        complemento: current.complemento?.trim() ? current.complemento : found.complemento ?? current.complemento,
         numero: current.numero,
       }));
+      setFeedback('Endereço preenchido pelo CEP. Você pode editar se precisar.');
+      setIsSuccess(true);
     } catch (error) {
       setFeedback(error instanceof CepError ? error.message : 'Não foi possível consultar o CEP.');
+      setIsSuccess(false);
     } finally {
       setIsSearchingCep(false);
     }
@@ -78,20 +95,21 @@ export default function ProfileCaregiverAddressScreen() {
     setFeedback(null);
     setIsSuccess(false);
 
+    if (!assistedPersonId) return setFeedback('Pessoa assistida não encontrada.');
     if (unformatCep(address.cep).length !== 8) return setFeedback('Informe um CEP com 8 números.');
-    if (!address.rua.trim()) return setFeedback('Informe a rua.');
-    if (!address.numero.trim()) return setFeedback('Informe o número.');
-    if (!address.bairro.trim()) return setFeedback('Informe o bairro.');
-    if (!address.cidade.trim()) return setFeedback('Informe a cidade.');
-    if (!address.estado.trim()) return setFeedback('Informe o estado.');
+    if (!address.rua.trim()) return setFeedback('Informe a rua do cuidado.');
+    if (!address.numero.trim()) return setFeedback('Informe o número do cuidado.');
+    if (!address.bairro.trim()) return setFeedback('Informe o bairro do cuidado.');
+    if (!address.cidade.trim()) return setFeedback('Informe a cidade do cuidado.');
+    if (!address.estado.trim()) return setFeedback('Informe o estado do cuidado.');
 
     try {
       setIsSaving(true);
-      const response = await updateCaregiverAddress(address);
+      const response = await updateCareAddress(assistedPersonId, address);
       setFeedback(response.message);
       setIsSuccess(true);
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Não foi possível salvar o endereço.');
+      setFeedback(error instanceof ApiError ? error.message : 'Não foi possível salvar o endereço do cuidado.');
     } finally {
       setIsSaving(false);
     }
@@ -99,10 +117,10 @@ export default function ProfileCaregiverAddressScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Endereço" subtitle="Localização e dados de endereço" />
+      <AppHeader showBack title="Endereço do cuidado" subtitle="Local onde o cuidado será realizado" />
       <View style={styles.card}>
         <AppTextInput required label="CEP" icon={MapPin} placeholder="00000-000" value={address.cep} onChangeText={(value) => updateAddress('cep', value)} onBlur={searchCep} keyboardType="number-pad" editable={!isLoading} />
-        <AppTextInput required label="Rua" icon={Home} placeholder="Rua" value={address.rua} onChangeText={(value) => updateAddress('rua', value)} editable={!isLoading} />
+        <AppTextInput required label="Rua" icon={Home} placeholder="Rua do cuidado" value={address.rua} onChangeText={(value) => updateAddress('rua', value)} editable={!isLoading} />
         <AppTextInput required label="Número" icon={Home} placeholder="123" value={address.numero} onChangeText={(value) => updateAddress('numero', value)} editable={!isLoading} />
         <AppTextInput optional label="Complemento" icon={Home} placeholder="Apto, bloco ou casa" value={address.complemento} onChangeText={(value) => updateAddress('complemento', value)} editable={!isLoading} />
         <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={address.bairro} onChangeText={(value) => updateAddress('bairro', value)} editable={!isLoading} />

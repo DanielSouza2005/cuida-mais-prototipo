@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public class ResetPasswordRequest {
 
-  @NotBlank(message = "Informe o token de recuperacao.")
+  @NotBlank(message = "Informe o token de recuperação.")
   private String token;
 
   private String newPassword;

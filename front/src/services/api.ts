@@ -112,8 +112,8 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
 };
 
 function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
-  if (status === 401) return 'Sua sessao expirou. Faca login novamente.';
-  if (status >= 500) return 'Nao foi possivel concluir agora. Tente novamente em instantes.';
+  if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
+  if (status >= 500) return 'Não foi possível concluir agora. Tente novamente em instantes.';
 
   if (payload?.fields) {
     const firstFieldMessage = Object.values(payload.fields)[0];
@@ -122,7 +122,7 @@ function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
 
   if (payload?.message) return payload.message;
 
-  return 'Nao foi possivel concluir a solicitacao.';
+  return 'Não foi possível concluir a solicitação.';
 }
 
 async function readJson(response: Response) {
@@ -160,7 +160,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   try {
     response = await fetch(`${API_BASE_URL}${path}`, requestOptions);
   } catch {
-    throw new ApiError('Nao foi possivel conectar ao servidor.', 0);
+    throw new ApiError('Não foi possível conectar ao servidor.', 0);
   }
 
   const payload = await readJson(response);

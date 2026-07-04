@@ -19,11 +19,11 @@ import java.util.Set;
 
 public record RegisterResponsibleRequest(
   @Valid
-  @NotNull(message = "Informe os dados do responsavel.")
+  @NotNull(message = "Informe os dados do responsável.")
   RegisterUserDataRequest user,
 
   @Valid
-  @NotNull(message = "Informe o perfil do responsavel.")
+  @NotNull(message = "Informe o perfil do responsável.")
   ResponsibleProfileRequest responsibleProfile,
 
   @Valid
@@ -34,10 +34,10 @@ public record RegisterResponsibleRequest(
     @NotNull(message = "Informe o parentesco.")
     Parentesco parentesco,
 
-    @Size(max = 120, message = "O parentesco personalizado deve ter no maximo 120 caracteres.")
+    @Size(max = 120, message = "O parentesco personalizado deve ter no máximo 120 caracteres.")
     String parentescoOutro,
 
-    @NotNull(message = "Informe a preferencia de contato.")
+    @NotNull(message = "Informe a preferência de contato.")
     PreferenciaContato preferenciaContato
   ) {
     @AssertTrue(message = "Informe o parentesco personalizado.")
@@ -48,14 +48,14 @@ public record RegisterResponsibleRequest(
 
   public record AssistedPersonRequest(
     @NotBlank(message = "Informe o nome da pessoa assistida.")
-    @Size(max = 140, message = "O nome deve ter no maximo 140 caracteres.")
+    @Size(max = 140, message = "O nome deve ter no máximo 140 caracteres.")
     String nome,
 
-    @Pattern(regexp = "|\\d{11}|\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}", message = "Informe um CPF com 11 digitos.")
+    @Pattern(regexp = "|\\d{11}|\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}", message = "Informe um CPF com 11 dígitos.")
     String cpf,
 
     @NotNull(message = "Informe a data de nascimento da pessoa assistida.")
-    @PastOrPresent(message = "A data de nascimento nao pode ser futura.")
+    @PastOrPresent(message = "A data de nascimento não pode ser futura.")
     LocalDate dataNascimento,
 
     @NotNull(message = "Informe o grau de dependencia.")
@@ -64,39 +64,39 @@ public record RegisterResponsibleRequest(
     @NotNull(message = "Informe a mobilidade.")
     Mobilidade mobilidade,
 
-    @Size(max = 120, message = "A mobilidade personalizada deve ter no maximo 120 caracteres.")
+    @Size(max = 120, message = "A mobilidade personalizada deve ter no máximo 120 caracteres.")
     String mobilidadeOutro,
 
     @NotEmpty(message = "Informe se a pessoa assistida possui alergias.")
     Set<Alergia> alergias,
 
-    @Size(max = 180, message = "A alergia personalizada deve ter no maximo 180 caracteres.")
+    @Size(max = 180, message = "A alergia personalizada deve ter no máximo 180 caracteres.")
     String alergiasOutro,
 
-    @Size(max = 500, message = "Os detalhes da alergia devem ter no maximo 500 caracteres.")
+    @Size(max = 500, message = "Os detalhes da alergia devem ter no máximo 500 caracteres.")
     String alergiasDetalhes,
 
-    @NotEmpty(message = "Informe se ha restricoes alimentares.")
+    @NotEmpty(message = "Informe se há restrições alimentares.")
     Set<RestricaoAlimentar> restricoesAlimentares,
 
-    @Size(max = 180, message = "A restricao personalizada deve ter no maximo 180 caracteres.")
+    @Size(max = 180, message = "A restrição personalizada deve ter no máximo 180 caracteres.")
     String restricoesAlimentaresOutro,
 
-    @Size(max = 500, message = "Os detalhes da restricao devem ter no maximo 500 caracteres.")
+    @Size(max = 500, message = "Os detalhes da restrição devem ter no máximo 500 caracteres.")
     String restricoesAlimentaresDetalhes,
 
-    @Size(max = 500, message = "Os medicamentos devem ter no maximo 500 caracteres.")
+    @Size(max = 500, message = "Os medicamentos devem ter no máximo 500 caracteres.")
     String medicamentos,
 
-    @Size(max = 500, message = "As observacoes devem ter no maximo 500 caracteres.")
+    @Size(max = 500, message = "As observações devem ter no máximo 500 caracteres.")
     String observacoes,
 
     @Valid
-    @NotNull(message = "Informe o endereco do cuidado.")
+    @NotNull(message = "Informe o endereço do cuidado.")
     AddressRequest enderecoCuidado,
 
     @Valid
-    @NotNull(message = "Informe o contato de emergencia.")
+    @NotNull(message = "Informe o contato de emergência.")
     EmergencyContactRequest contatoEmergencia
   ) {
     @AssertTrue(message = "Informe a mobilidade personalizada.")
@@ -106,16 +106,16 @@ public record RegisterResponsibleRequest(
   }
 
   public record EmergencyContactRequest(
-    @NotBlank(message = "Informe o nome do contato de emergencia.")
-    @Size(max = 140, message = "O nome deve ter no maximo 140 caracteres.")
+    @NotBlank(message = "Informe o nome do contato de emergência.")
+    @Size(max = 140, message = "O nome deve ter no máximo 140 caracteres.")
     String nome,
 
-    @NotBlank(message = "Informe o telefone do contato de emergencia.")
-    @Size(max = 20, message = "O telefone deve ter no maximo 20 caracteres.")
+    @NotBlank(message = "Informe o telefone do contato de emergência.")
+    @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres.")
     String telefone,
 
-    @NotBlank(message = "Informe o vinculo do contato de emergencia.")
-    @Size(max = 120, message = "O vinculo deve ter no maximo 120 caracteres.")
+    @NotBlank(message = "Informe o vínculo do contato de emergência.")
+    @Size(max = 120, message = "O vínculo deve ter no máximo 120 caracteres.")
     String vinculo,
 
     boolean isResponsibleContact

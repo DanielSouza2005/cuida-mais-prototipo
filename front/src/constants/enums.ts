@@ -5,19 +5,19 @@ export type Option<T extends string> = {
 
 export const caregiverEducationOptions = [
   { value: 'CURSO_CUIDADOR_IDOSOS', label: 'Curso de cuidador de idosos' },
-  { value: 'TECNICO_ENFERMAGEM', label: 'Tecnico em enfermagem' },
+  { value: 'TECNICO_ENFERMAGEM', label: 'Técnico em enfermagem' },
   { value: 'AUXILIAR_ENFERMAGEM', label: 'Auxiliar de enfermagem' },
   { value: 'ENFERMAGEM_SUPERIOR', label: 'Ensino superior em enfermagem' },
   { value: 'PRIMEIROS_SOCORROS', label: 'Curso de primeiros socorros' },
-  { value: 'EXPERIENCIA_PRATICA', label: 'Experiencia pratica sem formacao formal' },
+  { value: 'EXPERIENCIA_PRATICA', label: 'Experiência prática sem formação formal' },
   { value: 'OUTRO', label: 'Outro' },
 ] as const satisfies readonly Option<string>[];
 
 export const careModalityOptions = [
   { value: 'DIURNO', label: 'Diurno' },
   { value: 'NOTURNO', label: 'Noturno' },
-  { value: 'PLANTAO_12X36', label: 'Plantao 12x36' },
-  { value: 'PLANTAO_24H', label: 'Plantao 24h' },
+  { value: 'PLANTAO_12X36', label: 'Plantão 12x36' },
+  { value: 'PLANTAO_24H', label: 'Plantão 24h' },
   { value: 'EVENTUAL', label: 'Eventual' },
   { value: 'FINAIS_DE_SEMANA', label: 'Finais de semana' },
   { value: 'ACOMPANHAMENTO_CONSULTAS', label: 'Acompanhamento em consultas' },
@@ -25,44 +25,44 @@ export const careModalityOptions = [
 ] as const satisfies readonly Option<string>[];
 
 export const caregiverServiceOptions = [
-  { value: 'HIGIENE_PESSOAL', label: 'Auxilio com higiene pessoal' },
-  { value: 'BANHO', label: 'Auxilio no banho' },
-  { value: 'ALIMENTACAO', label: 'Auxilio na alimentacao' },
-  { value: 'LOCOMOCAO', label: 'Auxilio na locomocao' },
+  { value: 'HIGIENE_PESSOAL', label: 'Auxílio com higiene pessoal' },
+  { value: 'BANHO', label: 'Auxílio no banho' },
+  { value: 'ALIMENTACAO', label: 'Auxílio na alimentação' },
+  { value: 'LOCOMOCAO', label: 'Auxílio na locomoção' },
   { value: 'COMPANHIA', label: 'Companhia e acompanhamento' },
-  { value: 'MEDICACAO_ORIENTADA', label: 'Apoio a rotina de medicacao conforme orientacao' },
+  { value: 'MEDICACAO_ORIENTADA', label: 'Apoio à rotina de medicação conforme orientação' },
   { value: 'CONSULTAS', label: 'Acompanhamento em consultas' },
-  { value: 'ATIVIDADES_DOMESTICAS_LEVES', label: 'Atividades domesticas leves relacionadas ao cuidado' },
+  { value: 'ATIVIDADES_DOMESTICAS_LEVES', label: 'Atividades domésticas leves relacionadas ao cuidado' },
   { value: 'MONITORAMENTO_NOTURNO', label: 'Monitoramento noturno' },
   { value: 'OUTRO', label: 'Outro' },
 ] as const satisfies readonly Option<string>[];
 
 export const relationshipOptions = [
   { value: 'FILHO', label: 'Filho(a)' },
-  { value: 'CONJUGE', label: 'Conjuge' },
+  { value: 'CONJUGE', label: 'Cônjuge' },
   { value: 'NETO', label: 'Neto(a)' },
-  { value: 'IRMAO', label: 'Irmao/Irma' },
+  { value: 'IRMAO', label: 'Irmão/Irmã' },
   { value: 'SOBRINHO', label: 'Sobrinho(a)' },
   { value: 'TUTOR_LEGAL', label: 'Tutor legal' },
-  { value: 'RESPONSAVEL_CONTRATUAL', label: 'Responsavel contratual' },
+  { value: 'RESPONSAVEL_CONTRATUAL', label: 'Responsável contratual' },
   { value: 'AMIGO', label: 'Amigo(a)' },
   { value: 'OUTRO', label: 'Outro' },
 ] as const satisfies readonly Option<string>[];
 
 export const contactPreferenceOptions = [
   { value: 'WHATSAPP', label: 'WhatsApp' },
-  { value: 'LIGACAO', label: 'Ligacao' },
+  { value: 'LIGACAO', label: 'Ligação' },
   { value: 'EMAIL', label: 'E-mail' },
   { value: 'SMS', label: 'SMS' },
-  { value: 'QUALQUER', label: 'Qualquer opcao' },
+  { value: 'QUALQUER', label: 'Qualquer opção' },
 ] as const satisfies readonly Option<string>[];
 
 export const dependencyLevelOptions = [
-  { value: 'BAIXA', label: 'Baixa dependencia' },
-  { value: 'MODERADA', label: 'Dependencia moderada' },
-  { value: 'ALTA', label: 'Alta dependencia' },
-  { value: 'TOTAL', label: 'Dependencia total' },
-  { value: 'NAO_SEI_INFORMAR', label: 'Nao sei informar' },
+  { value: 'BAIXA', label: 'Baixa dependência' },
+  { value: 'MODERADA', label: 'Dependência moderada' },
+  { value: 'ALTA', label: 'Alta dependência' },
+  { value: 'TOTAL', label: 'Dependência total' },
+  { value: 'NAO_SEI_INFORMAR', label: 'Não sei informar' },
 ] as const satisfies readonly Option<string>[];
 
 export const mobilityOptions = [
@@ -76,46 +76,46 @@ export const mobilityOptions = [
 ] as const satisfies readonly Option<string>[];
 
 export const allergyOptions = [
-  { value: 'NAO_POSSUI', label: 'Nao possui' },
+  { value: 'NAO_POSSUI', label: 'Não possui' },
   { value: 'MEDICAMENTOS', label: 'Medicamentos' },
   { value: 'ALIMENTOS', label: 'Alimentos' },
   { value: 'PRODUTOS_HIGIENE', label: 'Produtos de higiene' },
   { value: 'LATEX', label: 'Latex' },
   { value: 'POEIRA', label: 'Poeira' },
   { value: 'OUTRO', label: 'Outro' },
-  { value: 'NAO_SEI_INFORMAR', label: 'Nao sei informar' },
+  { value: 'NAO_SEI_INFORMAR', label: 'Não sei informar' },
 ] as const satisfies readonly Option<string>[];
 
 export const foodRestrictionOptions = [
-  { value: 'NAO_POSSUI', label: 'Nao possui' },
+  { value: 'NAO_POSSUI', label: 'Não possui' },
   { value: 'DIABETICA', label: 'Dieta para diabetes' },
   { value: 'HIPOSSODICA', label: 'Baixo consumo de sal' },
-  { value: 'PASTOSA', label: 'Alimentacao pastosa' },
-  { value: 'LIQUIDA', label: 'Alimentacao liquida' },
+  { value: 'PASTOSA', label: 'Alimentação pastosa' },
+  { value: 'LIQUIDA', label: 'Alimentação líquida' },
   { value: 'SEM_LACTOSE', label: 'Sem lactose' },
   { value: 'SEM_GLUTEN', label: 'Sem gluten' },
   { value: 'VEGETARIANA', label: 'Vegetariana' },
   { value: 'OUTRO', label: 'Outro' },
-  { value: 'NAO_SEI_INFORMAR', label: 'Nao sei informar' },
+  { value: 'NAO_SEI_INFORMAR', label: 'Não sei informar' },
 ] as const satisfies readonly Option<string>[];
 
 export const weekDayOptions = [
   { value: 'SEGUNDA', label: 'Segunda' },
-  { value: 'TERCA', label: 'Terca' },
+  { value: 'TERCA', label: 'Terça' },
   { value: 'QUARTA', label: 'Quarta' },
   { value: 'QUINTA', label: 'Quinta' },
   { value: 'SEXTA', label: 'Sexta' },
-  { value: 'SABADO', label: 'Sabado' },
+  { value: 'SABADO', label: 'Sábado' },
   { value: 'DOMINGO', label: 'Domingo' },
 ] as const satisfies readonly Option<string>[];
 
 export const dayPeriodOptions = [
-  { value: 'MANHA', label: 'Manha' },
+  { value: 'MANHA', label: 'Manhã' },
   { value: 'TARDE', label: 'Tarde' },
   { value: 'NOITE', label: 'Noite' },
   { value: 'MADRUGADA', label: 'Madrugada' },
   { value: 'INTEGRAL', label: 'Integral' },
-  { value: 'HORARIO_PERSONALIZADO', label: 'Horario personalizado' },
+  { value: 'HORARIO_PERSONALIZADO', label: 'Horário personalizado' },
 ] as const satisfies readonly Option<string>[];
 
 export type CaregiverEducation = typeof caregiverEducationOptions[number]['value'];

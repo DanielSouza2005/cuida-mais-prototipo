@@ -19,7 +19,7 @@ public record CaregiverAvailabilityUpdateRequest(
 
   LocalTime horarioFim,
 
-  @Size(max = 500, message = "A observacao deve ter no maximo 500 caracteres.")
+  @Size(max = 500, message = "A observação deve ter no máximo 500 caracteres.")
   String observacao
 ) {
   @AssertTrue(message = "Informe horario inicial e final.")

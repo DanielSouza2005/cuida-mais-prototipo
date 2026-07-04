@@ -10,7 +10,7 @@ public record CaregiverModalitiesUpdateRequest(
   @NotEmpty(message = "Informe ao menos uma modalidade de atendimento.")
   Set<ModalidadeAtendimento> modalidades,
 
-  @Size(max = 180, message = "A modalidade personalizada deve ter no maximo 180 caracteres.")
+  @Size(max = 180, message = "A modalidade personalizada deve ter no máximo 180 caracteres.")
   String modalidadeOutro
 ) {
   @AssertTrue(message = "Informe a modalidade personalizada.")

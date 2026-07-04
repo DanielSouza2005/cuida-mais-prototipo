@@ -19,7 +19,7 @@ function getLoginFeedback(error: unknown) {
     return error.status === 401 ? 'E-mail ou senha inválidos.' : error.message;
   }
 
-  return 'Nao foi possivel entrar.';
+  return 'Não foi possível entrar.';
 }
 
 export default function LoginScreen() {
@@ -38,7 +38,7 @@ export default function LoginScreen() {
     }
 
     if (!emailRegex.test(email.trim())) {
-      setFeedback('Informe um e-mail valido.');
+      setFeedback('Informe um e-mail válido.');
       return;
     }
 

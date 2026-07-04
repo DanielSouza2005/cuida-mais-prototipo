@@ -12,7 +12,7 @@ import { forgotPassword } from '@/services/authService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
-const genericSuccessMessage = 'Se o e-mail estiver cadastrado, enviaremos as instrucoes de recuperacao.';
+const genericSuccessMessage = 'Se o e-mail estiver cadastrado, enviaremos as instruções de recuperação.';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -30,7 +30,7 @@ export default function ForgotPasswordScreen() {
     }
 
     if (!emailRegex.test(email.trim())) {
-      setFeedback('Informe um e-mail valido.');
+      setFeedback('Informe um e-mail válido.');
       return;
     }
 
@@ -40,7 +40,7 @@ export default function ForgotPasswordScreen() {
       setFeedback(genericSuccessMessage);
       setIsSuccess(true);
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel enviar o link.');
+      setFeedback(error instanceof ApiError ? error.message : 'Não foi possível enviar o link.');
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +66,7 @@ export default function ForgotPasswordScreen() {
       <View style={styles.form}>
         <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
         {feedback ? <Text style={[styles.feedbackText, isSuccess && styles.successText]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSubmitting ? 'Enviando...' : 'Enviar link de recuperacao'} onPress={handleForgotPassword} disabled={isSubmitting} />
+        <PrimaryButton label={isSubmitting ? 'Enviando...' : 'Enviar link de recuperação'} onPress={handleForgotPassword} disabled={isSubmitting} />
       </View>
 
       <Text style={styles.footerText}>

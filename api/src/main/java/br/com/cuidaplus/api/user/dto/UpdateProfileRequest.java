@@ -22,7 +22,7 @@ public record UpdateProfileRequest(
   String email,
 
   @NotBlank(message = "Informe seu telefone.")
-  @Size(max = 20, message = "O telefone deve ter no maximo 20 caracteres.")
+  @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres.")
   String phone,
 
   @NotBlank(message = "Informe a data no formato dd/mm/aaaa.")

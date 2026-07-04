@@ -8,7 +8,7 @@ import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 export default function ProfilePrivacyScreen() {
   return (
     <ScreenContainer contentStyle={styles.content}>
-      <AppHeader showBack title="Privacidade" subtitle="Seguranca da conta e dados pessoais" />
+      <AppHeader showBack title="Privacidade" subtitle="Segurança da conta e dados pessoais" />
       <View style={styles.card}>
         <Shield color={colors.primary} size={30} />
         <Text style={styles.title}>Funcionalidade em desenvolvimento.</Text>

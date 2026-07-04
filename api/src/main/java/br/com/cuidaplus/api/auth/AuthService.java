@@ -47,7 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
 
-  private static final String RESET_MESSAGE = "Se o e-mail estiver cadastrado, enviaremos instrucoes de recuperacao.";
+  private static final String RESET_MESSAGE = "Se o e-mail estiver cadastrado, enviaremos instruções de recuperação.";
 
   private final UserRepository userRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -111,11 +111,11 @@ public class AuthService {
     String cpf = UserService.onlyDigits(request.cpf());
 
     if (userRepository.existsByEmail(email)) {
-      throw new BusinessException("E-mail ja cadastrado.");
+      throw new BusinessException("E-mail já cadastrado.");
     }
 
     if (userRepository.existsByCpf(cpf)) {
-      throw new BusinessException("CPF ja cadastrado.");
+      throw new BusinessException("CPF já cadastrado.");
     }
 
     User user = new User();
@@ -210,10 +210,10 @@ public class AuthService {
     String email = UserService.normalizeEmail(request.email());
     User user = userRepository
       .findByEmail(email)
-      .orElseThrow(() -> new BusinessException("E-mail ou senha invalidos.", HttpStatus.UNAUTHORIZED));
+      .orElseThrow(() -> new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED));
 
     if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-      throw new BusinessException("E-mail ou senha invalidos.", HttpStatus.UNAUTHORIZED);
+      throw new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED);
     }
 
     return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
@@ -247,14 +247,14 @@ public class AuthService {
   public MessageResponse resetPassword(ResetPasswordRequest request) {
     PasswordResetToken resetToken = passwordResetTokenRepository
       .findByTokenHash(hashToken(request.token()))
-      .orElseThrow(() -> new BusinessException("Token de recuperacao invalido ou expirado.", HttpStatus.BAD_REQUEST));
+      .orElseThrow(() -> new BusinessException("Token de recuperação inválido ou expirado.", HttpStatus.BAD_REQUEST));
 
     if (resetToken.getUsedAt() != null) {
-      throw new BusinessException("Token de recuperacao ja utilizado.", HttpStatus.BAD_REQUEST);
+      throw new BusinessException("Token de recuperação já utilizado.", HttpStatus.BAD_REQUEST);
     }
 
     if (resetToken.getExpiresAt().isBefore(Instant.now())) {
-      throw new BusinessException("Token de recuperacao expirado.", HttpStatus.BAD_REQUEST);
+      throw new BusinessException("Token de recuperação expirado.", HttpStatus.BAD_REQUEST);
     }
 
     User user = resetToken.getUser();
@@ -267,7 +267,7 @@ public class AuthService {
   }
 
   public MessageResponse logout() {
-    return new MessageResponse("Sessao encerrada.");
+    return new MessageResponse("Sessão encerrada.");
   }
 
   private User createUser(RegisterUserDataRequest request, UserType userType) {
@@ -275,11 +275,11 @@ public class AuthService {
     String cpf = UserService.onlyDigits(request.cpf());
 
     if (userRepository.existsByEmail(email)) {
-      throw new BusinessException("E-mail ja cadastrado.");
+      throw new BusinessException("E-mail já cadastrado.");
     }
 
     if (userRepository.existsByCpf(cpf)) {
-      throw new BusinessException("CPF ja cadastrado.");
+      throw new BusinessException("CPF já cadastrado.");
     }
 
     User user = new User();
@@ -349,7 +349,7 @@ public class AuthService {
       }
       return builder.toString();
     } catch (NoSuchAlgorithmException exception) {
-      throw new BusinessException("Nao foi possivel processar o token.", HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new BusinessException("Não foi possível processar o token.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

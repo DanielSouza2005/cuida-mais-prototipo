@@ -47,7 +47,7 @@ export default function ProfileCaregiverAvailabilityScreen() {
         setModalidades(profile.caregiverProfile?.modalidades ?? []);
         setModalidadeOutro(profile.caregiverProfile?.modalidadeOutro ?? '');
       })
-      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel carregar a disponibilidade.'))
+      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Não foi possível carregar a disponibilidade.'))
       .finally(() => active && setIsLoading(false));
 
     return () => {
@@ -60,8 +60,8 @@ export default function ProfileCaregiverAvailabilityScreen() {
     setIsSuccess(false);
 
     if (diasSemana.length === 0) return setFeedback('Informe ao menos um dia de disponibilidade.');
-    if (periodos.length === 0) return setFeedback('Informe ao menos um periodo de disponibilidade.');
-    if (usesCustomSchedule && (!horarioInicio.trim() || !horarioFim.trim())) return setFeedback('Informe horario inicial e final.');
+    if (periodos.length === 0) return setFeedback('Informe ao menos um período de disponibilidade.');
+    if (usesCustomSchedule && (!horarioInicio.trim() || !horarioFim.trim())) return setFeedback('Informe horário inicial e final.');
     if (modalidades.length === 0) return setFeedback('Informe ao menos uma modalidade de atendimento.');
     if (modalidades.includes('OUTRO') && !modalidadeOutro.trim()) return setFeedback('Informe a modalidade personalizada.');
 
@@ -81,7 +81,7 @@ export default function ProfileCaregiverAvailabilityScreen() {
       setFeedback(response.message);
       setIsSuccess(true);
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel salvar a disponibilidade.');
+      setFeedback(error instanceof ApiError ? error.message : 'Não foi possível salvar a disponibilidade.');
     } finally {
       setIsSaving(false);
     }
@@ -89,23 +89,23 @@ export default function ProfileCaregiverAvailabilityScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Disponibilidade" subtitle="Horarios, modalidade de atendimento e agenda" />
+      <AppHeader showBack title="Disponibilidade" subtitle="Horários, modalidade de atendimento e agenda" />
       <View style={styles.card}>
         <OptionGroup required multiple label="Dias da semana" options={weekDayOptions} value={diasSemana} onChange={(value) => setDiasSemana(value as WeekDay[])} />
-        <OptionGroup required multiple label="Periodos" options={dayPeriodOptions} value={periodos} onChange={(value) => setPeriodos(value as DayPeriod[])} />
+        <OptionGroup required multiple label="Períodos" options={dayPeriodOptions} value={periodos} onChange={(value) => setPeriodos(value as DayPeriod[])} />
         {usesCustomSchedule ? (
           <>
-            <AppTextInput required label="Horario inicial" icon={Calendar} placeholder="08:00" value={horarioInicio} onChangeText={setHorarioInicio} editable={!isLoading} />
-            <AppTextInput required label="Horario final" icon={Calendar} placeholder="18:00" value={horarioFim} onChangeText={setHorarioFim} editable={!isLoading} />
+            <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={horarioInicio} onChangeText={setHorarioInicio} editable={!isLoading} />
+            <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={horarioFim} onChangeText={setHorarioFim} editable={!isLoading} />
           </>
         ) : null}
         <OptionGroup required multiple label="Modalidades de atendimento" options={careModalityOptions} value={modalidades} onChange={(value) => setModalidades(value as CareModality[])} />
         {modalidades.includes('OUTRO') ? (
           <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={modalidadeOutro} onChangeText={setModalidadeOutro} editable={!isLoading} />
         ) : null}
-        <AppTextInput optional label="Observacao de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={observacao} onChangeText={setObservacao} multiline editable={!isLoading} />
+        <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={observacao} onChangeText={setObservacao} multiline editable={!isLoading} />
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alteracoes'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
       </View>
     </ScreenContainer>
   );

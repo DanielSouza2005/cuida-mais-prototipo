@@ -41,24 +41,24 @@ public class SmtpEmailService implements EmailService {
       helper.setFrom(from);
       helper.setReplyTo(from);
       helper.setTo(to);
-      helper.setSubject("Redefinicao de senha - Cuidar+");
+      helper.setSubject("Redefinição de senha - Cuidar+");
       helper.setText(
         buildPasswordResetText(expirationMinutes),
         buildPasswordResetHtml(resetLink, fallbackWebLink, expirationMinutes)
       );
       mailSender.send(message);
     } catch (MailException exception) {
-      LOGGER.error("Nao foi possivel enviar o e-mail de recuperacao. Verifique as configuracoes SMTP.", exception);
+      LOGGER.error("Não foi possível enviar o e-mail de recuperação. Verifique as configurações SMTP.", exception);
     } catch (Exception exception) {
-      LOGGER.error("Nao foi possivel preparar o e-mail de recuperacao.", exception);
+      LOGGER.error("Não foi possível preparar o e-mail de recuperação.", exception);
     }
   }
 
   private String buildPasswordResetText(long expirationMinutes) {
-    return "Recebemos uma solicitacao para redefinir a senha da sua conta no Cuidar+.\n\n" +
-      "Use o botao Redefinir senha no e-mail em HTML para criar uma nova senha.\n\n" +
-      "Este link e valido por " + expirationMinutes + " minutos. " +
-      "Se voce nao solicitou a redefinicao de senha, ignore este e-mail.\n\n" +
+    return "Recebemos uma solicitação para redefinir a senha da sua conta no Cuidar+.\n\n" +
+      "Use o botão Redefinir senha no e-mail em HTML para criar uma nova senha.\n\n" +
+      "Este link é válido por " + expirationMinutes + " minutos. " +
+      "Se você não solicitou a redefinição de senha, ignore este e-mail.\n\n" +
       "Cuidar+ - Organizacao e apoio ao cuidado domiciliar.";
   }
 
@@ -74,15 +74,15 @@ public class SmtpEmailService implements EmailService {
       "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:560px;background:#ffffff;border:1px solid #e5eaf0;border-radius:8px;overflow:hidden;\">" +
       "<tr><td style=\"padding:28px 32px 8px 32px;\">" +
       "<div style=\"font-size:14px;font-weight:700;color:#208aef;margin-bottom:16px;\">Cuidar+</div>" +
-      "<h1 style=\"font-size:24px;line-height:32px;margin:0 0 12px 0;color:#172033;\">Redefinicao de senha</h1>" +
-      "<p style=\"font-size:15px;line-height:24px;margin:0;color:#536073;\">Recebemos uma solicitacao para redefinir a senha da sua conta no Cuidar+.</p>" +
+      "<h1 style=\"font-size:24px;line-height:32px;margin:0 0 12px 0;color:#172033;\">Redefinição de senha</h1>" +
+      "<p style=\"font-size:15px;line-height:24px;margin:0;color:#536073;\">Recebemos uma solicitação para redefinir a senha da sua conta no Cuidar+.</p>" +
       "</td></tr>" +
       "<tr><td style=\"padding:24px 32px 12px 32px;\">" +
       "<a href=\"" + safeButtonLink + "\" style=\"display:inline-block;background:#208aef;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 22px;border-radius:6px;\">Redefinir senha</a>" +
       "</td></tr>" +
       "<tr><td style=\"padding:12px 32px 24px 32px;\">" +
-      "<p style=\"font-size:13px;line-height:21px;margin:0 0 10px 0;color:#536073;\">Este link e valido por " + expirationMinutes + " minutos. Se voce nao solicitou a redefinicao de senha, ignore este e-mail.</p>" +
-      "<p style=\"font-size:13px;line-height:21px;margin:0;color:#536073;\">Caso o botao nao funcione no computador, <a href=\"" + safeFallbackWebLink + "\" style=\"color:#208aef;text-decoration:none;font-weight:700;\">abra a versao web</a> ou solicite um novo link pelo aplicativo.</p>" +
+      "<p style=\"font-size:13px;line-height:21px;margin:0 0 10px 0;color:#536073;\">Este link é válido por " + expirationMinutes + " minutos. Se você não solicitou a redefinição de senha, ignore este e-mail.</p>" +
+      "<p style=\"font-size:13px;line-height:21px;margin:0;color:#536073;\">Caso o botão não funcione no computador, <a href=\"" + safeFallbackWebLink + "\" style=\"color:#208aef;text-decoration:none;font-weight:700;\">abra a versão web</a> ou solicite um novo link pelo aplicativo.</p>" +
       "</td></tr>" +
       "<tr><td style=\"padding:18px 32px;background:#f9fbfd;border-top:1px solid #e5eaf0;color:#748094;font-size:12px;line-height:18px;\">" +
       "Cuidar+ - Organizacao e apoio ao cuidado domiciliar." +

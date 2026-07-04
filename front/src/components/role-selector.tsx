@@ -14,14 +14,14 @@ type Props = {
 const roles: { value: Role; title: string; description: string; icon: LucideIcon }[] = [
   {
     value: 'family',
-    title: 'Sou responsavel',
+    title: 'Sou responsável',
     description: 'Gerenciar o cuidado de uma pessoa assistida.',
     icon: Users,
   },
   {
     value: 'caregiver',
     title: 'Sou cuidador',
-    description: 'Prestar servicos de cuidado profissional.',
+    description: 'Prestar serviços de cuidado profissional.',
     icon: HeartHandshake,
   },
 ];

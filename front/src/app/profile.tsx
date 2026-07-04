@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Bell, HeartPulse, Home, LogOut, MapPin, Shield, User, Users } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -10,11 +10,17 @@ import { SettingsRow } from '@/components/settings-row';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
+const routes = {
+  assistedPerson: '/profile-assisted-person' as Href,
+  careAddress: '/profile-care-address' as Href,
+  emergencyContact: '/profile-emergency-contact' as Href,
+};
+
 export default function ProfileScreen() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isCaregiver = user?.userType === 'caregiver';
-  const profileLabel = isCaregiver ? 'Cuidador' : 'Responsavel';
+  const profileLabel = isCaregiver ? 'Cuidador' : 'Responsável';
 
   const initials = useMemo(() => {
     const name = user?.fullName?.trim();
@@ -57,35 +63,27 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Configuracoes</Text>
-        {!isCaregiver ? (
-          <SettingsRow
-            title="Editar perfil"
-            description="Dados pessoais e pessoa assistida"
-            icon={User}
-            onPress={() => router.push('/edit-profile')}
-          />
-        ) : null}
-        <SettingsRow title="Informacoes pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
+        <Text style={styles.sectionTitle}>Configurações</Text>
+        <SettingsRow title="Informações pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
         {isCaregiver ? (
           <>
-            <SettingsRow title="Endereco" description="Localizacao e dados de endereco" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />
-            <SettingsRow title="Experiencia" description="Trajetoria, formacao e biografia profissional" icon={HeartPulse} onPress={() => router.push('/profile-caregiver-experience')} />
-            <SettingsRow title="Disponibilidade" description="Horarios, modalidade de atendimento e agenda" icon={MapPin} onPress={() => router.push('/profile-caregiver-availability')} />
-            <SettingsRow title="Servicos oferecidos" description="Atividades de cuidado disponiveis" icon={Users} onPress={() => router.push('/profile-caregiver-services')} />
+            <SettingsRow title="Endereço" description="Localização e dados de endereço" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />
+            <SettingsRow title="Experiência" description="Trajetória, formação e biografia profissional" icon={HeartPulse} onPress={() => router.push('/profile-caregiver-experience')} />
+            <SettingsRow title="Disponibilidade" description="Horários, modalidade de atendimento e agenda" icon={MapPin} onPress={() => router.push('/profile-caregiver-availability')} />
+            <SettingsRow title="Serviços oferecidos" description="Atividades de cuidado disponíveis" icon={Users} onPress={() => router.push('/profile-caregiver-services')} />
           </>
         ) : (
           <>
-            <SettingsRow title="Pessoa assistida" description="Perfil de cuidado e necessidades importantes" icon={Users} />
-            <SettingsRow title="Endereco do cuidado" description="Local onde o cuidado sera realizado" icon={MapPin} />
-            <SettingsRow title="Contato de emergencia" description="Nome, telefone e vinculo de apoio" icon={HeartPulse} />
+            <SettingsRow title="Pessoa assistida" description="Perfil de cuidado e necessidades importantes" icon={Users} onPress={() => router.push(routes.assistedPerson)} />
+            <SettingsRow title="Endereço do cuidado" description="Local onde o cuidado será realizado" icon={MapPin} onPress={() => router.push(routes.careAddress)} />
+            <SettingsRow title="Contato de emergência" description="Nome, telefone e vínculo de apoio" icon={HeartPulse} onPress={() => router.push(routes.emergencyContact)} />
           </>
         )}
-        <SettingsRow title="Notificacoes" description="Preferencias de comunicacao" icon={Bell} onPress={() => router.push('/profile-notifications')} />
-        <SettingsRow title="Privacidade" description="Seguranca da conta e dados pessoais" icon={Shield} onPress={() => router.push('/profile-privacy')} />
+        <SettingsRow title="Notificações" description="Preferências de comunicação" icon={Bell} onPress={() => router.push('/profile-notifications')} />
+        <SettingsRow title="Privacidade" description="Segurança da conta e dados pessoais" icon={Shield} onPress={() => router.push('/profile-privacy')} />
         <SettingsRow
           title={isLoggingOut ? 'Saindo...' : 'Sair'}
-          description="Encerrar sessao neste aparelho"
+          description="Encerrar sessão neste aparelho"
           icon={LogOut}
           onPress={isLoggingOut ? undefined : handleLogout}
         />

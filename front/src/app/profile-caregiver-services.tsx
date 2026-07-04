@@ -28,7 +28,7 @@ export default function ProfileCaregiverServicesScreen() {
         setServicosOferecidos(profile.caregiverProfile?.servicosOferecidos ?? []);
         setServicoOutro(profile.caregiverProfile?.servicoOutro ?? '');
       })
-      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel carregar os servicos.'))
+      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Não foi possível carregar os serviços.'))
       .finally(() => active && setIsLoading(false));
 
     return () => {
@@ -40,8 +40,8 @@ export default function ProfileCaregiverServicesScreen() {
     setFeedback(null);
     setIsSuccess(false);
 
-    if (servicosOferecidos.length === 0) return setFeedback('Informe ao menos um servico oferecido.');
-    if (servicosOferecidos.includes('OUTRO') && !servicoOutro.trim()) return setFeedback('Informe o servico personalizado.');
+    if (servicosOferecidos.length === 0) return setFeedback('Informe ao menos um serviço oferecido.');
+    if (servicosOferecidos.includes('OUTRO') && !servicoOutro.trim()) return setFeedback('Informe o serviço personalizado.');
 
     try {
       setIsSaving(true);
@@ -52,7 +52,7 @@ export default function ProfileCaregiverServicesScreen() {
       setFeedback(response.message);
       setIsSuccess(true);
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel salvar os servicos.');
+      setFeedback(error instanceof ApiError ? error.message : 'Não foi possível salvar os serviços.');
     } finally {
       setIsSaving(false);
     }
@@ -60,14 +60,14 @@ export default function ProfileCaregiverServicesScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Servicos oferecidos" subtitle="Atividades de cuidado disponiveis" />
+      <AppHeader showBack title="Serviços oferecidos" subtitle="Atividades de cuidado disponíveis" />
       <View style={styles.card}>
-        <OptionGroup required multiple label="Servicos oferecidos" options={caregiverServiceOptions} value={servicosOferecidos} onChange={(value) => setServicosOferecidos(value as CaregiverService[])} />
+        <OptionGroup required multiple label="Serviços oferecidos" options={caregiverServiceOptions} value={servicosOferecidos} onChange={(value) => setServicosOferecidos(value as CaregiverService[])} />
         {servicosOferecidos.includes('OUTRO') ? (
-          <AppTextInput required label="Servico personalizado" icon={HeartPulse} placeholder="Informe o servico" value={servicoOutro} onChangeText={setServicoOutro} editable={!isLoading} />
+          <AppTextInput required label="Serviço personalizado" icon={HeartPulse} placeholder="Informe o serviço" value={servicoOutro} onChangeText={setServicoOutro} editable={!isLoading} />
         ) : null}
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alteracoes'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
       </View>
     </ScreenContainer>
   );

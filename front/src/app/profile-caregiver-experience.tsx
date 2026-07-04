@@ -32,7 +32,7 @@ export default function ProfileCaregiverExperienceScreen() {
         setFormacaoOutro(profile.caregiverProfile?.formacaoOutro ?? '');
         setBiografia(profile.caregiverProfile?.biografia ?? '');
       })
-      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel carregar a experiencia.'))
+      .catch((error) => setFeedback(error instanceof ApiError ? error.message : 'Não foi possível carregar a experiência.'))
       .finally(() => active && setIsLoading(false));
 
     return () => {
@@ -44,8 +44,8 @@ export default function ProfileCaregiverExperienceScreen() {
     setFeedback(null);
     setIsSuccess(false);
 
-    if (!experiencia.trim()) return setFeedback('Informe sua experiencia.');
-    if (formacao === 'OUTRO' && !formacaoOutro.trim()) return setFeedback('Informe a formacao personalizada.');
+    if (!experiencia.trim()) return setFeedback('Informe sua experiência.');
+    if (formacao === 'OUTRO' && !formacaoOutro.trim()) return setFeedback('Informe a formação personalizada.');
 
     try {
       setIsSaving(true);
@@ -58,7 +58,7 @@ export default function ProfileCaregiverExperienceScreen() {
       setFeedback(response.message);
       setIsSuccess(true);
     } catch (error) {
-      setFeedback(error instanceof ApiError ? error.message : 'Nao foi possivel salvar a experiencia.');
+      setFeedback(error instanceof ApiError ? error.message : 'Não foi possível salvar a experiência.');
     } finally {
       setIsSaving(false);
     }
@@ -66,16 +66,16 @@ export default function ProfileCaregiverExperienceScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Experiencia" subtitle="Trajetoria, formacao e biografia profissional" />
+      <AppHeader showBack title="Experiência" subtitle="Trajetória, formação e biografia profissional" />
       <View style={styles.card}>
-        <AppTextInput required label="Experiencia" icon={HeartPulse} placeholder="Resumo da experiencia" value={experiencia} onChangeText={setExperiencia} multiline editable={!isLoading} />
-        <OptionGroup optional label="Formacao" options={caregiverEducationOptions} value={formacao} onChange={(value) => setFormacao(value as CaregiverEducation)} />
+        <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experiencia} onChangeText={setExperiencia} multiline editable={!isLoading} />
+        <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={formacao} onChange={(value) => setFormacao(value as CaregiverEducation)} />
         {formacao === 'OUTRO' ? (
-          <AppTextInput required label="Formacao personalizada" icon={HeartPulse} placeholder="Informe sua formacao" value={formacaoOutro} onChangeText={setFormacaoOutro} editable={!isLoading} />
+          <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={formacaoOutro} onChangeText={setFormacaoOutro} editable={!isLoading} />
         ) : null}
-        <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentacao breve" value={biografia} onChangeText={setBiografia} multiline editable={!isLoading} />
+        <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={biografia} onChangeText={setBiografia} multiline editable={!isLoading} />
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}
-        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alteracoes'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
+        <PrimaryButton label={isSaving ? 'Salvando...' : 'Salvar alterações'} icon={Save} onPress={handleSave} disabled={isLoading || isSaving} />
       </View>
     </ScreenContainer>
   );

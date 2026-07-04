@@ -37,6 +37,6 @@ public enum UserType {
       return CUIDADOR;
     }
 
-    throw new IllegalArgumentException("Tipo de usuario invalido.");
+    throw new IllegalArgumentException("Tipo de usuário inválido.");
   }
 }

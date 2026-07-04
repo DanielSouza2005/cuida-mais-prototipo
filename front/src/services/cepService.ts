@@ -22,23 +22,23 @@ export async function getAddressByCep(cep: string): Promise<Partial<Address>> {
   const cleanCep = unformatCep(cep);
 
   if (cleanCep.length !== 8) {
-    throw new CepError('Informe um CEP com 8 numeros.');
+    throw new CepError('Informe um CEP com 8 números.');
   }
 
   let response: Response;
   try {
     response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
   } catch {
-    throw new CepError('Nao foi possivel consultar o CEP agora.');
+    throw new CepError('Não foi possível consultar o CEP agora.');
   }
 
   if (!response.ok) {
-    throw new CepError('Nao foi possivel consultar o CEP agora.');
+    throw new CepError('Não foi possível consultar o CEP agora.');
   }
 
   const payload = await response.json() as ViaCepResponse;
   if (payload.erro) {
-    throw new CepError('CEP nao encontrado. Confira os numeros ou preencha manualmente.');
+    throw new CepError('CEP não encontrado. Confira os números ou preencha manualmente.');
   }
 
   return {

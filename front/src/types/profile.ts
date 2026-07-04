@@ -1,8 +1,14 @@
 import type {
+  Allergy,
   CaregiverEducation,
   CaregiverService,
   CareModality,
+  ContactPreference,
   DayPeriod,
+  DependencyLevel,
+  FoodRestriction,
+  Mobility,
+  Relationship,
   WeekDay,
 } from '@/constants/enums';
 import type { Address, MessageResponse, User } from '@/types/auth';
@@ -28,16 +34,79 @@ export type MyCaregiverProfile = {
   disponibilidade: ProfileAvailability;
 };
 
+export type MyResponsibleProfile = {
+  parentesco?: Relationship | null;
+  parentescoOutro?: string | null;
+  preferenciaContato?: ContactPreference | null;
+};
+
+export type ProfileEmergencyContact = {
+  nome?: string | null;
+  telefone?: string | null;
+  vinculo?: string | null;
+  isResponsibleContact?: boolean;
+};
+
+export type ProfileAssistedPerson = {
+  id: string;
+  nome: string;
+  cpf?: string | null;
+  dataNascimento: string;
+  grauDependencia?: DependencyLevel | null;
+  mobilidade?: Mobility | null;
+  mobilidadeOutro?: string | null;
+  alergias: Allergy[];
+  alergiasOutro?: string | null;
+  alergiasDetalhes?: string | null;
+  restricoesAlimentares: FoodRestriction[];
+  restricoesAlimentaresOutro?: string | null;
+  restricoesAlimentaresDetalhes?: string | null;
+  medicamentos?: string | null;
+  observacoes?: string | null;
+  enderecoCuidado?: Address | null;
+  contatoEmergencia?: ProfileEmergencyContact | null;
+};
+
 export type MyProfile = {
   user: User;
+  responsibleProfile?: MyResponsibleProfile;
+  assistedPersons?: ProfileAssistedPerson[];
   caregiverProfile?: MyCaregiverProfile;
 };
 
 export type PersonalInfoUpdatePayload = {
   nome: string;
-  email: string;
   telefone: string;
+};
+
+export type ResponsibleProfileUpdatePayload = {
+  parentesco: Relationship;
+  parentescoOutro?: string | null;
+  preferenciaContato: ContactPreference;
+};
+
+export type AssistedPersonUpdatePayload = {
+  nome: string;
+  cpf?: string | null;
   dataNascimento: string;
+  grauDependencia: DependencyLevel;
+  mobilidade: Mobility;
+  mobilidadeOutro?: string | null;
+  alergias: Allergy[];
+  alergiasOutro?: string | null;
+  alergiasDetalhes?: string | null;
+  restricoesAlimentares: FoodRestriction[];
+  restricoesAlimentaresOutro?: string | null;
+  restricoesAlimentaresDetalhes?: string | null;
+  medicamentos?: string | null;
+  observacoes?: string | null;
+};
+
+export type EmergencyContactUpdatePayload = {
+  nome?: string | null;
+  telefone?: string | null;
+  vinculo?: string | null;
+  isResponsibleContact: boolean;
 };
 
 export type CaregiverExperienceUpdatePayload = {

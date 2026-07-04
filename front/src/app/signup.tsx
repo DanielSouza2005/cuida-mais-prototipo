@@ -83,7 +83,7 @@ function getSignupFeedback(error: unknown) {
     return error.message;
   }
 
-  return 'Nao foi possivel criar sua conta. Tente novamente.';
+  return 'Não foi possível criar sua conta. Tente novamente.';
 }
 
 function needsDetail(options: string[]) {
@@ -168,13 +168,13 @@ export default function SignupScreen() {
   const title = useMemo(() => {
     if (step === 0) return 'Escolha o tipo de conta';
     if (role === 'family' && step === 1) return 'Dados da conta';
-    if (role === 'family' && step === 2) return 'Vinculo e contato';
+    if (role === 'family' && step === 2) return 'Vínculo e contato';
     if (role === 'family' && step === 3) return 'Pessoa assistida';
-    if (role === 'family') return 'Cuidado e emergencia';
+    if (role === 'family') return 'Cuidado e emergência';
     if (step === 1) return 'Dados pessoais';
-    if (step === 2) return 'Endereco do cuidador';
+    if (step === 2) return 'Endereço do cuidador';
     if (step === 3) return 'Dados profissionais';
-    return 'Disponibilidade e servicos';
+    return 'Disponibilidade e serviços';
   }, [role, step]);
 
   useEffect(() => {
@@ -205,11 +205,11 @@ export default function SignupScreen() {
           estado: address.estado ?? current.estado,
           complemento: current.complemento?.trim() ? current.complemento : address.complemento ?? current.complemento,
         }));
-        setCepFeedback('Endereco preenchido pelo CEP. Voce pode editar se precisar.');
+        setCepFeedback('Endereço preenchido pelo CEP. Você pode editar se precisar.');
         setCepFeedbackKind('success');
       } catch (error) {
         if (!active) return;
-        setCepFeedback(error instanceof CepError ? error.message : 'Nao foi possivel consultar o CEP agora.');
+        setCepFeedback(error instanceof CepError ? error.message : 'Não foi possível consultar o CEP agora.');
         setCepFeedbackKind('error');
       } finally {
         if (active) setIsFetchingCep(false);
@@ -251,11 +251,11 @@ export default function SignupScreen() {
           estado: address.estado ?? current.estado,
           complemento: current.complemento?.trim() ? current.complemento : address.complemento ?? current.complemento,
         }));
-        setCareCepFeedback('Endereco do cuidado preenchido pelo CEP. Voce pode editar se precisar.');
+        setCareCepFeedback('Endereço do cuidado preenchido pelo CEP. Você pode editar se precisar.');
         setCareCepFeedbackKind('success');
       } catch (error) {
         if (!active) return;
-        setCareCepFeedback(error instanceof CepError ? error.message : 'Nao foi possivel consultar o CEP agora.');
+        setCareCepFeedback(error instanceof CepError ? error.message : 'Não foi possível consultar o CEP agora.');
         setCareCepFeedbackKind('error');
       } finally {
         if (active) setIsFetchingCareCep(false);
@@ -281,7 +281,7 @@ export default function SignupScreen() {
     if (!fullName.trim()) return 'Informe seu nome completo.';
     if (!cpf.trim()) return 'Informe seu CPF.';
     if (!email.trim()) return 'Informe seu e-mail.';
-    if (!isValidEmailFormat(email)) return 'Informe um e-mail valido.';
+    if (!isValidEmailFormat(email)) return 'Informe um e-mail válido.';
     if (!password) return 'Informe uma senha.';
     if (!passwordConfirmation) return 'Confirme sua senha.';
     if (passwordConfirmation !== password) return 'A confirmacao de senha deve ser igual a senha.';
@@ -291,9 +291,9 @@ export default function SignupScreen() {
   }
 
   function validateResponsibleRelationship() {
-    if (!relationship) return 'Informe o vinculo com a pessoa assistida.';
+    if (!relationship) return 'Informe o vínculo com a pessoa assistida.';
     if (relationship === 'OUTRO' && !relationshipCustom.trim()) return 'Informe o parentesco personalizado.';
-    if (!contactPreference) return 'Informe a preferencia de contato.';
+    if (!contactPreference) return 'Informe a preferência de contato.';
     return null;
   }
 
@@ -307,28 +307,28 @@ export default function SignupScreen() {
     if (allergies.length === 0) return 'Informe se a pessoa assistida possui alergias.';
     if (showAllergyDetails && !allergyDetails.trim()) return 'Informe os detalhes da alergia.';
     if (foodRestrictions.length === 0) return 'Informe se ha restricoes alimentares.';
-    if (showFoodRestrictionDetails && !foodRestrictionDetails.trim()) return 'Informe os detalhes da restricao alimentar.';
+    if (showFoodRestrictionDetails && !foodRestrictionDetails.trim()) return 'Informe os detalhes da restrição alimentar.';
     return null;
   }
 
   function validateResponsibleCareDetails() {
-    if (unformatCep(careAddress.cep).length !== 8) return 'Informe um CEP com 8 numeros.';
+    if (unformatCep(careAddress.cep).length !== 8) return 'Informe um CEP com 8 números.';
     if (!careAddress.rua.trim()) return 'Informe a rua do cuidado.';
-    if (!careAddress.numero.trim()) return 'Informe o numero do cuidado.';
+    if (!careAddress.numero.trim()) return 'Informe o número do cuidado.';
     if (!careAddress.bairro.trim()) return 'Informe o bairro do cuidado.';
     if (!careAddress.cidade.trim()) return 'Informe a cidade do cuidado.';
     if (!careAddress.estado.trim()) return 'Informe o estado do cuidado.';
     if (useResponsibleAsEmergencyContact) return null;
     if (!emergencyName.trim() || !emergencyPhone.trim() || !emergencyRelation.trim()) {
-      return 'Informe nome, telefone e vinculo do contato de emergencia.';
+      return 'Informe nome, telefone e vínculo do contato de emergência.';
     }
     return null;
   }
 
   function validateCaregiverAddress() {
-    if (unformatCep(caregiverAddress.cep).length !== 8) return 'Informe um CEP com 8 numeros.';
+    if (unformatCep(caregiverAddress.cep).length !== 8) return 'Informe um CEP com 8 números.';
     if (!caregiverAddress.rua.trim()) return 'Informe a rua.';
-    if (!caregiverAddress.numero.trim()) return 'Informe o numero.';
+    if (!caregiverAddress.numero.trim()) return 'Informe o número.';
     if (!caregiverAddress.bairro.trim()) return 'Informe o bairro.';
     if (!caregiverAddress.cidade.trim()) return 'Informe a cidade.';
     if (!caregiverAddress.estado.trim()) return 'Informe o estado.';
@@ -336,20 +336,20 @@ export default function SignupScreen() {
   }
 
   function validateCaregiverProfessionalData() {
-    if (!experience.trim()) return 'Informe sua experiencia.';
+    if (!experience.trim()) return 'Informe sua experiência.';
     return null;
   }
 
   function validateCaregiverAvailabilityAndServices() {
     if (weekDays.length === 0) return 'Informe ao menos um dia de disponibilidade.';
-    if (dayPeriods.length === 0) return 'Informe ao menos um periodo de disponibilidade.';
+    if (dayPeriods.length === 0) return 'Informe ao menos um período de disponibilidade.';
     if (usesCustomAvailability && (!availabilityStart.trim() || !availabilityEnd.trim())) {
-      return 'Informe horario inicial e final.';
+      return 'Informe horário inicial e final.';
     }
     if (careModes.length === 0) return 'Informe ao menos uma modalidade de atendimento.';
     if (careModes.includes('OUTRO') && !careModeCustom.trim()) return 'Informe a modalidade personalizada.';
-    if (services.length === 0) return 'Informe ao menos um servico oferecido.';
-    if (services.includes('OUTRO') && !serviceCustom.trim()) return 'Informe o servico personalizado.';
+    if (services.length === 0) return 'Informe ao menos um serviço oferecido.';
+    if (services.includes('OUTRO') && !serviceCustom.trim()) return 'Informe o serviço personalizado.';
     return null;
   }
 
@@ -397,7 +397,7 @@ export default function SignupScreen() {
         nome: useResponsibleAsEmergencyContact ? fullName.trim() : emergencyName.trim(),
         telefone: useResponsibleAsEmergencyContact ? unformatPhone(phone) : unformatPhone(emergencyPhone),
         vinculo: useResponsibleAsEmergencyContact
-          ? relationshipCustom.trim() || relationship || 'Responsavel'
+          ? relationshipCustom.trim() || relationship || 'Responsável'
           : emergencyRelation.trim(),
         isResponsibleEmergencyContact: useResponsibleAsEmergencyContact,
       },
@@ -509,11 +509,11 @@ export default function SignupScreen() {
 
         {role === 'family' && step === 2 ? (
           <>
-            <OptionGroup required label="Parentesco ou vinculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} />
+            <OptionGroup required label="Parentesco ou vínculo" options={relationshipOptions} value={relationship} onChange={(value) => setRelationship(value as Relationship)} />
             {relationship === 'OUTRO' ? (
-              <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vinculo" value={relationshipCustom} onChangeText={setRelationshipCustom} />
+              <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} />
             ) : null}
-            <OptionGroup required label="Preferencia de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
+            <OptionGroup required label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
           </>
         ) : null}
 
@@ -522,22 +522,22 @@ export default function SignupScreen() {
             <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={assistedName} onChangeText={setAssistedName} />
             <DatePickerField required label="Data de nascimento" value={assistedBirthDate} onChange={setAssistedBirthDate} maxDate={today} />
             <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={assistedCpf} onChangeText={(value) => setAssistedCpf(formatCpf(value))} keyboardType="number-pad" />
-            <OptionGroup required label="Grau de dependencia" options={dependencyLevelOptions} value={dependencyLevel} onChange={(value) => setDependencyLevel(value as DependencyLevel)} />
+            <OptionGroup required label="Grau de dependência" options={dependencyLevelOptions} value={dependencyLevel} onChange={(value) => setDependencyLevel(value as DependencyLevel)} />
             <OptionGroup required label="Mobilidade" options={mobilityOptions} value={mobility} onChange={(value) => setMobility(value as Mobility)} />
             {mobility === 'OUTRO' ? (
               <AppTextInput required label="Mobilidade personalizada" icon={HeartPulse} placeholder="Descreva a mobilidade" value={mobilityCustom} onChangeText={setMobilityCustom} />
             ) : null}
-            <AppTextInput required label="Necessidades de cuidado" icon={HeartPulse} placeholder="Separadas por virgula" value={careNeeds} onChangeText={setCareNeeds} />
+            <AppTextInput required label="Necessidades de cuidado" icon={HeartPulse} placeholder="Separadas por vírgula" value={careNeeds} onChangeText={setCareNeeds} />
             <OptionGroup required multiple label="Alergias" options={allergyOptions} value={allergies} onChange={(value) => setAllergies(normalizeExclusiveHealthOptions(value as Allergy[]))} />
             {showAllergyDetails ? (
               <AppTextInput required label="Detalhes da alergia" icon={HeartPulse} placeholder="Informe detalhes importantes" value={allergyDetails} onChangeText={setAllergyDetails} />
             ) : null}
             <AppTextInput optional label="Medicamentos" icon={HeartPulse} placeholder="Liste se houver" value={medications} onChangeText={setMedications} />
-            <OptionGroup required multiple label="Restricoes alimentares" options={foodRestrictionOptions} value={foodRestrictions} onChange={(value) => setFoodRestrictions(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} />
+            <OptionGroup required multiple label="Restrições alimentares" options={foodRestrictionOptions} value={foodRestrictions} onChange={(value) => setFoodRestrictions(normalizeExclusiveHealthOptions(value as FoodRestriction[]))} />
             {showFoodRestrictionDetails ? (
-              <AppTextInput required label="Detalhes da restricao alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={foodRestrictionDetails} onChangeText={setFoodRestrictionDetails} />
+              <AppTextInput required label="Detalhes da restrição alimentar" icon={HeartPulse} placeholder="Informe detalhes importantes" value={foodRestrictionDetails} onChangeText={setFoodRestrictionDetails} />
             ) : null}
-            <AppTextInput optional label="Observacoes importantes" icon={HeartPulse} placeholder="Informacoes adicionais" value={notes} onChangeText={setNotes} />
+            <AppTextInput optional label="Observações importantes" icon={HeartPulse} placeholder="Informações adicionais" value={notes} onChangeText={setNotes} />
           </>
         ) : null}
 
@@ -554,12 +554,12 @@ export default function SignupScreen() {
               </Text>
             ) : null}
             <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua do cuidado" value={careAddress.rua} onChangeText={(value) => updateCareAddress('rua', value)} />
-            <AppTextInput required label="Numero" icon={MapPin} placeholder="123" value={careAddress.numero} onChangeText={(value) => updateCareAddress('numero', value)} />
+            <AppTextInput required label="Número" icon={MapPin} placeholder="123" value={careAddress.numero} onChangeText={(value) => updateCareAddress('numero', value)} />
             <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={careAddress.complemento} onChangeText={(value) => updateCareAddress('complemento', value)} />
             <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={careAddress.bairro} onChangeText={(value) => updateCareAddress('bairro', value)} />
             <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={careAddress.cidade} onChangeText={(value) => updateCareAddress('cidade', value)} />
             <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={careAddress.estado} onChangeText={(value) => updateCareAddress('estado', value)} autoCapitalize="characters" />
-            <AppTextInput optional label="Ponto de referencia" icon={MapPin} placeholder="Referencia proxima" value={careAddress.pontoReferencia} onChangeText={(value) => updateCareAddress('pontoReferencia', value)} />
+            <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={careAddress.pontoReferencia} onChangeText={(value) => updateCareAddress('pontoReferencia', value)} />
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{ checked: useResponsibleAsEmergencyContact }}
@@ -570,21 +570,21 @@ export default function SignupScreen() {
                 {useResponsibleAsEmergencyContact ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
               </View>
               <View style={styles.checkboxTextBlock}>
-                <Text style={styles.termsText}>Sou o contato de emergencia</Text>
-                <Text style={styles.helperText}>Usaremos seu nome, telefone e vinculo como contato principal.</Text>
+                <Text style={styles.termsText}>Sou o contato de emergência</Text>
+                <Text style={styles.helperText}>Usaremos seu nome, telefone e vínculo como contato principal.</Text>
               </View>
             </Pressable>
             {useResponsibleAsEmergencyContact ? (
               <View style={styles.emergencyPreview}>
-                <Text style={styles.previewText}>{fullName || 'Nome do responsavel'}</Text>
-                <Text style={styles.previewText}>{phone || 'Telefone do responsavel'}</Text>
-                <Text style={styles.previewText}>{relationshipCustom || relationship || 'Vinculo informado'}</Text>
+                <Text style={styles.previewText}>{fullName || 'Nome do responsável'}</Text>
+                <Text style={styles.previewText}>{phone || 'Telefone do responsável'}</Text>
+                <Text style={styles.previewText}>{relationshipCustom || relationship || 'Vínculo informado'}</Text>
               </View>
             ) : (
               <>
-                <AppTextInput required label="Contato de emergencia" icon={User} placeholder="Nome completo" value={emergencyName} onChangeText={setEmergencyName} />
-                <AppTextInput required label="Telefone de emergencia" icon={Phone} placeholder="(00) 00000-0000" value={emergencyPhone} onChangeText={(value) => setEmergencyPhone(formatPhone(value))} keyboardType="phone-pad" />
-                <AppTextInput required label="Vinculo do contato" icon={HeartPulse} placeholder="Irma, vizinho, amigo..." value={emergencyRelation} onChangeText={setEmergencyRelation} />
+                <AppTextInput required label="Contato de emergência" icon={User} placeholder="Nome completo" value={emergencyName} onChangeText={setEmergencyName} />
+                <AppTextInput required label="Telefone de emergência" icon={Phone} placeholder="(00) 00000-0000" value={emergencyPhone} onChangeText={(value) => setEmergencyPhone(formatPhone(value))} keyboardType="phone-pad" />
+                <AppTextInput required label="Vínculo do contato" icon={HeartPulse} placeholder="Irmã, vizinho, amigo..." value={emergencyRelation} onChangeText={setEmergencyRelation} />
               </>
             )}
           </>
@@ -603,44 +603,44 @@ export default function SignupScreen() {
               </Text>
             ) : null}
             <AppTextInput required label="Rua" icon={MapPin} placeholder="Rua" value={caregiverAddress.rua} onChangeText={(value) => updateCaregiverAddress('rua', value)} />
-            <AppTextInput required label="Numero" icon={MapPin} placeholder="123" value={caregiverAddress.numero} onChangeText={(value) => updateCaregiverAddress('numero', value)} />
+            <AppTextInput required label="Número" icon={MapPin} placeholder="123" value={caregiverAddress.numero} onChangeText={(value) => updateCaregiverAddress('numero', value)} />
             <AppTextInput optional label="Complemento" icon={MapPin} placeholder="Apto, bloco ou casa" value={caregiverAddress.complemento} onChangeText={(value) => updateCaregiverAddress('complemento', value)} />
             <AppTextInput required label="Bairro" icon={MapPin} placeholder="Bairro" value={caregiverAddress.bairro} onChangeText={(value) => updateCaregiverAddress('bairro', value)} />
             <AppTextInput required label="Cidade" icon={MapPin} placeholder="Cidade" value={caregiverAddress.cidade} onChangeText={(value) => updateCaregiverAddress('cidade', value)} />
             <AppTextInput required label="Estado" icon={MapPin} placeholder="UF" value={caregiverAddress.estado} onChangeText={(value) => updateCaregiverAddress('estado', value)} autoCapitalize="characters" />
-            <AppTextInput optional label="Ponto de referencia" icon={MapPin} placeholder="Referencia proxima" value={caregiverAddress.pontoReferencia} onChangeText={(value) => updateCaregiverAddress('pontoReferencia', value)} />
+            <AppTextInput optional label="Ponto de referência" icon={MapPin} placeholder="Referência próxima" value={caregiverAddress.pontoReferencia} onChangeText={(value) => updateCaregiverAddress('pontoReferencia', value)} />
           </>
         ) : null}
 
         {role === 'caregiver' && step === 3 ? (
           <>
-            <AppTextInput required label="Experiencia" icon={HeartPulse} placeholder="Resumo da experiencia" value={experience} onChangeText={setExperience} />
-            <OptionGroup optional label="Formacao" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation)} />
+            <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experience} onChangeText={setExperience} />
+            <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation)} />
             {education === 'OUTRO' ? (
-              <AppTextInput required label="Formacao personalizada" icon={HeartPulse} placeholder="Informe sua formacao" value={educationCustom} onChangeText={setEducationCustom} />
+              <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={educationCustom} onChangeText={setEducationCustom} />
             ) : null}
-            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentacao breve" value={bio} onChangeText={setBio} />
+            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={bio} onChangeText={setBio} />
           </>
         ) : null}
 
         {role === 'caregiver' && step === 4 ? (
           <>
-            <OptionGroup required multiple label="Dias disponiveis" options={weekDayOptions} value={weekDays} onChange={(value) => setWeekDays(value as WeekDay[])} />
-            <OptionGroup required multiple label="Periodos disponiveis" options={dayPeriodOptions} value={dayPeriods} onChange={(value) => setDayPeriods(value as DayPeriod[])} />
+            <OptionGroup required multiple label="Dias disponíveis" options={weekDayOptions} value={weekDays} onChange={(value) => setWeekDays(value as WeekDay[])} />
+            <OptionGroup required multiple label="Períodos disponíveis" options={dayPeriodOptions} value={dayPeriods} onChange={(value) => setDayPeriods(value as DayPeriod[])} />
             {usesCustomAvailability ? (
               <View style={styles.inlineFields}>
-                <AppTextInput required label="Horario inicial" icon={Calendar} placeholder="08:00" value={availabilityStart} onChangeText={setAvailabilityStart} />
-                <AppTextInput required label="Horario final" icon={Calendar} placeholder="18:00" value={availabilityEnd} onChangeText={setAvailabilityEnd} />
+                <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={availabilityStart} onChangeText={setAvailabilityStart} />
+                <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={availabilityEnd} onChangeText={setAvailabilityEnd} />
               </View>
             ) : null}
-            <AppTextInput optional label="Observacao de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={availabilityNote} onChangeText={setAvailabilityNote} />
+            <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={availabilityNote} onChangeText={setAvailabilityNote} />
             <OptionGroup required multiple label="Modalidade de atendimento" options={careModalityOptions} value={careModes} onChange={(value) => setCareModes(value as CareModality[])} />
             {careModes.includes('OUTRO') ? (
               <AppTextInput required label="Modalidade personalizada" icon={HeartPulse} placeholder="Informe a modalidade" value={careModeCustom} onChangeText={setCareModeCustom} />
             ) : null}
-            <OptionGroup required multiple label="Servicos oferecidos" options={caregiverServiceOptions} value={services} onChange={(value) => setServices(value as CaregiverService[])} />
+            <OptionGroup required multiple label="Serviços oferecidos" options={caregiverServiceOptions} value={services} onChange={(value) => setServices(value as CaregiverService[])} />
             {services.includes('OUTRO') ? (
-              <AppTextInput required label="Servico personalizado" icon={HeartPulse} placeholder="Informe o servico" value={serviceCustom} onChangeText={setServiceCustom} />
+              <AppTextInput required label="Serviço personalizado" icon={HeartPulse} placeholder="Informe o serviço" value={serviceCustom} onChangeText={setServiceCustom} />
             ) : null}
           </>
         ) : null}
@@ -677,7 +677,7 @@ export default function SignupScreen() {
       </View>
 
       <Text style={styles.footerText}>
-        Ja tem conta? <Link href="/login" style={styles.footerLink}>Entrar</Link>
+        Já tem conta? <Link href="/login" style={styles.footerLink}>Entrar</Link>
       </Text>
     </ScreenContainer>
   );

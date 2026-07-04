@@ -15,6 +15,6 @@ public class NoopEmailService implements EmailService {
   @Override
   @Async
   public void sendPasswordResetEmail(String to, String resetLink, String fallbackWebLink, long expirationMinutes) {
-    LOGGER.info("Envio de e-mail desabilitado. Configure app.mail.enabled=true para enviar recuperacao de senha.");
+    LOGGER.info("Envio de e-mail desabilitado. Configure app.mail.enabled=true para enviar recuperação de senha.");
   }
 }

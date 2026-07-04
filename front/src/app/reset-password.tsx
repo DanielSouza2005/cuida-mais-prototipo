@@ -16,7 +16,7 @@ function getResetPasswordFeedback(error: unknown) {
     return error.message;
   }
 
-  return 'Nao foi possivel redefinir a senha. Tente novamente.';
+  return 'Não foi possível redefinir a senha. Tente novamente.';
 }
 
 export default function ResetPasswordScreen() {
@@ -43,12 +43,12 @@ export default function ResetPasswordScreen() {
     setIsSuccess(false);
 
     if (!token || !password || !confirmPassword) {
-      setFeedback(token ? 'Informe a nova senha.' : 'Link de recuperacao invalido ou incompleto.');
+      setFeedback(token ? 'Informe a nova senha.' : 'Link de recuperação inválido ou incompleto.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setFeedback('As senhas nao conferem.');
+      setFeedback('As senhas não conferem.');
       return;
     }
 
@@ -97,7 +97,7 @@ export default function ResetPasswordScreen() {
             </View>
           </>
         ) : (
-          <Text style={styles.feedbackText}>Link de recuperacao invalido ou incompleto.</Text>
+          <Text style={styles.feedbackText}>Link de recuperação inválido ou incompleto.</Text>
         )}
 
         {feedback ? <Text style={[styles.feedbackText, isSuccess && styles.successText]}>{feedback}</Text> : null}

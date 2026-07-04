@@ -20,7 +20,7 @@ public record RegisterCaregiverRequest(
   RegisterUserDataRequest user,
 
   @Valid
-  @NotNull(message = "Informe o endereco do cuidador.")
+  @NotNull(message = "Informe o endereço do cuidador.")
   AddressRequest address,
 
   @Valid
@@ -28,35 +28,35 @@ public record RegisterCaregiverRequest(
   CaregiverProfileRequest caregiverProfile
 ) {
   public record CaregiverProfileRequest(
-    @NotBlank(message = "Informe sua experiencia.")
-    @Size(max = 500, message = "A experiencia deve ter no maximo 500 caracteres.")
+    @NotBlank(message = "Informe sua experiência.")
+    @Size(max = 500, message = "A experiência deve ter no máximo 500 caracteres.")
     String experiencia,
 
     FormacaoCuidador formacao,
 
-    @Size(max = 180, message = "A formacao personalizada deve ter no maximo 180 caracteres.")
+    @Size(max = 180, message = "A formação personalizada deve ter no máximo 180 caracteres.")
     String formacaoOutro,
 
-    @Size(max = 500, message = "A biografia deve ter no maximo 500 caracteres.")
+    @Size(max = 500, message = "A biografia deve ter no máximo 500 caracteres.")
     String biografia,
 
     @NotEmpty(message = "Informe ao menos uma modalidade de atendimento.")
     Set<ModalidadeAtendimento> modalidades,
 
-    @Size(max = 180, message = "A modalidade personalizada deve ter no maximo 180 caracteres.")
+    @Size(max = 180, message = "A modalidade personalizada deve ter no máximo 180 caracteres.")
     String modalidadeOutro,
 
-    @NotEmpty(message = "Informe ao menos um servico oferecido.")
+    @NotEmpty(message = "Informe ao menos um serviço oferecido.")
     Set<ServicoOferecido> servicosOferecidos,
 
-    @Size(max = 180, message = "O servico personalizado deve ter no maximo 180 caracteres.")
+    @Size(max = 180, message = "O serviço personalizado deve ter no máximo 180 caracteres.")
     String servicoOutro,
 
     @Valid
     @NotNull(message = "Informe a disponibilidade.")
     AvailabilityRequest disponibilidade
   ) {
-    @AssertTrue(message = "Informe a formacao personalizada.")
+    @AssertTrue(message = "Informe a formação personalizada.")
     public boolean isFormacaoOutroValida() {
       return formacao != FormacaoCuidador.OUTRO || (formacaoOutro != null && !formacaoOutro.isBlank());
     }
@@ -66,7 +66,7 @@ public record RegisterCaregiverRequest(
       return modalidades == null || !modalidades.contains(ModalidadeAtendimento.OUTRO) || (modalidadeOutro != null && !modalidadeOutro.isBlank());
     }
 
-    @AssertTrue(message = "Informe o servico personalizado.")
+    @AssertTrue(message = "Informe o serviço personalizado.")
     public boolean isServicoOutroValido() {
       return servicosOferecidos == null || !servicosOferecidos.contains(ServicoOferecido.OUTRO) || (servicoOutro != null && !servicoOutro.isBlank());
     }
@@ -83,7 +83,7 @@ public record RegisterCaregiverRequest(
 
     LocalTime horarioFim,
 
-    @Size(max = 500, message = "A observacao deve ter no maximo 500 caracteres.")
+    @Size(max = 500, message = "A observação deve ter no máximo 500 caracteres.")
     String observacao
   ) {
     @AssertTrue(message = "Informe horario inicial e final.")
