@@ -13,6 +13,14 @@ export const caregiverEducationOptions = [
   { value: 'OUTRO', label: 'Outro' },
 ] as const satisfies readonly Option<string>[];
 
+export const caregiverExperienceRangeOptions = [
+  { value: 'MENOS_DE_1_ANO', label: 'Menos de 1 ano' },
+  { value: 'DE_1_A_2_ANOS', label: '1 a 2 anos' },
+  { value: 'DE_3_A_5_ANOS', label: '3 a 5 anos' },
+  { value: 'DE_6_A_10_ANOS', label: '6 a 10 anos' },
+  { value: 'MAIS_DE_10_ANOS', label: 'Mais de 10 anos' },
+] as const satisfies readonly Option<string>[];
+
 export const careModalityOptions = [
   { value: 'DIURNO', label: 'Diurno' },
   { value: 'NOTURNO', label: 'Noturno' },
@@ -119,6 +127,7 @@ export const dayPeriodOptions = [
 ] as const satisfies readonly Option<string>[];
 
 export type CaregiverEducation = typeof caregiverEducationOptions[number]['value'];
+export type CaregiverExperienceRange = typeof caregiverExperienceRangeOptions[number]['value'];
 export type CareModality = typeof careModalityOptions[number]['value'];
 export type CaregiverService = typeof caregiverServiceOptions[number]['value'];
 export type Relationship = typeof relationshipOptions[number]['value'];

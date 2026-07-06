@@ -9,14 +9,19 @@ import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
-import { caregiverEducationOptions, type CaregiverEducation } from '@/constants/enums';
+import {
+  caregiverEducationOptions,
+  caregiverExperienceRangeOptions,
+  type CaregiverEducation,
+  type CaregiverExperienceRange,
+} from '@/constants/enums';
 import { ApiError } from '@/services/api';
 import { getMyProfile, updateCaregiverExperience } from '@/services/profileService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
 export default function ProfileCaregiverExperienceScreen() {
-  const [experiencia, setExperiencia] = useState('');
-  const [formacao, setFormacao] = useState<CaregiverEducation | null>(null);
+  const [tempoExperiencia, setTempoExperiencia] = useState<CaregiverExperienceRange | null>(null);
+  const [formacoes, setFormacoes] = useState<CaregiverEducation[]>([]);
   const [formacaoOutro, setFormacaoOutro] = useState('');
   const [biografia, setBiografia] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -31,8 +36,8 @@ export default function ProfileCaregiverExperienceScreen() {
     getMyProfile()
       .then((profile) => {
         if (!active) return;
-        setExperiencia(profile.caregiverProfile?.experiencia ?? '');
-        setFormacao(profile.caregiverProfile?.formacao ?? null);
+        setTempoExperiencia(profile.caregiverProfile?.tempoExperiencia ?? null);
+        setFormacoes(profile.caregiverProfile?.formacoes ?? (profile.caregiverProfile?.formacao ? [profile.caregiverProfile.formacao] : []));
         setFormacaoOutro(profile.caregiverProfile?.formacaoOutro ?? '');
         setBiografia(profile.caregiverProfile?.biografia ?? '');
       })
@@ -48,15 +53,15 @@ export default function ProfileCaregiverExperienceScreen() {
     setFeedback(null);
     setIsSuccess(false);
 
-    if (!experiencia.trim()) return setFeedback('Informe sua experiência.');
-    if (formacao === 'OUTRO' && !formacaoOutro.trim()) return setFeedback('Informe a formação personalizada.');
+    if (!tempoExperiencia) return setFeedback('Informe seu tempo de experiência.');
+    if (formacoes.includes('OUTRO') && !formacaoOutro.trim()) return setFeedback('Informe a formação personalizada.');
 
     try {
       setIsSaving(true);
       const response = await updateCaregiverExperience({
-        experiencia: experiencia.trim(),
-        formacao,
-        formacaoOutro: formacao === 'OUTRO' ? formacaoOutro.trim() : null,
+        tempoExperiencia,
+        formacoes,
+        formacaoOutro: formacoes.includes('OUTRO') ? formacaoOutro.trim() : null,
         biografia: biografia.trim() || null,
       });
       setFeedback(response.message);
@@ -76,12 +81,12 @@ export default function ProfileCaregiverExperienceScreen() {
           <LoadingState />
         ) : (
           <>
-            <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experiencia} onChangeText={setExperiencia} multiline disabled={formDisabled} />
-            <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={formacao} onChange={(value) => setFormacao(value as CaregiverEducation)} disabled={formDisabled} />
-            {formacao === 'OUTRO' ? (
+            <OptionGroup required label="Experiência" options={caregiverExperienceRangeOptions} value={tempoExperiencia} onChange={(value) => setTempoExperiencia(value as CaregiverExperienceRange)} disabled={formDisabled} />
+            <OptionGroup multiple optional label="Formação" options={caregiverEducationOptions} value={formacoes} onChange={(value) => setFormacoes(value as CaregiverEducation[])} disabled={formDisabled} />
+            {formacoes.includes('OUTRO') ? (
               <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={formacaoOutro} onChangeText={setFormacaoOutro} disabled={formDisabled} />
             ) : null}
-            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={biografia} onChangeText={setBiografia} multiline disabled={formDisabled} />
+            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={biografia} onChangeText={setBiografia} multiline numberOfLines={3} textAlignVertical="top" disabled={formDisabled} />
           </>
         )}
         {feedback ? <Text style={[styles.feedback, isSuccess && styles.success]}>{feedback}</Text> : null}

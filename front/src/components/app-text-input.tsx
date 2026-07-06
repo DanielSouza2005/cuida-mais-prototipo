@@ -28,6 +28,7 @@ export function AppTextInput({
   secureTextEntry,
   disabled,
   editable: editableProp,
+  textAlignVertical,
   visualState = 'default',
   style,
   ...props
@@ -38,6 +39,7 @@ export function AppTextInput({
   const isSuccess = visualState === 'success';
   const isError = visualState === 'error';
   const editable = editableProp ?? !disabled;
+  const isMultiline = Boolean(props.multiline);
 
   return (
     <View style={styles.wrapper}>
@@ -49,6 +51,7 @@ export function AppTextInput({
       <View
         style={[
           styles.inputShell,
+          isMultiline && styles.multilineShell,
           focused && styles.focused,
           isSuccess && styles.success,
           isError && styles.error,
@@ -68,7 +71,8 @@ export function AppTextInput({
             setFocused(false);
             props.onBlur?.(event);
           }}
-          style={[styles.input, style]}
+          textAlignVertical={isMultiline ? 'top' : textAlignVertical}
+          style={[styles.input, isMultiline && styles.multilineInput, style]}
           {...props}
         />
         {secureTextEntry && editable ? (
@@ -106,6 +110,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
   },
+  multilineShell: {
+    minHeight: 104,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.md,
+  },
   focused: {
     borderColor: colors.primary,
     backgroundColor: colors.primaryForeground,
@@ -126,5 +135,10 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: 14,
     color: colors.foreground,
+  },
+  multilineInput: {
+    minHeight: 76,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 });

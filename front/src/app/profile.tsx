@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { ProfileTypeBadge } from '@/components/profile-type-badge';
 import { ScreenContainer } from '@/components/screen-container';
 import { SettingsRow } from '@/components/settings-row';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,7 +21,6 @@ export default function ProfileScreen() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isCaregiver = user?.userType === 'caregiver';
-  const profileLabel = isCaregiver ? 'Cuidador' : 'Responsável';
 
   const initials = useMemo(() => {
     const name = user?.fullName?.trim();
@@ -56,10 +56,8 @@ export default function ProfileScreen() {
       <AppHeader showBack />
 
       <View style={styles.profileCard}>
-        <ProfileAvatar initials={initials} name={user?.fullName ?? 'Cuidar+'} subtitle={user?.email ?? 'Perfil de prototipo'} />
-        <Text style={styles.profileNote}>
-          {user ? `Perfil de ${profileLabel.toLowerCase()}` : 'Carregando dados do perfil.'}
-        </Text>
+        <ProfileAvatar initials={initials} name={user?.fullName ?? 'Cuidar+'} subtitle={user?.email ?? 'Perfil de protótipo'} />
+        {user ? <ProfileTypeBadge type={isCaregiver ? 'CUIDADOR' : 'RESPONSAVEL'} /> : <Text style={styles.profileNote}>Carregando dados do perfil.</Text>}
       </View>
 
       <View style={styles.section}>

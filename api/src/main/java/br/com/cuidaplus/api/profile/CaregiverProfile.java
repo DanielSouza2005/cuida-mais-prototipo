@@ -38,8 +38,18 @@ public class CaregiverProfile {
   @Column(length = 40)
   private FormacaoCuidador formacao;
 
+  @ElementCollection
+  @Enumerated(EnumType.STRING)
+  @CollectionTable(name = "caregiver_formations", joinColumns = @JoinColumn(name = "caregiver_profile_id"))
+  @Column(name = "formacao", length = 40)
+  private Set<FormacaoCuidador> formacoes = new LinkedHashSet<>();
+
   @Column(length = 180)
   private String formacaoOutro;
+
+  @Enumerated(EnumType.STRING)
+  @Column(length = 30)
+  private TempoExperiencia tempoExperiencia;
 
   @Column(length = 500)
   private String experiencia;
@@ -109,12 +119,28 @@ public class CaregiverProfile {
     this.formacao = formacao;
   }
 
+  public Set<FormacaoCuidador> getFormacoes() {
+    return formacoes;
+  }
+
+  public void setFormacoes(Set<FormacaoCuidador> formacoes) {
+    this.formacoes = formacoes;
+  }
+
   public String getFormacaoOutro() {
     return formacaoOutro;
   }
 
   public void setFormacaoOutro(String formacaoOutro) {
     this.formacaoOutro = formacaoOutro;
+  }
+
+  public TempoExperiencia getTempoExperiencia() {
+    return tempoExperiencia;
+  }
+
+  public void setTempoExperiencia(TempoExperiencia tempoExperiencia) {
+    this.tempoExperiencia = tempoExperiencia;
   }
 
   public String getExperiencia() {

@@ -24,6 +24,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import {
   allergyOptions,
   caregiverEducationOptions,
+  caregiverExperienceRangeOptions,
   caregiverServiceOptions,
   careModalityOptions,
   contactPreferenceOptions,
@@ -35,6 +36,7 @@ import {
   weekDayOptions,
   type Allergy,
   type CaregiverEducation,
+  type CaregiverExperienceRange,
   type CaregiverService,
   type CareModality,
   type ContactPreference,
@@ -143,8 +145,8 @@ export default function SignupScreen() {
   const [cepFeedback, setCepFeedback] = useState<string | null>(null);
   const [cepFeedbackKind, setCepFeedbackKind] = useState<'info' | 'success' | 'error'>('info');
   const [isFetchingCep, setIsFetchingCep] = useState(false);
-  const [experience, setExperience] = useState('');
-  const [education, setEducation] = useState<CaregiverEducation | null>(null);
+  const [experienceRange, setExperienceRange] = useState<CaregiverExperienceRange | null>(null);
+  const [education, setEducation] = useState<CaregiverEducation[]>([]);
   const [educationCustom, setEducationCustom] = useState('');
   const [bio, setBio] = useState('');
   const [weekDays, setWeekDays] = useState<WeekDay[]>([]);
@@ -352,7 +354,8 @@ export default function SignupScreen() {
   }
 
   function validateCaregiverProfessionalData() {
-    if (!experience.trim()) return 'Informe sua experiência.';
+    if (!experienceRange) return 'Informe seu tempo de experiência.';
+    if (education.includes('OUTRO') && !educationCustom.trim()) return 'Informe a formação personalizada.';
     return null;
   }
 
@@ -422,9 +425,9 @@ export default function SignupScreen() {
 
   function buildCaregiverProfile(): CaregiverProfile {
     return {
-      experiencia: experience.trim(),
-      formacao: education ?? undefined,
-      formacaoPersonalizada: education === 'OUTRO' ? educationCustom.trim() : undefined,
+      tempoExperiencia: experienceRange ?? 'MENOS_DE_1_ANO',
+      formacoes: education,
+      formacaoPersonalizada: education.includes('OUTRO') ? educationCustom.trim() : undefined,
       biografia: bio.trim() || undefined,
       disponibilidade: {
         diasSemana: weekDays,
@@ -633,12 +636,12 @@ export default function SignupScreen() {
 
         {role === 'caregiver' && step === 3 ? (
           <>
-            <AppTextInput required label="Experiência" icon={HeartPulse} placeholder="Resumo da experiência" value={experience} onChangeText={setExperience} disabled={formDisabled} />
-            <OptionGroup optional label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation)} disabled={formDisabled} />
-            {education === 'OUTRO' ? (
+            <OptionGroup required label="Experiência" options={caregiverExperienceRangeOptions} value={experienceRange} onChange={(value) => setExperienceRange(value as CaregiverExperienceRange)} disabled={formDisabled} />
+            <OptionGroup multiple optional label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation[])} disabled={formDisabled} />
+            {education.includes('OUTRO') ? (
               <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={educationCustom} onChangeText={setEducationCustom} disabled={formDisabled} />
             ) : null}
-            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={bio} onChangeText={setBio} disabled={formDisabled} />
+            <AppTextInput optional label="Biografia profissional" icon={HeartPulse} placeholder="Apresentação breve" value={bio} onChangeText={setBio} multiline numberOfLines={3} textAlignVertical="top" disabled={formDisabled} />
           </>
         ) : null}
 

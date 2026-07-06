@@ -75,7 +75,9 @@ public class ProfileService {
 
       Map<String, Object> caregiverProfile = new LinkedHashMap<>();
       caregiverProfile.put("formacao", profile.getFormacao());
+      caregiverProfile.put("formacoes", new LinkedHashSet<>(profile.getFormacoes()));
       caregiverProfile.put("formacaoOutro", profile.getFormacaoOutro());
+      caregiverProfile.put("tempoExperiencia", profile.getTempoExperiencia());
       caregiverProfile.put("experiencia", profile.getExperiencia());
       caregiverProfile.put("biografia", profile.getBiografia());
       caregiverProfile.put("enderecoAtendimento", toAddressResponse(safeAddress(profile)));
@@ -169,9 +171,11 @@ public class ProfileService {
   @Transactional
   public MessageResponse updateCaregiverExperience(UUID userId, CaregiverExperienceUpdateRequest request) {
     CaregiverProfile profile = findCaregiverProfile(userId);
-    profile.setExperiencia(trimToNull(request.experiencia()));
-    profile.setFormacao(request.formacao());
-    profile.setFormacaoOutro(trimToNull(request.formacaoOutro()));
+    LinkedHashSet<FormacaoCuidador> formacoes = normalizeFormacoes(request.formacoes(), request.formacao());
+    profile.setTempoExperiencia(request.tempoExperiencia());
+    profile.setFormacao(formacoes.stream().findFirst().orElse(null));
+    profile.setFormacoes(formacoes);
+    profile.setFormacaoOutro(formacoes.contains(FormacaoCuidador.OUTRO) ? trimToNull(request.formacaoOutro()) : null);
     profile.setBiografia(trimToNull(request.biografia()));
     return updated();
   }
@@ -321,6 +325,19 @@ public class ProfileService {
   private String optionalDigits(String value) {
     String digits = UserService.onlyDigits(value);
     return digits.isBlank() ? null : digits;
+  }
+
+  private LinkedHashSet<FormacaoCuidador> normalizeFormacoes(java.util.Set<FormacaoCuidador> formacoes, FormacaoCuidador formacao) {
+    if (formacoes != null) {
+      return new LinkedHashSet<>(formacoes);
+    }
+
+    LinkedHashSet<FormacaoCuidador> normalized = new LinkedHashSet<>();
+    if (formacao != null) {
+      normalized.add(formacao);
+    }
+
+    return normalized;
   }
 
   private String resolveResponsibleRelationship(ResponsibleProfile profile) {

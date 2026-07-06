@@ -105,8 +105,8 @@ export function registerCaregiver(payload: RegisterCaregiverPayload) {
       },
       address: toApiAddress(payload.caregiverProfile.enderecoAtendimento),
       caregiverProfile: {
-        experiencia: payload.caregiverProfile.experiencia,
-        formacao: payload.caregiverProfile.formacao,
+        tempoExperiencia: payload.caregiverProfile.tempoExperiencia,
+        formacoes: payload.caregiverProfile.formacoes,
         formacaoOutro: payload.caregiverProfile.formacaoPersonalizada,
         biografia: payload.caregiverProfile.biografia,
         modalidades: payload.caregiverProfile.modalidadeAtendimento,

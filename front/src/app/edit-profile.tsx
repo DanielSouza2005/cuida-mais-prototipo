@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { ProfileTypeBadge } from '@/components/profile-type-badge';
 import { ScreenContainer } from '@/components/screen-container';
 import { SettingsRow } from '@/components/settings-row';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +24,7 @@ export default function EditProfileScreen() {
 
       <View style={styles.card}>
         <ProfileAvatar initials="CP" name={user?.fullName} subtitle={isCaregiver ? 'Cuidador' : 'Responsável'} />
+        {user ? <ProfileTypeBadge type={isCaregiver ? 'CUIDADOR' : 'RESPONSAVEL'} /> : null}
         <Text style={styles.note}>Atualize seus dados cadastrais por grupo para manter o perfil organizado.</Text>
       </View>
 

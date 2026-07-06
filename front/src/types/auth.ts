@@ -1,6 +1,7 @@
 import type {
   Allergy,
   CaregiverEducation,
+  CaregiverExperienceRange,
   CaregiverService,
   CareModality,
   ContactPreference,
@@ -63,8 +64,8 @@ export type Availability = {
 
 export type CaregiverProfile = {
   userId?: string;
-  experiencia: string;
-  formacao?: CaregiverEducation;
+  tempoExperiencia: CaregiverExperienceRange;
+  formacoes: CaregiverEducation[];
   formacaoPersonalizada?: string;
   biografia?: string;
   disponibilidade: Availability;

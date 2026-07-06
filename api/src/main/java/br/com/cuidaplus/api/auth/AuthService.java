@@ -20,6 +20,7 @@ import br.com.cuidaplus.api.profile.CaregiverProfile;
 import br.com.cuidaplus.api.profile.CaregiverProfileRepository;
 import br.com.cuidaplus.api.profile.EmergencyContact;
 import br.com.cuidaplus.api.profile.EmergencyContactRepository;
+import br.com.cuidaplus.api.profile.FormacaoCuidador;
 import br.com.cuidaplus.api.profile.ResponsibleProfile;
 import br.com.cuidaplus.api.profile.ResponsibleProfileRepository;
 import br.com.cuidaplus.api.security.TokenService;
@@ -36,6 +37,7 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
@@ -182,9 +184,11 @@ public class AuthService {
 
     CaregiverProfile profile = new CaregiverProfile();
     profile.setUser(user);
-    profile.setFormacao(profileRequest.formacao());
-    profile.setFormacaoOutro(trimToNull(profileRequest.formacaoOutro()));
-    profile.setExperiencia(trimToNull(profileRequest.experiencia()));
+    Set<FormacaoCuidador> formacoes = normalizeFormacoes(profileRequest.formacoes(), profileRequest.formacao());
+    profile.setFormacao(formacoes.stream().findFirst().orElse(null));
+    profile.setFormacoes(formacoes);
+    profile.setFormacaoOutro(formacoes.contains(FormacaoCuidador.OUTRO) ? trimToNull(profileRequest.formacaoOutro()) : null);
+    profile.setTempoExperiencia(profileRequest.tempoExperiencia());
     profile.setBiografia(trimToNull(profileRequest.biografia()));
     profile.setEnderecoAtendimento(toAddress(request.address()));
     profile.setModalidades(profileRequest.modalidades());
@@ -311,6 +315,19 @@ public class AuthService {
   private String optionalDigits(String value) {
     String digits = UserService.onlyDigits(value);
     return digits.isBlank() ? null : digits;
+  }
+
+  private Set<FormacaoCuidador> normalizeFormacoes(Set<FormacaoCuidador> formacoes, FormacaoCuidador formacao) {
+    if (formacoes != null) {
+      return new LinkedHashSet<>(formacoes);
+    }
+
+    LinkedHashSet<FormacaoCuidador> normalized = new LinkedHashSet<>();
+    if (formacao != null) {
+      normalized.add(formacao);
+    }
+
+    return normalized;
   }
 
   private String trimToNull(String value) {

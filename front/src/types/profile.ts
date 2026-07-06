@@ -1,6 +1,7 @@
 import type {
   Allergy,
   CaregiverEducation,
+  CaregiverExperienceRange,
   CaregiverService,
   CareModality,
   ContactPreference,
@@ -22,7 +23,9 @@ export type ProfileAvailability = {
 };
 
 export type MyCaregiverProfile = {
+  tempoExperiencia?: CaregiverExperienceRange | null;
   experiencia?: string | null;
+  formacoes: CaregiverEducation[];
   formacao?: CaregiverEducation | null;
   formacaoOutro?: string | null;
   biografia?: string | null;
@@ -110,8 +113,8 @@ export type EmergencyContactUpdatePayload = {
 };
 
 export type CaregiverExperienceUpdatePayload = {
-  experiencia: string;
-  formacao?: CaregiverEducation | null;
+  tempoExperiencia: CaregiverExperienceRange;
+  formacoes: CaregiverEducation[];
   formacaoOutro?: string | null;
   biografia?: string | null;
 };
