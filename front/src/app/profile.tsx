@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { router, type Href } from 'expo-router';
+import { router, useSegments, type Href } from 'expo-router';
 import { Bell, HeartPulse, Home, LogOut, MapPin, Shield, User, Users } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -19,8 +19,10 @@ const routes = {
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const segments = useSegments();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isCaregiver = user?.userType === 'caregiver';
+  const isTabRoute = (segments as string[])[0] === '(tabs)';
 
   const initials = useMemo(() => {
     const name = user?.fullName?.trim();
@@ -53,7 +55,7 @@ export default function ProfileScreen() {
 
   return (
     <ScreenContainer contentStyle={styles.content}>
-      <AppHeader showBack />
+      <AppHeader showBack={!isTabRoute} />
 
       <View style={styles.profileCard}>
         <ProfileAvatar initials={initials} name={user?.fullName ?? 'Cuidar+'} subtitle={user?.email ?? 'Perfil de protótipo'} />

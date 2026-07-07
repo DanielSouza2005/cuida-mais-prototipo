@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
+const authenticatedHomeRoute = '/inicio' as Href;
 
 function getLoginFeedback(error: unknown) {
   if (error instanceof ApiError) {
@@ -49,7 +50,7 @@ export default function LoginScreen() {
     try {
       setIsSubmitting(true);
       await login({ email: email.trim(), password });
-      router.replace('/profile');
+      router.replace(authenticatedHomeRoute);
     } catch (error) {
       setFeedback(getLoginFeedback(error));
     } finally {
