@@ -15,8 +15,9 @@ import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserService;
 import br.com.cuidaplus.api.user.UserType;
-import java.util.LinkedHashSet;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -290,6 +291,8 @@ public class ProfileService {
     response.put("cidade", safeAddress.getCidade());
     response.put("estado", safeAddress.getEstado());
     response.put("pontoReferencia", safeAddress.getPontoReferencia());
+    response.put("latitude", safeAddress.getLatitude());
+    response.put("longitude", safeAddress.getLongitude());
     return response;
   }
 
@@ -319,7 +322,13 @@ public class ProfileService {
     address.setCidade(request.cidade().trim());
     address.setEstado(request.estado().trim().toUpperCase());
     address.setPontoReferencia(trimToNull(request.pontoReferencia()));
+    address.setLatitude(toCoordinate(request.latitude()));
+    address.setLongitude(toCoordinate(request.longitude()));
     return address;
+  }
+
+  private BigDecimal toCoordinate(Double value) {
+    return value == null ? null : BigDecimal.valueOf(value);
   }
 
   private String optionalDigits(String value) {

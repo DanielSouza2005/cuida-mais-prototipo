@@ -85,6 +85,8 @@ export type Address = {
   cidade: string;
   estado: string;
   pontoReferencia?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type EmergencyContact = {

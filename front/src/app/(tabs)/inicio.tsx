@@ -3,8 +3,8 @@ import {
   CalendarDays,
   HeartPulse,
   MapPin,
+  Search,
   ShieldCheck,
-  Sparkles,
   Stethoscope,
   UserRound,
   Users,
@@ -19,6 +19,7 @@ import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
 const tabRoutes = {
   agenda: '/agenda' as Href,
+  caregiverSearch: '/caregiver-search' as Href,
   cuidados: '/cuidados' as Href,
   mensagens: '/mensagens' as Href,
   perfil: '/perfil' as Href,
@@ -36,10 +37,6 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Olá, {firstName}</Text>
           <Text style={styles.subtitle}>Bem-vindo ao Cuidar+</Text>
         </View>
-        <View style={styles.badge}>
-          <Sparkles color={colors.primary} size={16} strokeWidth={2.5} />
-          <Text style={styles.badgeText}>Mock visual</Text>
-        </View>
       </View>
 
       <SummaryCard
@@ -56,12 +53,21 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.grid}>
-          <QuickActionCard
-            title="Agenda de cuidados"
-            description="Veja horários e próximos lembretes."
-            icon={CalendarDays}
-            onPress={() => router.push(tabRoutes.agenda)}
-          />
+          {isCaregiver ? (
+            <QuickActionCard
+              title="Agenda de cuidados"
+              description="Veja horários e próximos lembretes."
+              icon={CalendarDays}
+              onPress={() => router.push(tabRoutes.agenda)}
+            />
+          ) : (
+            <QuickActionCard
+              title="Buscar cuidadores"
+              description="Encontre profissionais disponíveis"
+              icon={Search}
+              onPress={() => router.push(tabRoutes.caregiverSearch)}
+            />
+          )}
           <QuickActionCard
             title={isCaregiver ? 'Serviços oferecidos' : 'Pessoa assistida'}
             description={isCaregiver ? 'Organize os serviços do perfil.' : 'Consulte dados principais de cuidado.'}
@@ -131,20 +137,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: 14,
     color: colors.mutedForeground,
-  },
-  badge: {
-    minHeight: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    borderRadius: radii.full,
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-  },
-  badgeText: {
-    fontFamily: fontFamily.bold,
-    fontSize: 11,
-    color: colors.secondaryForeground,
   },
   section: {
     gap: spacing.md,

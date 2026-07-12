@@ -206,4 +206,8 @@ public class CaregiverProfile {
   public void setDisponibilidade(CaregiverAvailability disponibilidade) {
     this.disponibilidade = disponibilidade;
   }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
 }

@@ -2,6 +2,7 @@ package br.com.cuidaplus.api.profile;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import java.math.BigDecimal;
 
 @Embeddable
 public class AddressFields {
@@ -29,6 +30,12 @@ public class AddressFields {
 
   @Column(length = 180)
   private String pontoReferencia;
+
+  @Column(precision = 10, scale = 7)
+  private BigDecimal latitude;
+
+  @Column(precision = 10, scale = 7)
+  private BigDecimal longitude;
 
   public String getCep() {
     return cep;
@@ -92,5 +99,21 @@ public class AddressFields {
 
   public void setPontoReferencia(String pontoReferencia) {
     this.pontoReferencia = pontoReferencia;
+  }
+
+  public BigDecimal getLatitude() {
+    return latitude;
+  }
+
+  public void setLatitude(BigDecimal latitude) {
+    this.latitude = latitude;
+  }
+
+  public BigDecimal getLongitude() {
+    return longitude;
+  }
+
+  public void setLongitude(BigDecimal longitude) {
+    this.longitude = longitude;
   }
 }

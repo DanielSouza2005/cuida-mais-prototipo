@@ -29,6 +29,7 @@ import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserService;
 import br.com.cuidaplus.api.user.UserType;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -309,7 +310,13 @@ public class AuthService {
     address.setCidade(request.cidade().trim());
     address.setEstado(request.estado().trim().toUpperCase());
     address.setPontoReferencia(trimToNull(request.pontoReferencia()));
+    address.setLatitude(toCoordinate(request.latitude()));
+    address.setLongitude(toCoordinate(request.longitude()));
     return address;
+  }
+
+  private BigDecimal toCoordinate(Double value) {
+    return value == null ? null : BigDecimal.valueOf(value);
   }
 
   private String optionalDigits(String value) {

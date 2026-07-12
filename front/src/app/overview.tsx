@@ -8,6 +8,7 @@ import {
   IdCard,
   KeyRound,
   LogIn,
+  Search,
   ShieldCheck,
   Sparkles,
   User,
@@ -50,6 +51,8 @@ const sections: Section[] = [
     range: 'RF04 · RF05 · RF06 · RF11',
     items: [
       { href: '/profile', title: 'Perfil', route: '/profile', icon: User, status: 'visual' },
+      { href: '/caregiver-search' as Href, title: 'Buscar cuidadores', route: '/caregiver-search', icon: Search, status: 'visual' },
+      { href: '/caregiver-profile/ana-paula-martins' as Href, title: 'Perfil de cuidador', route: '/caregiver-profile/[id]', icon: IdCard, status: 'visual' },
       { href: '/edit-profile', title: 'Editar perfil', route: '/edit-profile', icon: FilePenLine, status: 'visual' },
       { href: '/overview', title: 'Visão geral', route: '/overview', icon: Home, status: 'visual' },
       { href: '/profile', title: 'Minha rotina', route: '/profile', icon: CalendarDays, status: 'visual' },

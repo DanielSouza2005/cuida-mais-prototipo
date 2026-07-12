@@ -32,5 +32,9 @@ public record AddressRequest(
   String estado,
 
   @Size(max = 180, message = "O ponto de referência deve ter no máximo 180 caracteres.")
-  String pontoReferencia
+  String pontoReferencia,
+
+  Double latitude,
+
+  Double longitude
 ) {}
