@@ -10,6 +10,7 @@ import java.util.UUID;
 public record CaregiverSearchItemResponse(
   UUID id,
   String nome,
+  String profilePhotoUrl,
   String cidade,
   String bairro,
   String estado,

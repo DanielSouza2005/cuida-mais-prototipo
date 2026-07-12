@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { AppHeader } from '@/components/app-header';
 import { LoadingState } from '@/components/loading-state';
 import { PrimaryButton } from '@/components/primary-button';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { getCaregiverDetails } from '@/services/caregiverSearchService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { CaregiverProfileDetails } from '@/types/caregiverSearch';
@@ -123,9 +124,7 @@ export default function CaregiverProfileDetailsScreen() {
         <AppHeader showBack title="Perfil do cuidador" />
 
         <View style={styles.heroCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(caregiver.nome)}</Text>
-          </View>
+          <ProfileAvatar imageUrl={caregiver.profilePhotoUrl} initials={getInitials(caregiver.nome)} size={96} />
           <View style={styles.heroCopy}>
             <View style={styles.nameRow}>
               <Text style={styles.name}>{caregiver.nome}</Text>

@@ -148,8 +148,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   };
 
   if (body !== undefined) {
-    headers.set('Content-Type', 'application/json');
-    requestOptions.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+      requestOptions.body = body;
+    } else {
+      headers.set('Content-Type', 'application/json');
+      requestOptions.body = JSON.stringify(body);
+    }
   }
 
   const authToken = token ?? (auth ? await getSessionItem(AUTH_TOKEN_KEY) : null);

@@ -10,6 +10,7 @@ import br.com.cuidaplus.api.profile.dto.AssistedPersonUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.EmergencyContactUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.ResponsibleProfileUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.ProfilePhotoResponse;
 import br.com.cuidaplus.api.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -20,6 +21,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -36,6 +41,16 @@ public class ProfileController {
   @GetMapping("/me")
   public Map<String, Object> me() {
     return profileService.findMyProfile(AuthenticatedUser.id());
+  }
+
+  @PatchMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ProfilePhotoResponse updatePhoto(@RequestPart("photo") MultipartFile photo) {
+    return profileService.updateProfilePhoto(AuthenticatedUser.id(), photo);
+  }
+
+  @DeleteMapping("/photo")
+  public ProfilePhotoResponse deletePhoto() {
+    return profileService.deleteProfilePhoto(AuthenticatedUser.id());
   }
 
   @PatchMapping("/personal-info")

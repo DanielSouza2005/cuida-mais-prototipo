@@ -12,8 +12,11 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -35,9 +38,17 @@ public class AuthController {
     return authService.registerResponsible(request);
   }
 
-  @PostMapping("/register/caregiver")
+  @PostMapping(value = "/register/caregiver", consumes = MediaType.APPLICATION_JSON_VALUE)
   public AuthResponse registerCaregiver(@Valid @RequestBody RegisterCaregiverRequest request) {
     return authService.registerCaregiver(request);
+  }
+
+  @PostMapping(value = "/register/caregiver", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public AuthResponse registerCaregiverWithPhoto(
+    @Valid @RequestPart("data") RegisterCaregiverRequest request,
+    @RequestPart(value = "photo", required = false) MultipartFile photo
+  ) {
+    return authService.registerCaregiver(request, photo);
   }
 
   @PostMapping("/login")

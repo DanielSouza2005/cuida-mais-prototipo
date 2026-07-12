@@ -114,6 +114,7 @@ public class CaregiverSearchService {
     return new CaregiverDetailsResponse(
       profile.getId(),
       profile.getUser().getFullName(),
+      profile.getUser().getProfilePhotoUrl(),
       address.getCidade(),
       address.getBairro(),
       address.getEstado(),
@@ -186,6 +187,7 @@ public class CaregiverSearchService {
     return new CaregiverSearchItemResponse(
       profile.getId(),
       profile.getUser().getFullName(),
+      profile.getUser().getProfilePhotoUrl(),
       address.getCidade(),
       address.getBairro(),
       address.getEstado(),

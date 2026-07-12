@@ -22,6 +22,7 @@ type AuthContextValue = {
   registerCaregiver: (request: RegisterCaregiverPayload) => Promise<AuthResponse>;
   registerResponsible: (request: RegisterResponsiblePayload) => Promise<AuthResponse>;
   restoreSession: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   signup: (request: SignupRequest) => Promise<AuthResponse>;
 };
 
@@ -68,6 +69,13 @@ export function AuthProvider({ children }: Props) {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  const refreshUser = useCallback(async () => {
+    if (!token) return null;
+    const profile = await authService.getMe(token);
+    setUser(profile);
+    return profile;
+  }, [token]);
 
   const login = useCallback(async (request: LoginRequest) => {
     const response = await authService.login(request);
@@ -118,6 +126,7 @@ export function AuthProvider({ children }: Props) {
     registerCaregiver,
     registerResponsible,
     restoreSession,
+    refreshUser,
     logout,
     signup,
   }), [
@@ -128,6 +137,7 @@ export function AuthProvider({ children }: Props) {
     registerCaregiver,
     registerResponsible,
     restoreSession,
+    refreshUser,
     signup,
     token,
     user,

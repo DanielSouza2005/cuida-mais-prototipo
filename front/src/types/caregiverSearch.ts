@@ -42,6 +42,7 @@ export type CaregiverAvailabilitySummary = {
 export type CaregiverSearchResult = {
   id: string;
   nome: string;
+  profilePhotoUrl?: string | null;
   cidade?: string | null;
   bairro?: string | null;
   estado?: string | null;
@@ -68,6 +69,7 @@ export type CaregiverSearchPageResponse = {
 export type CaregiverProfileDetails = {
   id: string;
   nome: string;
+  profilePhotoUrl?: string | null;
   cidade?: string | null;
   bairro?: string | null;
   estado?: string | null;

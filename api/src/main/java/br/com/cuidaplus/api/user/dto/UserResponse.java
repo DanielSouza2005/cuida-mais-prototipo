@@ -9,6 +9,7 @@ public record UserResponse(
   String cpf,
   String email,
   String phone,
+  String profilePhotoUrl,
   String birthDate,
   UserType userType
 ) {}

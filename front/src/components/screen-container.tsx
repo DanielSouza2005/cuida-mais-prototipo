@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Edge } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/theme/tokens';
 
@@ -16,6 +17,7 @@ type Props = PropsWithChildren<{
   contentStyle?: StyleProp<ViewStyle>;
   scroll?: boolean;
   keyboardAvoiding?: boolean;
+  safeAreaEdges?: Edge[];
 }>;
 
 export function ScreenContainer({
@@ -23,6 +25,7 @@ export function ScreenContainer({
   contentStyle,
   scroll = true,
   keyboardAvoiding = false,
+  safeAreaEdges = ['top', 'right', 'bottom', 'left'],
 }: Props) {
   const content = scroll ? (
     <ScrollView
@@ -37,7 +40,7 @@ export function ScreenContainer({
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'right', 'bottom', 'left']}>
+    <SafeAreaView style={styles.safeArea} edges={safeAreaEdges}>
       {keyboardAvoiding ? (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

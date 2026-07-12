@@ -16,6 +16,7 @@ public class UserMapper {
       formatCpf(user.getCpf()),
       user.getEmail(),
       user.getPhone(),
+      user.getProfilePhotoUrl(),
       FRONT_DATE.format(user.getBirthDate()),
       user.getUserType()
     );

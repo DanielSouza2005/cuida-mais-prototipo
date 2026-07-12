@@ -11,6 +11,8 @@ import br.com.cuidaplus.api.profile.dto.AssistedPersonUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.EmergencyContactUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.ResponsibleProfileUpdateRequest;
+import br.com.cuidaplus.api.profile.dto.ProfilePhotoResponse;
+import br.com.cuidaplus.api.storage.ProfilePhotoStorageService;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserService;
@@ -23,6 +25,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ProfileService {
@@ -33,6 +36,7 @@ public class ProfileService {
   private final AssistedPersonRepository assistedPersonRepository;
   private final EmergencyContactRepository emergencyContactRepository;
   private final CaregiverProfileRepository caregiverProfileRepository;
+  private final ProfilePhotoStorageService profilePhotoStorageService;
 
   public ProfileService(
     UserService userService,
@@ -40,7 +44,8 @@ public class ProfileService {
     ResponsibleProfileRepository responsibleProfileRepository,
     AssistedPersonRepository assistedPersonRepository,
     EmergencyContactRepository emergencyContactRepository,
-    CaregiverProfileRepository caregiverProfileRepository
+    CaregiverProfileRepository caregiverProfileRepository,
+    ProfilePhotoStorageService profilePhotoStorageService
   ) {
     this.userService = userService;
     this.userMapper = userMapper;
@@ -48,6 +53,33 @@ public class ProfileService {
     this.assistedPersonRepository = assistedPersonRepository;
     this.emergencyContactRepository = emergencyContactRepository;
     this.caregiverProfileRepository = caregiverProfileRepository;
+    this.profilePhotoStorageService = profilePhotoStorageService;
+  }
+
+  @Transactional
+  public ProfilePhotoResponse updateProfilePhoto(UUID userId, MultipartFile photo) {
+    User user = requireCaregiver(userId);
+    String profilePhotoUrl = profilePhotoStorageService.store(photo);
+    if (profilePhotoUrl == null) {
+      throw new BusinessException("Selecione uma foto para enviar.", HttpStatus.BAD_REQUEST);
+    }
+    user.setProfilePhotoUrl(profilePhotoUrl);
+    return new ProfilePhotoResponse(profilePhotoUrl);
+  }
+
+  @Transactional
+  public ProfilePhotoResponse deleteProfilePhoto(UUID userId) {
+    User user = requireCaregiver(userId);
+    user.setProfilePhotoUrl(null);
+    return new ProfilePhotoResponse(null);
+  }
+
+  private User requireCaregiver(UUID userId) {
+    User user = userService.findById(userId);
+    if (user.getUserType() != UserType.CUIDADOR && user.getUserType() != UserType.CAREGIVER) {
+      throw new BusinessException("A edição de foto está disponível apenas para cuidadores.", HttpStatus.FORBIDDEN);
+    }
+    return user;
   }
 
   @Transactional(readOnly = true)

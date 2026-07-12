@@ -11,6 +11,7 @@ import type {
   SignupRequest,
   User,
 } from '@/types/auth';
+import { appendProfilePhoto } from '@/utils/profilePhoto';
 
 function toIsoDate(value: string) {
   const [day, month, year] = value.split('/');
@@ -91,37 +92,46 @@ export function registerResponsible(payload: RegisterResponsiblePayload) {
 }
 
 export function registerCaregiver(payload: RegisterCaregiverPayload) {
+  const data = {
+    user: {
+      nome: payload.user.nome,
+      cpf: payload.user.cpf,
+      email: payload.user.email,
+      senha: payload.senha,
+      telefone: payload.user.telefone,
+      dataNascimento: toIsoDate(payload.user.dataNascimento),
+    },
+    address: toApiAddress(payload.caregiverProfile.enderecoAtendimento),
+    caregiverProfile: {
+      tempoExperiencia: payload.caregiverProfile.tempoExperiencia,
+      formacoes: payload.caregiverProfile.formacoes,
+      formacaoOutro: payload.caregiverProfile.formacaoPersonalizada,
+      biografia: payload.caregiverProfile.biografia,
+      modalidades: payload.caregiverProfile.modalidadeAtendimento,
+      modalidadeOutro: payload.caregiverProfile.modalidadePersonalizada,
+      servicosOferecidos: payload.caregiverProfile.servicosOferecidos,
+      servicoOutro: payload.caregiverProfile.servicoPersonalizado,
+      disponibilidade: {
+        diasSemana: payload.caregiverProfile.disponibilidade.diasSemana,
+        periodos: payload.caregiverProfile.disponibilidade.periodos,
+        horarioInicio: payload.caregiverProfile.disponibilidade.horariosEspecificos?.inicio,
+        horarioFim: payload.caregiverProfile.disponibilidade.horariosEspecificos?.fim,
+        observacao: payload.caregiverProfile.disponibilidade.observacao,
+      },
+    },
+  };
+
+  if (payload.profilePhoto) {
+    const form = new FormData();
+    form.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    appendProfilePhoto(form, payload.profilePhoto);
+    return apiRequest<AuthResponse>('/api/auth/register/caregiver', { auth: false, method: 'POST', body: form });
+  }
+
   return apiRequest<AuthResponse>('/api/auth/register/caregiver', {
     auth: false,
     method: 'POST',
-    body: {
-      user: {
-        nome: payload.user.nome,
-        cpf: payload.user.cpf,
-        email: payload.user.email,
-        senha: payload.senha,
-        telefone: payload.user.telefone,
-        dataNascimento: toIsoDate(payload.user.dataNascimento),
-      },
-      address: toApiAddress(payload.caregiverProfile.enderecoAtendimento),
-      caregiverProfile: {
-        tempoExperiencia: payload.caregiverProfile.tempoExperiencia,
-        formacoes: payload.caregiverProfile.formacoes,
-        formacaoOutro: payload.caregiverProfile.formacaoPersonalizada,
-        biografia: payload.caregiverProfile.biografia,
-        modalidades: payload.caregiverProfile.modalidadeAtendimento,
-        modalidadeOutro: payload.caregiverProfile.modalidadePersonalizada,
-        servicosOferecidos: payload.caregiverProfile.servicosOferecidos,
-        servicoOutro: payload.caregiverProfile.servicoPersonalizado,
-        disponibilidade: {
-          diasSemana: payload.caregiverProfile.disponibilidade.diasSemana,
-          periodos: payload.caregiverProfile.disponibilidade.periodos,
-          horarioInicio: payload.caregiverProfile.disponibilidade.horariosEspecificos?.inicio,
-          horarioFim: payload.caregiverProfile.disponibilidade.horariosEspecificos?.fim,
-          observacao: payload.caregiverProfile.disponibilidade.observacao,
-        },
-      },
-    },
+    body: data,
   });
 }
 

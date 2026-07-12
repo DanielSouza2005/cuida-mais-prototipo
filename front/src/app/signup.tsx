@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Calendar,
   Check,
@@ -11,7 +12,7 @@ import {
   Phone,
   User,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppTextInput } from '@/components/app-text-input';
 import { BackButton } from '@/components/back-button';
@@ -19,6 +20,7 @@ import { BrandMark } from '@/components/brand';
 import { DatePickerField } from '@/components/date-picker-field';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { RoleSelector, type Role } from '@/components/role-selector';
 import { ScreenContainer } from '@/components/screen-container';
 import {
@@ -52,7 +54,8 @@ import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { CepError, getAddressByCep } from '@/services/cepService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
-import type { Address, AssistedPerson, CaregiverProfile, UserBase } from '@/types/auth';
+import type { Address, AssistedPerson, CaregiverProfile, SelectedProfilePhoto, UserBase } from '@/types/auth';
+import { MAX_PROFILE_PHOTO_SIZE, toSelectedProfilePhoto } from '@/utils/profilePhoto';
 import {
   formatCep,
   formatCpf,
@@ -158,6 +161,7 @@ export default function SignupScreen() {
   const [careModeCustom, setCareModeCustom] = useState('');
   const [services, setServices] = useState<CaregiverService[]>([]);
   const [serviceCustom, setServiceCustom] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<SelectedProfilePhoto | null>(null);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -174,6 +178,36 @@ export default function SignupScreen() {
   const careAddressDisabled = screenBusy;
   const caregiverAddressDisabled = screenBusy;
   useBlockNavigationWhenBusy(screenBusy);
+
+  function handlePickedAsset(asset: ImagePicker.ImagePickerAsset) {
+    if (asset.fileSize && asset.fileSize > MAX_PROFILE_PHOTO_SIZE) {
+      Alert.alert('Foto muito grande', 'Escolha uma foto de até 5 MB.');
+      return;
+    }
+    setProfilePhoto(toSelectedProfilePhoto(asset));
+  }
+
+  async function pickProfilePhoto(source: 'camera' | 'library') {
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permissão negada', 'Permissão negada. Você pode continuar o cadastro sem foto.');
+      return;
+    }
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8, cameraType: ImagePicker.CameraType.front })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+    if (!result.canceled && result.assets[0]) handlePickedAsset(result.assets[0]);
+  }
+
+  function showPhotoOptions() {
+    Alert.alert(profilePhoto ? 'Trocar foto' : 'Adicionar foto', undefined, [
+      { text: 'Tirar foto', onPress: () => void pickProfilePhoto('camera') },
+      { text: 'Escolher da galeria', onPress: () => void pickProfilePhoto('library') },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  }
 
   const title = useMemo(() => {
     if (step === 0) return 'Escolha o tipo de conta';
@@ -486,6 +520,7 @@ export default function SignupScreen() {
           senha: password,
           caregiverProfile: buildCaregiverProfile(),
           acceptedTerms,
+          profilePhoto,
         });
       }
       router.replace('/profile');
@@ -520,11 +555,14 @@ export default function SignupScreen() {
             <DatePickerField required label="Data de nascimento" value={birthDate} onChange={setBirthDate} maxDate={today} disabled={formDisabled} />
             <AppTextInput required label="Senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry disabled={formDisabled} />
             <AppTextInput required label="Confirmar senha" icon={Lock} placeholder="********" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry disabled={formDisabled} />
-            {role === 'family' ? (
-              null
-            ) : (
-              null
-            )}
+            {role === 'caregiver' ? (
+              <View style={styles.photoSection}>
+                <Text style={styles.photoTitle}>Foto de perfil <Text style={styles.optionalText}>(opcional)</Text></Text>
+                <ProfileAvatar imageUrl={profilePhoto?.uri} initials={fullName.trim().slice(0, 2).toUpperCase() || 'CP'} />
+                <PrimaryButton label={profilePhoto ? 'Trocar foto' : 'Adicionar foto'} variant="secondary" onPress={showPhotoOptions} disabled={formDisabled} />
+                {profilePhoto ? <Pressable disabled={formDisabled} onPress={() => setProfilePhoto(null)}><Text style={styles.removePhoto}>Remover foto</Text></Pressable> : null}
+              </View>
+            ) : null}
           </>
         ) : null}
 
@@ -746,6 +784,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     gap: spacing.md,
   },
+  photoSection: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  photoTitle: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.foreground },
+  optionalText: { fontFamily: fontFamily.regular, color: colors.mutedForeground },
+  removePhoto: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.destructive, padding: spacing.sm },
   actions: {
     gap: spacing.md,
   },

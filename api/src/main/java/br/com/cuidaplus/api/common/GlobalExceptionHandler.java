@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -38,6 +39,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity
       .badRequest()
       .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "Corpo da requisição inválido.", Map.of()));
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<ApiError> handleUploadTooLarge() {
+    return ResponseEntity
+      .status(HttpStatus.PAYLOAD_TOO_LARGE)
+      .body(new ApiError(Instant.now(), HttpStatus.PAYLOAD_TOO_LARGE.value(), "A foto deve ter no máximo 5 MB.", Map.of()));
   }
 
   @ExceptionHandler(Exception.class)

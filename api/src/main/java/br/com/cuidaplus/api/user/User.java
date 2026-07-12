@@ -47,6 +47,9 @@ public class User {
   @Column(length = 20)
   private String phone;
 
+  @Column(length = 500)
+  private String profilePhotoUrl;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private UserType userType;
@@ -122,6 +125,14 @@ public class User {
 
   public void setPhone(String phone) {
     this.phone = phone;
+  }
+
+  public String getProfilePhotoUrl() {
+    return profilePhotoUrl;
+  }
+
+  public void setProfilePhotoUrl(String profilePhotoUrl) {
+    this.profilePhotoUrl = profilePhotoUrl;
   }
 
   public UserType getUserType() {

@@ -40,6 +40,7 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.GET, "/health").permitAll()
         .requestMatchers(HttpMethod.HEAD, "/health").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/profile-photos/**").permitAll()
         .requestMatchers(
           HttpMethod.POST,
           "/api/auth/register",

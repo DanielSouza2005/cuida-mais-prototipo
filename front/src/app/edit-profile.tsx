@@ -23,7 +23,7 @@ export default function EditProfileScreen() {
       />
 
       <View style={styles.card}>
-        <ProfileAvatar initials="CP" name={user?.fullName} subtitle={isCaregiver ? 'Cuidador' : 'Responsável'} />
+        <ProfileAvatar imageUrl={user?.profilePhotoUrl} initials="CP" name={user?.fullName} subtitle={isCaregiver ? 'Cuidador' : 'Responsável'} />
         {user ? <ProfileTypeBadge type={isCaregiver ? 'CUIDADOR' : 'RESPONSAVEL'} /> : null}
         <Text style={styles.note}>Atualize seus dados cadastrais por grupo para manter o perfil organizado.</Text>
       </View>

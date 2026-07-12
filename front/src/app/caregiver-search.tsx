@@ -9,6 +9,7 @@ import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
 import { LoadingState } from '@/components/loading-state';
 import { PrimaryButton } from '@/components/primary-button';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { searchCaregivers, getCaregiverLocations } from '@/services/caregiverSearchService';
 import { getMyProfile } from '@/services/profileService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
@@ -544,9 +545,7 @@ function CaregiverCard({ caregiver }: { caregiver: CaregiverSearchResult }) {
       } as Href)}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{getInitials(caregiver.nome)}</Text>
-      </View>
+      <ProfileAvatar imageUrl={caregiver.profilePhotoUrl} initials={getInitials(caregiver.nome)} size={58} />
 
       <View style={styles.cardBody}>
         <View style={styles.nameRow}>

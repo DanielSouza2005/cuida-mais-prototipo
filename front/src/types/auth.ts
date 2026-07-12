@@ -25,6 +25,13 @@ export type User = {
   phone?: string | null;
   birthDate: string;
   userType: ApiUserType;
+  profilePhotoUrl?: string | null;
+};
+
+export type SelectedProfilePhoto = {
+  uri: string;
+  name: string;
+  type: string;
 };
 
 export type AuthResponse = {
@@ -129,6 +136,7 @@ export type RegisterCaregiverPayload = {
   senha: string;
   caregiverProfile: CaregiverProfile;
   acceptedTerms: boolean;
+  profilePhoto?: SelectedProfilePhoto | null;
 };
 
 export type RegisterRequest = {

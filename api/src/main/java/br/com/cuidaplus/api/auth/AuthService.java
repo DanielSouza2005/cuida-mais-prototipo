@@ -29,6 +29,7 @@ import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserService;
 import br.com.cuidaplus.api.user.UserType;
+import br.com.cuidaplus.api.storage.ProfilePhotoStorageService;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -46,6 +47,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AuthService {
@@ -58,6 +60,7 @@ public class AuthService {
   private final AssistedPersonRepository assistedPersonRepository;
   private final EmergencyContactRepository emergencyContactRepository;
   private final CaregiverProfileRepository caregiverProfileRepository;
+  private final ProfilePhotoStorageService profilePhotoStorageService;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final TokenService tokenService;
@@ -76,6 +79,7 @@ public class AuthService {
     AssistedPersonRepository assistedPersonRepository,
     EmergencyContactRepository emergencyContactRepository,
     CaregiverProfileRepository caregiverProfileRepository,
+    ProfilePhotoStorageService profilePhotoStorageService,
     UserMapper userMapper,
     PasswordEncoder passwordEncoder,
     TokenService tokenService,
@@ -92,6 +96,7 @@ public class AuthService {
     this.assistedPersonRepository = assistedPersonRepository;
     this.emergencyContactRepository = emergencyContactRepository;
     this.caregiverProfileRepository = caregiverProfileRepository;
+    this.profilePhotoStorageService = profilePhotoStorageService;
     this.userMapper = userMapper;
     this.passwordEncoder = passwordEncoder;
     this.tokenService = tokenService;
@@ -180,6 +185,11 @@ public class AuthService {
 
   @Transactional
   public AuthResponse registerCaregiver(RegisterCaregiverRequest request) {
+    return registerCaregiver(request, null);
+  }
+
+  @Transactional
+  public AuthResponse registerCaregiver(RegisterCaregiverRequest request, MultipartFile photo) {
     User user = createUser(request.user(), UserType.CUIDADOR);
     RegisterCaregiverRequest.CaregiverProfileRequest profileRequest = request.caregiverProfile();
 
@@ -207,6 +217,10 @@ public class AuthService {
     profile.setDisponibilidade(availability);
 
     caregiverProfileRepository.save(profile);
+    if (photo != null && !photo.isEmpty()) {
+      user.setProfilePhotoUrl(profilePhotoStorageService.store(photo));
+      userRepository.save(user);
+    }
     return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
   }
 

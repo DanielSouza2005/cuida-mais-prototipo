@@ -1,5 +1,6 @@
 import { apiRequest } from '@/services/api';
-import type { Address } from '@/types/auth';
+import type { Address, SelectedProfilePhoto } from '@/types/auth';
+import { appendProfilePhoto } from '@/utils/profilePhoto';
 import type {
   CaregiverAvailabilityUpdatePayload,
   CaregiverExperienceUpdatePayload,
@@ -22,6 +23,23 @@ function toIsoDate(value: string) {
 export function getMyProfile() {
   return apiRequest<MyProfile>('/api/profile/me', {
     method: 'GET',
+  });
+}
+
+export type ProfilePhotoResponse = { profilePhotoUrl: string | null };
+
+export function updateProfilePhoto(photo: SelectedProfilePhoto) {
+  const form = new FormData();
+  appendProfilePhoto(form, photo);
+  return apiRequest<ProfilePhotoResponse>('/api/profile/photo', {
+    method: 'PATCH',
+    body: form,
+  });
+}
+
+export function deleteProfilePhoto() {
+  return apiRequest<ProfilePhotoResponse>('/api/profile/photo', {
+    method: 'DELETE',
   });
 }
 

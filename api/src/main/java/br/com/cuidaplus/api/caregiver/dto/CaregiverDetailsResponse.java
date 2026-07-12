@@ -11,6 +11,7 @@ import java.util.UUID;
 public record CaregiverDetailsResponse(
   UUID id,
   String nome,
+  String profilePhotoUrl,
   String cidade,
   String bairro,
   String estado,
