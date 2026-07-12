@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react';
+import { useSegments } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -25,8 +26,11 @@ export function ScreenContainer({
   contentStyle,
   scroll = true,
   keyboardAvoiding = false,
-  safeAreaEdges = ['top', 'right', 'bottom', 'left'],
+  safeAreaEdges,
 }: Props) {
+  const segments = useSegments();
+  const insideTabs = (segments as string[])[0] === '(tabs)';
+  const resolvedEdges = safeAreaEdges ?? (insideTabs ? ['top', 'right', 'left'] : ['top', 'right', 'bottom', 'left']);
   const content = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.content, contentStyle]}
@@ -40,7 +44,7 @@ export function ScreenContainer({
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={safeAreaEdges}>
+    <SafeAreaView style={styles.safeArea} edges={resolvedEdges}>
       {keyboardAvoiding ? (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -66,6 +70,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   staticContent: {
     flex: 1,

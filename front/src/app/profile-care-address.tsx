@@ -147,7 +147,7 @@ export default function ProfileCareAddressScreen() {
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
     gap: spacing.xl,
   },
   card: {

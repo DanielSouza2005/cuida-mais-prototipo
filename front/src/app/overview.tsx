@@ -117,7 +117,7 @@ function OverviewCard({ item }: { item: OverviewItem }) {
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
   header: {
     paddingTop: spacing.sm,

@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
-import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CalendarDays, MapPin, MessageCircle, Navigation, Stethoscope } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/loading-state';
 import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { getCaregiverDetails } from '@/services/caregiverSearchService';
+import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { CaregiverProfileDetails } from '@/types/caregiverSearch';
 import {
@@ -26,6 +27,7 @@ import {
 } from '@/utils/caregiverSearch';
 
 export default function CaregiverProfileDetailsScreen() {
+  const { user } = useAuth();
   const { id, distanciaKm } = useLocalSearchParams<{ id: string; distanciaKm?: string }>();
   const [caregiver, setCaregiver] = useState<CaregiverProfileDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,10 +55,6 @@ export default function CaregiverProfileDetailsScreen() {
       active = false;
     };
   }, [id]);
-
-  function showDevelopmentMessage() {
-    Alert.alert('Funcionalidade em desenvolvimento');
-  }
 
   async function openMap() {
     if (!caregiver) return;
@@ -117,6 +115,11 @@ export default function CaregiverProfileDetailsScreen() {
 
   const routeDistance = typeof distanciaKm === 'string' ? Number(distanciaKm) : null;
   const distance = formatDistance(caregiver.distanciaKm ?? routeDistance);
+  const selectedCaregiver = caregiver;
+
+  function requestService() {
+    router.push({ pathname: '/request-service', params: { caregiverId: selectedCaregiver.id } } as Href);
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'right', 'bottom', 'left']}>
@@ -199,7 +202,7 @@ export default function CaregiverProfileDetailsScreen() {
         </Section>
 
         <View style={styles.actions}>
-          <PrimaryButton label="Solicitar contato" icon={MessageCircle} onPress={showDevelopmentMessage} />
+          {user?.userType === 'family' ? <PrimaryButton label="Solicitar serviço" onPress={requestService} /> : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -242,7 +245,7 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
     gap: spacing.lg,
   },
   loadingContent: {
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
   heroCard: {
     flexDirection: 'row',

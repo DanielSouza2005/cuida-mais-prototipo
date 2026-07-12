@@ -755,7 +755,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
   topRow: {
     flexDirection: 'row',

@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
   topRow: {
     flexDirection: 'row',

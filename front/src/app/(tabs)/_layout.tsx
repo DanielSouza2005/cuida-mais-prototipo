@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { CalendarDays, HeartPulse, Home, MessageCircle, User } from 'lucide-react-native';
+import { CalendarDays, HeartPulse, Home, MessageCircle, Search, User } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { LoadingState } from '@/components/loading-state';
@@ -11,7 +11,8 @@ import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 const tabBarIconSize = 22;
 
 export default function MainTabNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const isCaregiver = user?.userType === 'caregiver';
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -54,7 +55,16 @@ export default function MainTabNavigator() {
         name="agenda"
         options={{
           title: 'Agenda',
+          href: isCaregiver ? undefined : null,
           tabBarIcon: ({ color }) => <CalendarDays color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+        }}
+      />
+      <Tabs.Screen
+        name="buscar"
+        options={{
+          title: 'Buscar',
+          href: isCaregiver ? null : undefined,
+          tabBarIcon: ({ color }) => <Search color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen

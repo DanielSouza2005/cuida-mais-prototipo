@@ -1,4 +1,4 @@
-import { router, type Href } from 'expo-router';
+import { router, useSegments, type Href } from 'expo-router';
 import * as Location from 'expo-location';
 import { ArrowRight, MapPin, Navigation, Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -44,6 +44,8 @@ const initialFilters: CaregiverSearchFilters = {
 };
 
 export default function CaregiverSearchScreen() {
+  const segments = useSegments();
+  const isTabRoute = (segments as string[])[0] === '(tabs)';
   const [draftFilters, setDraftFilters] = useState<CaregiverSearchFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<CaregiverSearchFilters>(initialFilters);
   const [locationQuery, setLocationQuery] = useState('');
@@ -253,7 +255,7 @@ export default function CaregiverSearchScreen() {
   const currentPage = appliedFilters.page;
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'right', 'bottom', 'left']}>
+    <SafeAreaView style={styles.screen} edges={isTabRoute ? ['top', 'right', 'left'] : ['top', 'right', 'bottom', 'left']}>
       <FlatList
         data={loading || error ? [] : caregivers}
         keyExtractor={(item) => item.id}
@@ -655,7 +657,7 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
   headerContent: {
     gap: spacing.lg,
