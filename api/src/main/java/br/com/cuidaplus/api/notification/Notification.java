@@ -1,0 +1,9 @@
+package br.com.cuidaplus.api.notification;
+import br.com.cuidaplus.api.user.User; import jakarta.persistence.*; import java.time.Instant; import java.util.UUID;
+@Entity @Table(name="notifications")
+public class Notification {
+ @Id @GeneratedValue(strategy=GenerationType.UUID) private UUID id; @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="recipient_user_id") private User recipient;
+ @Enumerated(EnumType.STRING) @Column(nullable=false,length=50) private NotificationType type; @Column(nullable=false,length=180) private String title; @Column(nullable=false,length=500) private String message;
+ @Enumerated(EnumType.STRING) @Column(nullable=false,length=40) private RelatedEntityType relatedEntityType; @Column(nullable=false) private UUID relatedEntityId; private Instant readAt; private Instant clearedAt; @Column(nullable=false,updatable=false) private Instant createdAt;
+ @PrePersist void create(){createdAt=Instant.now();} public UUID getId(){return id;} public User getRecipient(){return recipient;} public void setRecipient(User v){recipient=v;} public NotificationType getType(){return type;} public void setType(NotificationType v){type=v;} public String getTitle(){return title;} public void setTitle(String v){title=v;} public String getMessage(){return message;} public void setMessage(String v){message=v;} public RelatedEntityType getRelatedEntityType(){return relatedEntityType;} public void setRelatedEntityType(RelatedEntityType v){relatedEntityType=v;} public UUID getRelatedEntityId(){return relatedEntityId;} public void setRelatedEntityId(UUID v){relatedEntityId=v;} public Instant getReadAt(){return readAt;} public void setReadAt(Instant v){readAt=v;} public Instant getClearedAt(){return clearedAt;} public void setClearedAt(Instant v){clearedAt=v;} public Instant getCreatedAt(){return createdAt;}
+}

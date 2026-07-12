@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { CalendarDays, HeartPulse, Home, MessageCircle, Search, User } from 'lucide-react-native';
+import { ClipboardList, HeartPulse, Home, MessageCircle, Search, User } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { LoadingState } from '@/components/loading-state';
@@ -54,9 +54,9 @@ export default function MainTabNavigator() {
       <Tabs.Screen
         name="agenda"
         options={{
-          title: 'Agenda',
+          title: 'Solicitações',
           href: isCaregiver ? undefined : null,
-          tabBarIcon: ({ color }) => <CalendarDays color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+          tabBarIcon: ({ color }) => <ClipboardList color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen

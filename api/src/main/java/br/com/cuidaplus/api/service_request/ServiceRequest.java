@@ -22,6 +22,7 @@ public class ServiceRequest {
   @Column(length = 500) private String activityOther;
   @Column(length = 2000) private String additionalNotes;
   @Column(length = 1000) private String negotiationNotes;
+  @Column(length = 1000) private String rejectionReason;
   @ElementCollection @CollectionTable(name = "service_request_dates", joinColumns = @JoinColumn(name = "service_request_id")) @Column(name = "service_date") private Set<LocalDate> specificDates = new LinkedHashSet<>();
   @ElementCollection @CollectionTable(name = "service_request_schedule_days", joinColumns = @JoinColumn(name = "service_request_id")) private Set<ServiceRequestScheduleDay> scheduleDays = new LinkedHashSet<>();
   @ElementCollection @CollectionTable(name = "service_request_activities", joinColumns = @JoinColumn(name = "service_request_id")) @Enumerated(EnumType.STRING) @Column(name = "activity", length = 50) private Set<ServicoOferecido> activities = new LinkedHashSet<>();
@@ -39,7 +40,8 @@ public class ServiceRequest {
   public LocalDate getStartDate() { return startDate; } public void setStartDate(LocalDate v) { startDate=v; } public LocalDate getEndDate() { return endDate; } public void setEndDate(LocalDate v) { endDate=v; }
   public String getNeedsDescription() { return needsDescription; } public void setNeedsDescription(String v) { needsDescription=v; } public String getActivityOther() { return activityOther; } public void setActivityOther(String v) { activityOther=v; }
   public String getAdditionalNotes() { return additionalNotes; } public void setAdditionalNotes(String v) { additionalNotes=v; } public String getNegotiationNotes() { return negotiationNotes; } public void setNegotiationNotes(String v) { negotiationNotes=v; }
+  public String getRejectionReason() { return rejectionReason; } public void setRejectionReason(String v) { rejectionReason=v; }
   public Set<LocalDate> getSpecificDates() { return specificDates; } public void setSpecificDates(Set<LocalDate> v) { specificDates=v; } public Set<ServiceRequestScheduleDay> getScheduleDays() { return scheduleDays; } public void setScheduleDays(Set<ServiceRequestScheduleDay> v) { scheduleDays=v; }
   public Set<ServicoOferecido> getActivities() { return activities; } public void setActivities(Set<ServicoOferecido> v) { activities=v; }
-  public Instant getCreatedAt() { return createdAt; } public Instant getExpiresAt() { return expiresAt; } public Instant getCanceledAt() { return canceledAt; } public void setCanceledAt(Instant v) { canceledAt=v; }
+  public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; } public Instant getExpiresAt() { return expiresAt; } public Instant getCanceledAt() { return canceledAt; } public void setCanceledAt(Instant v) { canceledAt=v; }
 }

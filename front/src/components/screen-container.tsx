@@ -5,6 +5,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  type ScrollViewProps,
   type StyleProp,
   View,
   type ViewStyle,
@@ -19,6 +20,7 @@ type Props = PropsWithChildren<{
   scroll?: boolean;
   keyboardAvoiding?: boolean;
   safeAreaEdges?: Edge[];
+  scrollViewProps?: Omit<ScrollViewProps, 'contentContainerStyle'>;
 }>;
 
 export function ScreenContainer({
@@ -27,12 +29,14 @@ export function ScreenContainer({
   scroll = true,
   keyboardAvoiding = false,
   safeAreaEdges,
+  scrollViewProps,
 }: Props) {
   const segments = useSegments();
   const insideTabs = (segments as string[])[0] === '(tabs)';
   const resolvedEdges = safeAreaEdges ?? (insideTabs ? ['top', 'right', 'left'] : ['top', 'right', 'bottom', 'left']);
   const content = scroll ? (
     <ScrollView
+      {...scrollViewProps}
       contentContainerStyle={[styles.content, contentStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}

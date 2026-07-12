@@ -4,6 +4,7 @@ import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.profile.*;
 import br.com.cuidaplus.api.service_request.dto.*;
 import br.com.cuidaplus.api.user.*;
+import br.com.cuidaplus.api.notification.*;
 import java.time.*;
 import java.util.*;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,9 @@ public class ServiceRequestService {
   private final UserService userService;
   private final CaregiverProfileRepository caregiverRepository;
   private final AssistedPersonRepository assistedRepository;
-  public ServiceRequestService(ServiceRequestRepository repository, UserService userService, CaregiverProfileRepository caregiverRepository, AssistedPersonRepository assistedRepository) {
-    this.repository=repository; this.userService=userService; this.caregiverRepository=caregiverRepository; this.assistedRepository=assistedRepository;
+  private final NotificationService notifications;
+  public ServiceRequestService(ServiceRequestRepository repository, UserService userService, CaregiverProfileRepository caregiverRepository, AssistedPersonRepository assistedRepository, NotificationService notifications) {
+    this.repository=repository; this.userService=userService; this.caregiverRepository=caregiverRepository; this.assistedRepository=assistedRepository; this.notifications=notifications;
   }
 
   @Transactional(readOnly = true)
@@ -50,15 +52,36 @@ public class ServiceRequestService {
     entity.setStartDate(request.hiringType() == HiringType.PONTUAL ? dates.stream().min(LocalDate::compareTo).orElse(null) : request.startDate()); entity.setEndDate(request.hiringType() == HiringType.PERIODO_DETERMINADO ? request.endDate() : null);
     entity.setNeedsDescription(request.needsDescription().trim()); entity.setActivities(new LinkedHashSet<>(request.activities())); entity.setActivityOther(trim(request.activityOther())); entity.setAdditionalNotes(trim(request.additionalNotes())); entity.setNegotiationNotes(trim(request.negotiationNotes()));
     Set<ServiceRequestScheduleDay> schedule = new LinkedHashSet<>(); for (var item : request.scheduleDays() == null ? List.<ServiceRequestCreateRequest.ScheduleDayRequest>of() : request.scheduleDays()) { ServiceRequestScheduleDay day = new ServiceRequestScheduleDay(); day.setWeekday(item.weekday()); day.setStartTime(item.startTime()); day.setEndTime(item.endTime()); schedule.add(day); } entity.setScheduleDays(schedule);
-    return toResponse(repository.save(entity));
+    ServiceRequest saved=repository.save(entity);
+    notifications.create(caregiver.getUser(),NotificationType.SERVICE_REQUEST_CREATED,"Nova solicitação de serviço","Você recebeu uma nova solicitação de "+responsible.getFullName()+".",saved.getId());
+    return toResponse(saved);
   }
 
   @Transactional
   public ServiceRequestResponse find(UUID responsibleId, UUID id) { User owner=requireResponsible(responsibleId); ServiceRequest entity=repository.findByIdAndResponsibleUser(id, owner).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); expireIfNeeded(entity); return toResponse(entity); }
   @Transactional
+  public ResponsibleServiceRequestResponse responsibleDetails(UUID responsibleId, UUID id) {
+    User owner = requireResponsible(responsibleId);
+    ServiceRequest entity = repository.findByIdAndResponsibleUser(id, owner)
+      .orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND));
+    expireIfNeeded(entity);
+    CaregiverProfile caregiver = caregiverRepository.findByUser(entity.getCaregiverUser()).orElseThrow();
+    AddressFields caregiverAddress = caregiver.getEnderecoAtendimento();
+    AddressFields careAddress = entity.getAssistedPerson().getEnderecoCuidado();
+    return new ResponsibleServiceRequestResponse(
+      entity.getId(), entity.getStatus(),
+      new ResponsibleServiceRequestResponse.Caregiver(caregiver.getId(), entity.getCaregiverUser().getFullName(), entity.getCaregiverUser().getProfilePhotoUrl(), caregiverAddress == null ? null : caregiverAddress.getCidade(), caregiverAddress == null ? null : caregiverAddress.getEstado()),
+      new ResponsibleServiceRequestResponse.Assisted(entity.getAssistedPerson().getId(), entity.getAssistedPerson().getNome(), entity.getAssistedPerson().getGrauDependencia(), entity.getAssistedPerson().getMobilidade()),
+      new ResponsibleServiceRequestResponse.CareAddress(careAddress.getRua(), careAddress.getNumero(), careAddress.getComplemento(), careAddress.getBairro(), careAddress.getCidade(), careAddress.getEstado(), careAddress.getCep(), careAddress.getPontoReferencia()),
+      entity.getHiringType(), entity.getStartDate(), entity.getEndDate(), new LinkedHashSet<>(entity.getSpecificDates()),
+      entity.getScheduleDays().stream().map(day -> new ResponsibleServiceRequestResponse.Schedule(day.getWeekday(), day.getStartTime(), day.getEndTime())).toList(),
+      new LinkedHashSet<>(entity.getActivities()), entity.getNeedsDescription(), entity.getAdditionalNotes(), entity.getNegotiationNotes(), entity.getRejectionReason(), entity.getCreatedAt(), entity.getExpiresAt(), entity.getStatus() == ServiceRequestStatus.PENDENTE ? null : entity.getUpdatedAt()
+    );
+  }
+  @Transactional
   public List<ServiceRequestResponse> my(UUID responsibleId) { User owner=requireResponsible(responsibleId); return repository.findByResponsibleUserOrderByCreatedAtDesc(owner).stream().peek(this::expireIfNeeded).map(this::toResponse).toList(); }
   @Transactional
-  public ServiceRequestResponse cancel(UUID responsibleId, UUID id) { User owner=requireResponsible(responsibleId); ServiceRequest entity=repository.findByIdAndResponsibleUser(id, owner).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); expireIfNeeded(entity); if(entity.getStatus()!=ServiceRequestStatus.PENDENTE) throw new BusinessException("Apenas solicitações pendentes podem ser canceladas."); entity.setStatus(ServiceRequestStatus.CANCELADA); entity.setCanceledAt(Instant.now()); return toResponse(entity); }
+  public ServiceRequestResponse cancel(UUID responsibleId, UUID id) { User owner=requireResponsible(responsibleId); ServiceRequest entity=repository.findByIdAndResponsibleUser(id, owner).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); expireIfNeeded(entity); if(entity.getStatus()!=ServiceRequestStatus.PENDENTE) throw new BusinessException("Apenas solicitações pendentes podem ser canceladas."); entity.setStatus(ServiceRequestStatus.CANCELADA); entity.setCanceledAt(Instant.now()); notifications.create(entity.getCaregiverUser(),NotificationType.SERVICE_REQUEST_CANCELED,"Solicitação cancelada","Uma solicitação de serviço foi cancelada pelo responsável.",entity.getId()); return toResponse(entity); }
 
   private void validate(ServiceRequestCreateRequest r) {
     Set<LocalDate> dates=r.specificDates()==null?Set.of():r.specificDates(); List<ServiceRequestCreateRequest.ScheduleDayRequest> schedule=r.scheduleDays()==null?List.of():r.scheduleDays();

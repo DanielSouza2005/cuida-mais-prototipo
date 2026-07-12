@@ -1,6 +1,7 @@
-import { router, type Href } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import {
-  CalendarDays,
+  Bell,
+  ClipboardList,
   HeartPulse,
   MapPin,
   Search,
@@ -9,13 +10,15 @@ import {
   UserRound,
   Users,
 } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
 
 import { QuickActionCard } from '@/components/home/quick-action-card';
 import { SummaryCard } from '@/components/home/summary-card';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
+import { getUnreadNotificationCount } from '@/services/receivedServiceRequestService';
 
 const tabRoutes = {
   agenda: '/agenda' as Href,
@@ -29,6 +32,8 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const firstName = user?.fullName?.trim().split(/\s+/)[0] ?? 'Daniel';
   const isCaregiver = user?.userType === 'caregiver';
+  const [unreadCount,setUnreadCount]=useState(0);
+  useFocusEffect(useCallback(()=>{if(user)getUnreadNotificationCount().then((result)=>setUnreadCount(result.count)).catch(()=>setUnreadCount(0));},[user]));
 
   return (
     <ScreenContainer contentStyle={styles.content}>
@@ -37,6 +42,7 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Olá, {firstName}</Text>
           <Text style={styles.subtitle}>Bem-vindo ao Cuidar+</Text>
         </View>
+        {user ? <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => router.push('/caregiver-notifications' as Href)} style={styles.notificationButton}><Bell color={colors.primary} size={22} />{unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount}</Text></View> : null}</Pressable> : null}
       </View>
 
       <SummaryCard
@@ -54,12 +60,7 @@ export default function HomeScreen() {
 
         <View style={styles.grid}>
           {isCaregiver ? (
-            <QuickActionCard
-              title="Agenda de cuidados"
-              description="Veja horários e próximos lembretes."
-              icon={CalendarDays}
-              onPress={() => router.push(tabRoutes.agenda)}
-            />
+            <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.agenda)} />
           ) : (
             <QuickActionCard
               title="Buscar cuidadores"
@@ -126,6 +127,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.md,
   },
+  notificationButton: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...shadows.card },
+  badge: { position: 'absolute', top: -3, right: -3, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.destructive },
+  badgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: colors.primaryForeground },
   greeting: {
     fontFamily: fontFamily.extraBold,
     fontSize: 26,
