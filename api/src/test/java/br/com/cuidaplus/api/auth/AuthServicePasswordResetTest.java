@@ -107,7 +107,7 @@ class AuthServicePasswordResetTest {
   void resetPasswordRejectsInvalidToken() {
     assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest("invalid-token", "new-pass")))
       .isInstanceOf(BusinessException.class)
-      .hasMessageContaining("invalido");
+      .hasMessageContaining("inválido");
   }
 
   @Test
@@ -131,7 +131,7 @@ class AuthServicePasswordResetTest {
 
     assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(token, "another-pass")))
       .isInstanceOf(BusinessException.class)
-      .hasMessageContaining("ja utilizado");
+      .hasMessageContaining("já utilizado");
   }
 
   @Test
@@ -142,7 +142,7 @@ class AuthServicePasswordResetTest {
 
     assertThatThrownBy(() -> authService.resetPassword(new ResetPasswordRequest(firstToken, "new-pass")))
       .isInstanceOf(BusinessException.class)
-      .hasMessageContaining("ja utilizado");
+      .hasMessageContaining("já utilizado");
   }
 
   private User createUser(String email, String password) {

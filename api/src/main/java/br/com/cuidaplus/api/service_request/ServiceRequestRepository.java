@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, UUID> {
   List<ServiceRequest> findByResponsibleUserAndCaregiverUserAndAssistedPersonIdAndStatus(User responsible, User caregiver, UUID assistedPersonId, ServiceRequestStatus status);
   List<ServiceRequest> findByResponsibleUserOrderByCreatedAtDesc(User responsible);
+  List<ServiceRequest> findByResponsibleUserOrderByUpdatedAtDesc(User responsible);
   Optional<ServiceRequest> findByIdAndResponsibleUser(UUID id, User responsible);
   Optional<ServiceRequest> findByIdAndCaregiverUser(UUID id, User caregiver);
   @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -5,6 +5,7 @@ import br.com.cuidaplus.api.profile.*;
 import br.com.cuidaplus.api.service_request.dto.*;
 import br.com.cuidaplus.api.user.*;
 import br.com.cuidaplus.api.notification.*;
+import br.com.cuidaplus.api.status_history.*;
 import java.time.*;
 import java.util.*;
 import org.springframework.http.HttpStatus;
@@ -18,8 +19,9 @@ public class ServiceRequestService {
   private final CaregiverProfileRepository caregiverRepository;
   private final AssistedPersonRepository assistedRepository;
   private final NotificationService notifications;
-  public ServiceRequestService(ServiceRequestRepository repository, UserService userService, CaregiverProfileRepository caregiverRepository, AssistedPersonRepository assistedRepository, NotificationService notifications) {
-    this.repository=repository; this.userService=userService; this.caregiverRepository=caregiverRepository; this.assistedRepository=assistedRepository; this.notifications=notifications;
+  private final StatusHistoryService history;
+  public ServiceRequestService(ServiceRequestRepository repository, UserService userService, CaregiverProfileRepository caregiverRepository, AssistedPersonRepository assistedRepository, NotificationService notifications, StatusHistoryService history) {
+    this.repository=repository; this.userService=userService; this.caregiverRepository=caregiverRepository; this.assistedRepository=assistedRepository; this.notifications=notifications; this.history=history;
   }
 
   @Transactional(readOnly = true)
@@ -53,6 +55,7 @@ public class ServiceRequestService {
     entity.setNeedsDescription(request.needsDescription().trim()); entity.setActivities(new LinkedHashSet<>(request.activities())); entity.setActivityOther(trim(request.activityOther())); entity.setAdditionalNotes(trim(request.additionalNotes())); entity.setNegotiationNotes(trim(request.negotiationNotes()));
     Set<ServiceRequestScheduleDay> schedule = new LinkedHashSet<>(); for (var item : request.scheduleDays() == null ? List.<ServiceRequestCreateRequest.ScheduleDayRequest>of() : request.scheduleDays()) { ServiceRequestScheduleDay day = new ServiceRequestScheduleDay(); day.setWeekday(item.weekday()); day.setStartTime(item.startTime()); day.setEndTime(item.endTime()); schedule.add(day); } entity.setScheduleDays(schedule);
     ServiceRequest saved=repository.save(entity);
+    history.record(StatusHistoryEntityType.SERVICE_REQUEST, saved.getId(), null, ServiceRequestStatus.PENDENTE.name(), responsible, null);
     notifications.create(caregiver.getUser(),NotificationType.SERVICE_REQUEST_CREATED,"Nova solicitação de serviço","Você recebeu uma nova solicitação de "+responsible.getFullName()+".",saved.getId());
     return toResponse(saved);
   }
@@ -81,7 +84,7 @@ public class ServiceRequestService {
   @Transactional
   public List<ServiceRequestResponse> my(UUID responsibleId) { User owner=requireResponsible(responsibleId); return repository.findByResponsibleUserOrderByCreatedAtDesc(owner).stream().peek(this::expireIfNeeded).map(this::toResponse).toList(); }
   @Transactional
-  public ServiceRequestResponse cancel(UUID responsibleId, UUID id) { User owner=requireResponsible(responsibleId); ServiceRequest entity=repository.findByIdAndResponsibleUser(id, owner).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); expireIfNeeded(entity); if(entity.getStatus()!=ServiceRequestStatus.PENDENTE) throw new BusinessException("Apenas solicitações pendentes podem ser canceladas."); entity.setStatus(ServiceRequestStatus.CANCELADA); entity.setCanceledAt(Instant.now()); notifications.create(entity.getCaregiverUser(),NotificationType.SERVICE_REQUEST_CANCELED,"Solicitação cancelada","Uma solicitação de serviço foi cancelada pelo responsável.",entity.getId()); return toResponse(entity); }
+  public ServiceRequestResponse cancel(UUID responsibleId, UUID id) { User owner=requireResponsible(responsibleId); ServiceRequest entity=repository.findByIdAndResponsibleUser(id, owner).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); expireIfNeeded(entity); if(entity.getStatus()!=ServiceRequestStatus.PENDENTE) throw new BusinessException("Apenas solicitações pendentes podem ser canceladas."); entity.setStatus(ServiceRequestStatus.CANCELADA); entity.setCanceledAt(Instant.now()); history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.CANCELADA.name(), owner, entity.getCancellationReason()); notifications.create(entity.getCaregiverUser(),NotificationType.SERVICE_REQUEST_CANCELED,"Solicitação cancelada","Uma solicitação de serviço foi cancelada pelo responsável.",entity.getId()); return toResponse(entity); }
 
   private void validate(ServiceRequestCreateRequest r) {
     Set<LocalDate> dates=r.specificDates()==null?Set.of():r.specificDates(); List<ServiceRequestCreateRequest.ScheduleDayRequest> schedule=r.scheduleDays()==null?List.of():r.scheduleDays();
@@ -95,7 +98,7 @@ public class ServiceRequestService {
     if(r.activities().contains(ServicoOferecido.OUTRO) && (r.activityOther()==null || r.activityOther().isBlank())) throw new BusinessException("Descreva a outra atividade esperada.");
   }
   private boolean overlaps(ServiceRequest e, ServiceRequestCreateRequest r) { LocalDate a1=e.getStartDate(), a2=e.getEndDate()==null?LocalDate.MAX:e.getEndDate(); Set<LocalDate> dates=r.specificDates()==null?Set.of():r.specificDates(); LocalDate b1=r.hiringType()==HiringType.PONTUAL?dates.stream().min(LocalDate::compareTo).orElse(LocalDate.MAX):r.startDate(); LocalDate b2=r.hiringType()==HiringType.PONTUAL?dates.stream().max(LocalDate::compareTo).orElse(LocalDate.MIN):(r.endDate()==null?LocalDate.MAX:r.endDate()); return a1!=null && !a1.isAfter(b2) && !b1.isAfter(a2); }
-  private void expireIfNeeded(ServiceRequest e) { if(e.getStatus()==ServiceRequestStatus.PENDENTE && e.getExpiresAt().isBefore(Instant.now())) e.setStatus(ServiceRequestStatus.EXPIRADA); }
+  private void expireIfNeeded(ServiceRequest e) { if(e.getStatus()==ServiceRequestStatus.PENDENTE && e.getExpiresAt().isBefore(Instant.now())) { e.setStatus(ServiceRequestStatus.EXPIRADA); history.record(StatusHistoryEntityType.SERVICE_REQUEST, e.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.EXPIRADA.name(), e.getResponsibleUser(), null); } }
   private User requireResponsible(UUID id) { User u=userService.findById(id); if(u.getUserType()!=UserType.RESPONSAVEL && u.getUserType()!=UserType.FAMILY) throw new BusinessException("Apenas responsáveis podem enviar solicitações.", HttpStatus.FORBIDDEN); return u; }
   private CaregiverProfile requireCaregiver(UUID id) { return caregiverRepository.findById(id).filter(p -> (p.getUser().getUserType()==UserType.CUIDADOR || p.getUser().getUserType()==UserType.CAREGIVER) && "ACTIVE".equalsIgnoreCase(p.getUser().getStatus())).orElseThrow(() -> new BusinessException("Cuidador não encontrado.", HttpStatus.NOT_FOUND)); }
   private boolean hasAddress(AddressFields a) { return a!=null && a.getRua()!=null && a.getNumero()!=null && a.getBairro()!=null && a.getCidade()!=null && a.getEstado()!=null; }
