@@ -14,7 +14,7 @@ export default function ContractTerminationSuccessScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const result = id ? getTerminationResult(id) : undefined;
   const flow = id ? getTerminationFlow(id) : undefined;
-  const contractsTab = (user?.userType === 'caregiver' ? '/(tabs)/agenda' : '/(tabs)/contratacoes') as Href;
+  const contractsTab = (user?.userType === 'caregiver' ? '/(tabs)/solicitacoes' : '/(tabs)/contratacoes') as Href;
   if (!result || !flow || !id) return <ScreenContainer contentStyle={styles.center}><Text style={styles.title}>Resultado indisponível</Text><PrimaryButton label="Voltar para contratações" onPress={() => router.replace(contractsTab)} /></ScreenContainer>;
 
   const cancellation = result.status === 'CANCELADA';

@@ -21,7 +21,7 @@ import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import { getUnreadNotificationCount } from '@/services/receivedServiceRequestService';
 
 const tabRoutes = {
-  agenda: '/agenda' as Href,
+  requests: '/solicitacoes' as Href,
   caregiverSearch: '/caregiver-search' as Href,
   cuidados: '/cuidados' as Href,
   mensagens: '/mensagens' as Href,
@@ -60,7 +60,7 @@ export default function HomeScreen() {
 
         <View style={styles.grid}>
           {isCaregiver ? (
-            <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.agenda)} />
+            <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.requests)} />
           ) : (
             <QuickActionCard
               title="Buscar cuidadores"

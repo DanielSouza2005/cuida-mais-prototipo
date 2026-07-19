@@ -13,7 +13,7 @@ type ApiListItem = {
 
 type ApiPage = Omit<ContractsHistoryPage, 'content'> & { content: ApiListItem[] };
 
-type ApiDetails = {
+export type ApiContractDetails = {
   id: string; itemType: ContractHistoryItemType; serviceRequestId: string; contractId?: string | null;
   status: ContractHistoryItem['status']; statusLabel: string;
   caregiver: { id: string; name: string; profilePhotoUrl?: string | null; locationSummary?: string | null };
@@ -43,7 +43,7 @@ function listItem(item: ApiListItem): ContractHistoryItem {
   };
 }
 
-function detailsItem(item: ApiDetails): ContractHistoryItem {
+export function mapContractDetails(item: ApiContractDetails): ContractHistoryItem {
   return {
     id: item.id, itemType: item.itemType, status: item.status,
     statusGroup: item.status === 'PENDENTE' ? 'PENDENTES' : item.status === 'ACEITA' || item.status === 'AGENDADA' ? 'AGENDADAS' : item.status === 'ATIVA' || item.status === 'ENCERRAMENTO_AGENDADO' ? 'ATIVAS' : item.status === 'FINALIZADA' || item.status === 'ENCERRADA' ? 'ENCERRADAS' : item.status === 'REJEITADA' ? 'REJEITADAS' : item.status === 'EXPIRADA' ? 'EXPIRADAS' : 'CANCELADAS',
@@ -81,6 +81,6 @@ async function getContracts(path: string, params: ContractsHistoryQuery): Promis
 }
 
 export async function getResponsibleContractDetails(itemType: ContractHistoryItemType, id: string) {
-  const response = await apiRequest<ApiDetails>(itemType === 'CARE_CONTRACT' ? `/api/contracts/${id}` : `/api/responsible/contracts/${itemType}/${id}`);
-  return detailsItem(response);
+  const response = await apiRequest<ApiContractDetails>(itemType === 'CARE_CONTRACT' ? `/api/contracts/${id}` : `/api/responsible/contracts/${itemType}/${id}`);
+  return mapContractDetails(response);
 }

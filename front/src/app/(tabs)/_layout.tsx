@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { ClipboardClock, ClipboardList, HeartPulse, Home, MessageCircle, Search, User } from 'lucide-react-native';
+import { CalendarDays, ClipboardClock, ClipboardList, Home, MessageCircle, Search, User } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { LoadingState } from '@/components/loading-state';
@@ -52,7 +52,7 @@ export default function MainTabNavigator() {
         }}
       />
       <Tabs.Screen
-        name="agenda"
+        name="solicitacoes"
         options={{
           title: 'Solicitações',
           href: isCaregiver ? undefined : null,
@@ -68,6 +68,13 @@ export default function MainTabNavigator() {
         }}
       />
       <Tabs.Screen
+        name="agenda"
+        options={{
+          title: 'Agenda',
+          tabBarIcon: ({ color }) => <CalendarDays color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+        }}
+      />
+      <Tabs.Screen
         name="contratacoes"
         options={{
           title: 'Contratações',
@@ -79,14 +86,14 @@ export default function MainTabNavigator() {
         name="cuidados"
         options={{
           title: 'Cuidados',
-          href: isCaregiver ? undefined : null,
-          tabBarIcon: ({ color }) => <HeartPulse color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="mensagens"
         options={{
           title: 'Mensagens',
+          href: isCaregiver ? undefined : null,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
