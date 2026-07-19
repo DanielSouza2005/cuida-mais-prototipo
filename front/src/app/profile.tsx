@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router, useSegments, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Bell, HeartPulse, Home, LogOut, MapPin, Shield, User, Users } from 'lucide-react-native';
+import { Bell, ClipboardCheck, HeartPulse, Home, LogOut, MapPin, Shield, User, Users } from 'lucide-react-native';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
@@ -156,6 +156,7 @@ export default function ProfileScreen() {
             <SettingsRow title="Pessoa assistida" description="Perfil de cuidado e necessidades importantes" icon={Users} onPress={() => router.push(routes.assistedPerson)} />
             <SettingsRow title="Endereço do cuidado" description="Local onde o cuidado será realizado" icon={MapPin} onPress={() => router.push(routes.careAddress)} />
             <SettingsRow title="Contato de emergência" description="Nome, telefone e vínculo de apoio" icon={HeartPulse} onPress={() => router.push(routes.emergencyContact)} />
+            <SettingsRow title="Rotina de cuidados" description="Cadastre e acompanhe tarefas de cuidado" icon={ClipboardCheck} onPress={() => router.push('/care-tasks' as Href)} />
           </>
         )}
         <SettingsRow title="Notificações" description="Preferências de comunicação" icon={Bell} onPress={() => router.push('/profile-notifications')} />

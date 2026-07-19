@@ -34,6 +34,15 @@ export default function NotificationsScreen() {
     try {
       await readNotification(item.id);
       setItems((current) => current.map((value) => value.id === item.id ? { ...value, readAt: new Date().toISOString() } : value));
+      if (item.relatedEntityType === 'CARE_TASK') {
+        if (user?.userType === 'caregiver') router.push('/caregiver-tasks' as Href);
+        else router.push(`/care-task/${item.relatedEntityId}` as Href);
+        return;
+      }
+      if (item.relatedEntityType === 'TASK_OCCURRENCE') {
+        router.push(`/task-occurrence/${item.relatedEntityId}` as Href);
+        return;
+      }
       if (item.relatedEntityType === 'CARE_CONTRACT') {
         router.push(`/responsible-contract/${item.relatedEntityId}?itemType=CARE_CONTRACT` as Href);
         return;

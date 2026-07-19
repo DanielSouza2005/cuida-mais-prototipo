@@ -1,0 +1,14 @@
+package br.com.cuidaplus.api.care_task;
+
+public enum TaskCategory {
+  MEDICACAO,
+  ALIMENTACAO,
+  HIDRATACAO,
+  HIGIENE_BANHO,
+  MOBILIDADE,
+  EXERCICIO,
+  CURATIVO,
+  SINAIS_VITAIS,
+  CONSULTA_COMPROMISSO,
+  PERSONALIZADA
+}

@@ -1,6 +1,7 @@
 import { router, useFocusEffect, type Href } from 'expo-router';
 import {
   Bell,
+  ClipboardCheck,
   ClipboardList,
   HeartPulse,
   MapPin,
@@ -60,7 +61,10 @@ export default function HomeScreen() {
 
         <View style={styles.grid}>
           {isCaregiver ? (
-            <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.requests)} />
+            <>
+              <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.requests)} />
+              <QuickActionCard title="Tarefas de hoje" description="Visualize e registre os cuidados do dia." icon={ClipboardCheck} onPress={() => router.push('/caregiver-tasks' as Href)} />
+            </>
           ) : (
             <QuickActionCard
               title="Buscar cuidadores"

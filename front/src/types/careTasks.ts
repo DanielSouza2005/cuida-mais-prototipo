@@ -1,0 +1,49 @@
+export type TaskCategory = 'MEDICACAO' | 'ALIMENTACAO' | 'HIDRATACAO' | 'HIGIENE_BANHO' | 'MOBILIDADE' | 'EXERCICIO' | 'CURATIVO' | 'SINAIS_VITAIS' | 'CONSULTA_COMPROMISSO' | 'PERSONALIZADA';
+export type TaskPriority = 'BAIXA' | 'NORMAL' | 'ALTA';
+export type TaskRecurrenceType = 'UNICA' | 'DIARIA' | 'DIAS_ESPECIFICOS' | 'INTERVALO' | 'PERIODO_DETERMINADO' | 'SEM_DATA_FINAL';
+export type TaskSeriesStatus = 'ATIVA' | 'PAUSADA' | 'CANCELADA' | 'FINALIZADA';
+export type TaskOccurrenceStatus = 'PENDENTE' | 'CONCLUIDA' | 'ATRASADA' | 'NAO_REALIZADA' | 'CANCELADA';
+export type TaskEditScope = 'SOMENTE_ESTA_OCORRENCIA' | 'ESTA_E_FUTURAS' | 'TODA_A_SERIE';
+export type TaskWeekday = 'SEGUNDA' | 'TERCA' | 'QUARTA' | 'QUINTA' | 'SEXTA' | 'SABADO' | 'DOMINGO';
+export type MedicationUnit = 'MG' | 'G' | 'ML' | 'GOTAS' | 'COMPRIMIDO' | 'CAPSULA' | 'APLICACAO' | 'PERSONALIZADA';
+export type MedicationAdministrationRoute = 'ORAL' | 'TOPICA' | 'INALATORIA' | 'SUBCUTANEA' | 'OUTRA';
+
+export type Medication = {
+  name: string; dosage: string; unit: MedicationUnit; customUnit?: string;
+  administrationRoute: MedicationAdministrationRoute; customAdministrationRoute?: string; additionalInstructions?: string;
+};
+
+export type CareTask = {
+  id: string; title: string; description?: string; category: TaskCategory; customCategory?: string;
+  priority: TaskPriority; recurrenceType: TaskRecurrenceType; startDate: string; endDate?: string;
+  scheduledTime: string; intervalDays?: number; weekdays: TaskWeekday[]; timezone: string;
+  reminderEnabled: boolean; reminderMinutesBefore?: number; notes?: string; status: TaskSeriesStatus;
+  assistedPersonId: string; assistedPersonName: string; contractId: string; caregiverId: string; caregiverName: string;
+  nextOccurrenceDate?: string; nextOccurrenceTime?: string; version: number; createdAt: string; updatedAt: string;
+};
+
+export type TaskOccurrence = {
+  id: string; taskId: string; title: string; description?: string; category: TaskCategory; customCategory?: string;
+  priority: TaskPriority; scheduledDate: string; scheduledTime: string; scheduledInstantUtc: string; timezone: string;
+  status: TaskOccurrenceStatus; assistedPersonId: string; assistedPersonName: string; contractId: string;
+  caregiverId: string; caregiverName: string; responsibleId: string; responsibleName: string; medication?: Medication;
+  taskNotes?: string; completedAt?: string; executedByName?: string; nonCompletionReason?: string; executionNote?: string;
+  activityRecordId?: string; exception: boolean; taskVersion: number; version: number;
+};
+
+export type TaskAudit = { id: string; action: string; actorName: string; details?: string; createdAt: string };
+export type CareTaskDetails = { task: CareTask; medication?: Medication; audit: TaskAudit[] };
+export type CareTaskPage = { content: CareTask[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean };
+export type TaskOccurrencePage = { content: TaskOccurrence[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean };
+export type TaskContractOption = {
+  contractId: string; status: 'ATIVA' | 'ENCERRAMENTO_AGENDADO'; startDate: string; endDate?: string; effectiveEndDate?: string;
+  assistedPersonId: string; assistedPersonName: string; caregiverId: string; caregiverName: string;
+};
+export type TaskFormData = { contracts: TaskContractOption[] };
+
+export type CareTaskPayload = {
+  title: string; description?: string | null; category: TaskCategory; customCategory?: string | null; priority: TaskPriority;
+  recurrenceType: TaskRecurrenceType; startDate: string; endDate?: string | null; scheduledTime: string; intervalDays?: number | null;
+  weekdays: TaskWeekday[]; timezone: string; reminderEnabled: boolean; reminderMinutesBefore?: number | null; notes?: string | null;
+  assistedPersonId: string; contractId: string; caregiverId: string; medication?: Medication | null;
+};

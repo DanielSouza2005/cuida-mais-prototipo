@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -46,6 +47,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity
       .status(HttpStatus.PAYLOAD_TOO_LARGE)
       .body(new ApiError(Instant.now(), HttpStatus.PAYLOAD_TOO_LARGE.value(), "A foto deve ter no máximo 5 MB.", Map.of()));
+  }
+
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<ApiError> handleOptimisticLock() {
+    return ResponseEntity
+      .status(HttpStatus.CONFLICT)
+      .body(new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), "Este registro foi atualizado em outro dispositivo. Recarregue os dados.", Map.of()));
   }
 
   @ExceptionHandler(Exception.class)
