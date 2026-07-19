@@ -13,7 +13,7 @@ public class StatusHistory {
   @Column(nullable = false) private UUID entityId;
   @Column(length = 30) private String previousStatus;
   @Column(nullable = false, length = 30) private String newStatus;
-  @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "changed_by_user_id") private User changedByUser;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "changed_by_user_id") private User changedByUser;
   @Column(length = 1000) private String reason;
   @Column(nullable = false, updatable = false) private Instant createdAt;
 

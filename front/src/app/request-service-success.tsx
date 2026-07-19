@@ -10,12 +10,7 @@ import { cancelServiceRequest, getLastServiceRequest } from '@/services/serviceR
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
 import { hiringLabels, statusLabels } from '@/utils/serviceRequestLabels';
-
-const formatBrazilianDate = (value?: string | null) => {
-  if (!value) return 'Não informada';
-  const [year, month, day] = value.split('-');
-  return year && month && day ? `${day}/${month}/${year}` : value;
-};
+import { formatDateBR, formatInstantDateLocal, formatScheduleTime } from '@/utils/dateTime';
 
 export default function RequestServiceSuccessScreen() {
   const initialRequest = getLastServiceRequest();
@@ -29,7 +24,7 @@ export default function RequestServiceSuccessScreen() {
   return (
     <ScreenContainer contentStyle={styles.content}>
       <View style={styles.successCard}><View style={styles.iconCircle}><CheckCircle2 color={colors.mintForeground} size={48} /></View><Text style={styles.title}>Solicitação enviada</Text><Text style={styles.description}>Sua solicitação foi enviada ao cuidador.</Text><View style={styles.status}><Text style={styles.statusText}>{statusLabels[request.status]}</Text></View></View>
-      <View style={styles.summary}><Summary label="Cuidador" value={request.caregiverName} /><Summary label="Pessoa assistida" value={request.assistedPersonName} /><Summary label="Tipo de contratação" value={hiringLabels[request.hiringType]} /><Summary label="Data de início" value={formatBrazilianDate(start)} />{request.scheduleDays[0] ? <Summary label="Horário" value={`${request.scheduleDays[0].startTime.slice(0, 5)} às ${request.scheduleDays[0].endTime.slice(0, 5)}`} /> : null}<Summary label="Expira em" value={new Date(request.expiresAt).toLocaleDateString('pt-BR')} /></View>
+      <View style={styles.summary}><Summary label="Cuidador" value={request.caregiverName} /><Summary label="Pessoa assistida" value={request.assistedPersonName} /><Summary label="Tipo de contratação" value={hiringLabels[request.hiringType]} /><Summary label="Data de início" value={formatDateBR(start) || 'Não informada'} />{request.scheduleDays[0] ? <Summary label="Horário" value={`${formatScheduleTime(request.scheduleDays[0].startTime)} às ${formatScheduleTime(request.scheduleDays[0].endTime)}`} /> : null}<Summary label="Expira em" value={formatInstantDateLocal(request.expiresAt)} /></View>
       <Text style={styles.info}>O cuidador poderá aceitar ou rejeitar a solicitação. Enquanto ela estiver pendente, você poderá cancelá-la nesta tela.</Text>
       <View style={styles.actions}>{request.status === 'PENDENTE' ? <PrimaryButton label={isCanceling ? 'Cancelando...' : 'Cancelar solicitação'} variant="secondary" onPress={confirmCancel} loading={isCanceling} /> : null}<PrimaryButton label="Voltar para busca" onPress={() => router.replace('/(tabs)/buscar' as Href)} /><PrimaryButton label="Ver perfil do cuidador" variant="secondary" onPress={() => router.replace(`/caregiver-profile/${request.caregiverId}`)} /><PrimaryButton label="Ir para início" variant="secondary" onPress={() => router.replace('/(tabs)/inicio')} /></View>
     </ScreenContainer>

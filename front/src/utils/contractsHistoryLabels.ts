@@ -1,8 +1,9 @@
 import type { ContractHistoryCategory, ContractHistoryItem, ContractHistoryStatus, ContractHiringType, ContractWeekday } from '@/types/contractsHistory';
+import { formatDateBR, formatDateTimeLocal, formatScheduleTime } from '@/utils/dateTime';
 
 export const contractStatusLabels: Record<ContractHistoryStatus, string> = {
   PENDENTE: 'Pendente', ACEITA: 'Aceita', REJEITADA: 'Rejeitada', CANCELADA: 'Cancelada', EXPIRADA: 'Expirada',
-  AGENDADA: 'Agendada', ATIVA: 'Ativa', FINALIZADA: 'Encerrada',
+  AGENDADA: 'Agendada', ATIVA: 'Ativa', ENCERRAMENTO_AGENDADO: 'Encerramento agendado', ENCERRADA: 'Encerrada', FINALIZADA: 'Encerrada',
 };
 
 export const contractCategoryLabels: Record<ContractHistoryCategory, string> = {
@@ -22,14 +23,11 @@ export const contractWeekdayLabels: Record<ContractWeekday, string> = {
 const weekdayOrder: ContractWeekday[] = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO', 'DOMINGO'];
 
 export function formatContractDate(value: string) {
-  const datePart = value.slice(0, 10);
-  const [year, month, day] = datePart.split('-');
-  return year && month && day ? `${day}/${month}/${year}` : value;
+  return formatDateBR(value);
 }
 
 export function formatContractDateTime(value: string) {
-  const time = value.includes('T') ? value.split('T')[1]?.slice(0, 5) : '';
-  return `${formatContractDate(value)}${time ? ` às ${time}` : ''}`;
+  return formatDateTimeLocal(value);
 }
 
 export function getContractReason(item: ContractHistoryItem) {
@@ -41,8 +39,8 @@ export function formatContractSchedule(item: ContractHistoryItem) {
   if (!sorted.length) return '';
   const days = sorted.map((entry) => contractWeekdayLabels[entry.weekday]);
   const dayText = days.length === 1 ? days[0] : `${days.slice(0, -1).join(', ')} e ${days.at(-1)}`;
-  const schedules = new Set(sorted.map((entry) => `${entry.startTime.slice(0, 5)} às ${entry.endTime.slice(0, 5)}`));
-  return schedules.size === 1 ? `${dayText} · ${[...schedules][0]}` : sorted.map((entry) => `${contractWeekdayLabels[entry.weekday]} · ${entry.startTime.slice(0, 5)} às ${entry.endTime.slice(0, 5)}`).join('\n');
+  const schedules = new Set(sorted.map((entry) => `${formatScheduleTime(entry.startTime)} às ${formatScheduleTime(entry.endTime)}`));
+  return schedules.size === 1 ? `${dayText} · ${[...schedules][0]}` : sorted.map((entry) => `${contractWeekdayLabels[entry.weekday]} · ${formatScheduleTime(entry.startTime)} às ${formatScheduleTime(entry.endTime)}`).join('\n');
 }
 
 export function formatCep(value: string) {

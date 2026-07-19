@@ -1,0 +1,10 @@
+package br.com.cuidaplus.api.care_contract;
+
+public enum ContractTerminationType {
+  NA_DATA_PREVISTA,
+  ANTECIPADO_RESPONSAVEL,
+  ANTECIPADO_CUIDADOR,
+  ACORDO_ENTRE_PARTES,
+  CANCELAMENTO_ANTES_INICIO,
+  AUTOMATICO_TERMINO_PERIODO
+}

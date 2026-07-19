@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import br.com.cuidaplus.api.care_contract.CareContractRepository;
+import br.com.cuidaplus.api.care_contract.CareContract;
+import br.com.cuidaplus.api.care_contract.CareContractStatus;
+import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
+import br.com.cuidaplus.api.contract_termination.ContractParticipantRole;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.profile.CaregiverProfileRepository;
 import br.com.cuidaplus.api.profile.AssistedPerson;
@@ -25,10 +29,11 @@ class ResponsibleContractHistoryServiceTest {
   @Mock CaregiverProfileRepository caregivers;
   @Mock UserService users;
   @Mock StatusHistoryService history;
+  @Mock ContractStatusProcessorService contractStatusProcessor;
   ResponsibleContractHistoryService service;
 
   @BeforeEach
-  void setUp() { service = new ResponsibleContractHistoryService(requests, contracts, caregivers, users, history); }
+  void setUp() { service = new ResponsibleContractHistoryService(requests, contracts, caregivers, users, history, contractStatusProcessor); }
 
   @Test
   void caregiverCannotUseResponsibleHistory() {
@@ -68,5 +73,63 @@ class ResponsibleContractHistoryServiceTest {
     var result = service.list(userId, ContractHistoryStatusGroup.PENDENTES, null, "ana", LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 31), 0, 5);
 
     assertEquals(1, result.totalElements()); assertEquals("Ana Paula", result.content().get(0).participantName()); assertTrue(result.last());
+  }
+
+  @Test
+  void caregiverListUsesTheContractAsSingleSourceAfterAcceptance() {
+    UUID userId = UUID.randomUUID(), contractId = UUID.randomUUID(), requestId = UUID.randomUUID();
+    User caregiver = mock(User.class), responsible = mock(User.class);
+    AssistedPerson assisted = mock(AssistedPerson.class);
+    ServiceRequest acceptedRequest = mock(ServiceRequest.class);
+    CareContract contract = mock(CareContract.class);
+    Instant updatedAt = Instant.parse("2026-07-19T15:00:00Z");
+
+    when(users.findById(userId)).thenReturn(caregiver);
+    when(caregiver.getUserType()).thenReturn(UserType.CUIDADOR);
+    when(requests.findByCaregiverUserOrderByUpdatedAtDesc(caregiver)).thenReturn(List.of(acceptedRequest));
+    when(contracts.findByCaregiverUserOrderByUpdatedAtDesc(caregiver)).thenReturn(List.of(contract));
+    when(acceptedRequest.getStatus()).thenReturn(ServiceRequestStatus.ACEITA);
+    when(contractStatusProcessor.processContractIfDue(contract)).thenReturn(contract);
+    when(contract.getId()).thenReturn(contractId);
+    when(contract.getServiceRequest()).thenReturn(acceptedRequest);
+    when(contract.getAssistedPerson()).thenReturn(assisted);
+    when(contract.getResponsibleUser()).thenReturn(responsible);
+    when(contract.getStatus()).thenReturn(CareContractStatus.ENCERRAMENTO_AGENDADO);
+    when(contract.getStartDate()).thenReturn(LocalDate.of(2026, 7, 1));
+    when(contract.getEndDate()).thenReturn(LocalDate.of(2026, 8, 31));
+    when(contract.getEffectiveEndDate()).thenReturn(LocalDate.of(2026, 7, 31));
+    when(contract.getTerminationReason()).thenReturn("Mudança na rotina da família.");
+    when(contract.getUpdatedAt()).thenReturn(updatedAt);
+    when(acceptedRequest.getId()).thenReturn(requestId);
+    when(acceptedRequest.getHiringType()).thenReturn(HiringType.PERIODO_DETERMINADO);
+    when(acceptedRequest.getScheduleDays()).thenReturn(Set.of());
+    when(responsible.getFullName()).thenReturn("Daniel Oliveira");
+    when(assisted.getNome()).thenReturn("Maria Oliveira");
+
+    var result = service.caregiverList(userId, null, null, null, null, null, 0, 10);
+
+    assertEquals(1, result.totalElements());
+    var item = result.content().get(0);
+    assertEquals(contractId, item.id());
+    assertEquals(ContractHistoryItemType.CARE_CONTRACT, item.itemType());
+    assertEquals("ENCERRAMENTO_AGENDADO", item.status());
+    assertEquals("Daniel Oliveira", item.participantName());
+    assertEquals(ContractParticipantRole.CUIDADOR, item.participantRole());
+    assertEquals("Mudança na rotina da família.", item.terminationReason());
+    assertTrue(item.hasScheduledTermination());
+  }
+
+  @Test
+  void responsibleCannotUseCaregiverHistory() {
+    UUID userId = UUID.randomUUID();
+    User responsible = mock(User.class);
+    when(users.findById(userId)).thenReturn(responsible);
+    when(responsible.getUserType()).thenReturn(UserType.RESPONSAVEL);
+
+    BusinessException error = assertThrows(BusinessException.class,
+      () -> service.caregiverList(userId, null, null, null, null, null, 0, 10));
+
+    assertEquals(HttpStatus.FORBIDDEN, error.getStatus());
+    verifyNoInteractions(requests, contracts, history);
   }
 }

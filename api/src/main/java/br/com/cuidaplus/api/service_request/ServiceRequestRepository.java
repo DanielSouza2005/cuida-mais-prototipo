@@ -18,6 +18,7 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
   @Query("select request from ServiceRequest request where request.id = :id and request.caregiverUser = :caregiver")
   Optional<ServiceRequest> findForUpdateByIdAndCaregiverUser(@Param("id") UUID id, @Param("caregiver") User caregiver);
   List<ServiceRequest> findByCaregiverUserOrderByCreatedAtDesc(User caregiver);
+  List<ServiceRequest> findByCaregiverUserOrderByUpdatedAtDesc(User caregiver);
   List<ServiceRequest> findByCaregiverUserAndStatusOrderByCreatedAtDesc(User caregiver, ServiceRequestStatus status);
   Page<ServiceRequest> findByCaregiverUser(User caregiver, Pageable pageable);
   Page<ServiceRequest> findByCaregiverUserAndStatus(User caregiver, ServiceRequestStatus status, Pageable pageable);

@@ -20,6 +20,15 @@ public class CareContract {
   private LocalDate endDate;
   @Column(length = 1000) private String cancellationReason;
   @Column(length = 1000) private String closureReason;
+  @Enumerated(EnumType.STRING) @Column(length = 50) private ContractTerminationType terminationType;
+  @Column(length = 1000) private String terminationReason;
+  @Column(length = 1000) private String terminationNotes;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "termination_requested_by_user_id") private User terminationRequestedByUser;
+  private Instant terminationRequestedAt;
+  private LocalDate effectiveEndDate;
+  private Instant canceledAt;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "cancellation_requested_by_user_id") private User cancellationRequestedByUser;
+  private Instant cancellationRequestedAt;
   @Column(nullable = false, updatable = false) private Instant createdAt;
   @Column(nullable = false) private Instant updatedAt;
 
@@ -45,6 +54,24 @@ public class CareContract {
   public void setCancellationReason(String value) { cancellationReason = value; }
   public String getClosureReason() { return closureReason; }
   public void setClosureReason(String value) { closureReason = value; }
+  public ContractTerminationType getTerminationType() { return terminationType; }
+  public void setTerminationType(ContractTerminationType value) { terminationType = value; }
+  public String getTerminationReason() { return terminationReason; }
+  public void setTerminationReason(String value) { terminationReason = value; }
+  public String getTerminationNotes() { return terminationNotes; }
+  public void setTerminationNotes(String value) { terminationNotes = value; }
+  public User getTerminationRequestedByUser() { return terminationRequestedByUser; }
+  public void setTerminationRequestedByUser(User value) { terminationRequestedByUser = value; }
+  public Instant getTerminationRequestedAt() { return terminationRequestedAt; }
+  public void setTerminationRequestedAt(Instant value) { terminationRequestedAt = value; }
+  public LocalDate getEffectiveEndDate() { return effectiveEndDate; }
+  public void setEffectiveEndDate(LocalDate value) { effectiveEndDate = value; }
+  public Instant getCanceledAt() { return canceledAt; }
+  public void setCanceledAt(Instant value) { canceledAt = value; }
+  public User getCancellationRequestedByUser() { return cancellationRequestedByUser; }
+  public void setCancellationRequestedByUser(User value) { cancellationRequestedByUser = value; }
+  public Instant getCancellationRequestedAt() { return cancellationRequestedAt; }
+  public void setCancellationRequestedAt(Instant value) { cancellationRequestedAt = value; }
   public Instant getCreatedAt() { return createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }
 }

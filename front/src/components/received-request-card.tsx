@@ -4,13 +4,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { ReceivedServiceRequest } from '@/types/receivedServiceRequest';
 import { hiringLabels, statusLabels, weekdayLabels } from '@/utils/serviceRequestLabels';
+import { formatDateBR, formatScheduleTime } from '@/utils/dateTime';
 
 export function ReceivedRequestCard({ request }: { request: ReceivedServiceRequest }) {
   const schedule = request.scheduleDays[0];
   return <Pressable onPress={() => router.push(`/caregiver-service-request/${request.id}` as Href)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
     <View style={styles.top}><View style={styles.flex}><Text style={styles.name}>{request.responsible.name}</Text><Text style={styles.person}>Para cuidar de {request.assistedPerson.name}</Text></View><View style={[styles.status, request.status === 'PENDENTE' && styles.pending]}><Text style={styles.statusText}>{statusLabels[request.status]}</Text></View></View>
-    <Text style={styles.meta}>{hiringLabels[request.hiringType]} • Início em {request.startDate.split('-').reverse().join('/')}</Text>
-    {schedule ? <Text style={styles.meta}>{weekdayLabels[schedule.weekday]} • {schedule.startTime.slice(0,5)} às {schedule.endTime.slice(0,5)}</Text> : null}
+    <Text style={styles.meta}>{hiringLabels[request.hiringType]} • Início em {formatDateBR(request.startDate)}</Text>
+    {schedule ? <Text style={styles.meta}>{weekdayLabels[schedule.weekday]} • {formatScheduleTime(schedule.startTime)} às {formatScheduleTime(schedule.endTime)}</Text> : null}
     <View style={styles.location}><MapPin color={colors.mutedForeground} size={15} /><Text style={styles.meta}>{request.careAddress.neighborhood}, {request.careAddress.city}{request.distanceKm != null ? ` • ${request.distanceKm.toFixed(1).replace('.', ',')} km` : ''}</Text></View>
     {request.hasScheduleConflict ? <View style={styles.warning}><AlertTriangle color={colors.coral} size={16} /><Text style={styles.warningText}>Possível conflito de horário</Text></View> : null}
     <View style={styles.link}><Text style={styles.linkText}>Ver detalhes</Text><ArrowRight color={colors.primary} size={17} /></View>

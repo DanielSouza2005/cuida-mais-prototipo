@@ -9,7 +9,7 @@ import { DatePickerField } from '@/components/date-picker-field';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { ApiError } from '@/services/api';
-import { getResponsibleContracts } from '@/services/responsibleContractsService';
+import { getCaregiverContracts, getResponsibleContracts } from '@/services/responsibleContractsService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { ContractHistoryCategory, ContractHistoryItem, ContractsHistoryPage } from '@/types/contractsHistory';
 import { contractCategoryLabels } from '@/utils/contractsHistoryLabels';
@@ -24,7 +24,7 @@ function toIsoDate(value: string) {
   return day && month && year ? `${year}-${month}-${day}` : '';
 }
 
-export default function ResponsibleContractsScreen() {
+export function ContractsHistoryScreen({ viewer = 'RESPONSAVEL' }: { viewer?: 'RESPONSAVEL' | 'CUIDADOR' }) {
   const [category, setCategory] = useState<ContractHistoryCategory>('TODAS');
   const [draftFilters, setDraftFilters] = useState<AppliedFilters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>(emptyFilters);
@@ -49,7 +49,8 @@ export default function ResponsibleContractsScreen() {
     setLoadingMessage(message); setError(null);
     if (refresh) setRefreshing(true); else setIsLoading(true);
     try {
-      const result = await getResponsibleContracts({
+      const getContracts = viewer === 'CUIDADOR' ? getCaregiverContracts : getResponsibleContracts;
+      const result = await getContracts({
         statusGroup: nextCategory === 'TODAS' ? undefined : nextCategory,
         participantName: filters.participantName,
         startDateFrom: toIsoDate(filters.startDateFrom), startDateTo: toIsoDate(filters.startDateTo), page: 0, size: pageSize,
@@ -62,7 +63,7 @@ export default function ResponsibleContractsScreen() {
       setError(reason instanceof ApiError ? reason.message : 'Não foi possível carregar as contratações. Tente novamente.');
       if (!hasLoaded.current) { setItems([]); setPage(null); }
     } finally { if (version === requestVersion.current) { setIsLoading(false); setRefreshing(false); } }
-  }, []);
+  }, [viewer]);
 
   useFocusEffect(useCallback(() => {
     void fetchFirstPage(categoryRef.current, filtersRef.current, hasLoaded.current ? 'Atualizando contratações...' : 'Carregando contratações...', hasLoaded.current);
@@ -93,7 +94,8 @@ export default function ResponsibleContractsScreen() {
     const version = ++requestVersion.current;
     loadingMoreRef.current = true; setIsLoadingMore(true);
     try {
-      const result = await getResponsibleContracts({
+      const getContracts = viewer === 'CUIDADOR' ? getCaregiverContracts : getResponsibleContracts;
+      const result = await getContracts({
         statusGroup: category === 'TODAS' ? undefined : category,
         participantName: appliedFilters.participantName,
         startDateFrom: toIsoDate(appliedFilters.startDateFrom), startDateTo: toIsoDate(appliedFilters.startDateTo), page: page.page + 1, size: pageSize,
@@ -112,7 +114,7 @@ export default function ResponsibleContractsScreen() {
       scrollEventThrottle: 160,
       refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void fetchFirstPage(categoryRef.current, filtersRef.current, 'Atualizando contratações...', true)} tintColor={colors.primary} colors={[colors.primary]} />,
     }}>
-      <AppHeader showBack={!isTabRoute} title="Contratações" subtitle="Acompanhe suas solicitações e serviços contratados." />
+      <AppHeader showBack={!isTabRoute} title={viewer === 'CUIDADOR' ? 'Solicitações e contratações' : 'Contratações'} subtitle={viewer === 'CUIDADOR' ? 'Acompanhe pedidos recebidos e serviços em andamento.' : 'Acompanhe suas solicitações e serviços contratados.'} />
 
       <View style={styles.categories} accessibilityRole="tablist">
         {categories.map((entry) => {
@@ -123,7 +125,7 @@ export default function ResponsibleContractsScreen() {
 
       <View style={styles.filtersCard}>
         <View style={styles.filterTitleRow}><View style={styles.filterIcon}><SlidersHorizontal color={colors.primary} size={18} /></View><View><Text style={styles.filterTitle}>Filtrar registros</Text><Text style={styles.filterSubtitle}>Combine participante e período</Text></View></View>
-        <View style={styles.field}><Text style={styles.label}>Buscar por cuidador</Text><View style={styles.inputShell}><Search color={colors.mutedForeground} size={19} /><TextInput accessibilityLabel="Buscar por cuidador" autoCapitalize="words" placeholder="Nome do cuidador" placeholderTextColor={colors.mutedForeground} value={draftFilters.participantName} onChangeText={(participantName) => setDraftFilters((current) => ({ ...current, participantName }))} style={styles.input} /></View></View>
+        <View style={styles.field}><Text style={styles.label}>{viewer === 'CUIDADOR' ? 'Buscar por responsável' : 'Buscar por cuidador'}</Text><View style={styles.inputShell}><Search color={colors.mutedForeground} size={19} /><TextInput accessibilityLabel={viewer === 'CUIDADOR' ? 'Buscar por responsável' : 'Buscar por cuidador'} autoCapitalize="words" placeholder={viewer === 'CUIDADOR' ? 'Nome do responsável' : 'Nome do cuidador'} placeholderTextColor={colors.mutedForeground} value={draftFilters.participantName} onChangeText={(participantName) => setDraftFilters((current) => ({ ...current, participantName }))} style={styles.input} /></View></View>
         <View style={styles.dateRow}><View style={styles.dateField}><DatePickerField label="De" optional value={draftFilters.startDateFrom} onChange={(startDateFrom) => { setDateError(null); setDraftFilters((current) => ({ ...current, startDateFrom })); }} /></View><View style={styles.dateField}><DatePickerField label="Até" optional value={draftFilters.startDateTo} onChange={(startDateTo) => { setDateError(null); setDraftFilters((current) => ({ ...current, startDateTo })); }} /></View></View>
         {dateError ? <Text accessibilityRole="alert" style={styles.errorText}>{dateError}</Text> : null}
         <View style={styles.actions}><PrimaryButton label="Aplicar filtros" onPress={applyFilters} disabled={isLoading} style={styles.actionButton} /><PrimaryButton label="Limpar filtros" variant="secondary" onPress={clearFilters} disabled={isLoading || (!draftFilters.participantName && !draftFilters.startDateFrom && !draftFilters.startDateTo)} style={styles.actionButton} /></View>
@@ -132,11 +134,13 @@ export default function ResponsibleContractsScreen() {
       {isLoading ? <View style={styles.state}><ActivityIndicator color={colors.primary} /><Text style={styles.stateText}>{loadingMessage}</Text></View> : null}
       {!isLoading && error ? <View style={styles.errorState}><Text style={styles.errorTitle}>Não foi possível carregar</Text><Text style={styles.stateText}>{error}</Text><PrimaryButton label="Tentar novamente" variant="secondary" onPress={() => fetchFirstPage(category, appliedFilters, 'Carregando contratações...')} /></View> : null}
       {!isLoading && !error && !items.length ? <View style={styles.emptyState}><Text style={styles.emptyTitle}>Nenhum registro encontrado</Text><Text style={styles.stateText}>{hasActiveFilters ? 'Nenhum registro encontrado para este filtro.' : 'Nenhum registro encontrado.'}</Text></View> : null}
-      {!isLoading && !error && items.length ? <View style={styles.list}><View style={styles.resultHeader}><Text style={styles.resultTitle}>Seus registros</Text><Text style={styles.resultCount}>{page?.totalElements ?? items.length} {(page?.totalElements ?? items.length) === 1 ? 'resultado' : 'resultados'}</Text></View>{items.map((entry) => <ContractHistoryCard key={entry.id} item={entry} />)}</View> : null}
+      {!isLoading && !error && items.length ? <View style={styles.list}><View style={styles.resultHeader}><Text style={styles.resultTitle}>Seus registros</Text><Text style={styles.resultCount}>{page?.totalElements ?? items.length} {(page?.totalElements ?? items.length) === 1 ? 'resultado' : 'resultados'}</Text></View>{items.map((entry) => <ContractHistoryCard key={entry.id} item={entry} viewer={viewer} />)}</View> : null}
       {!isLoading && !error && page && !page.last ? <PrimaryButton label={isLoadingMore ? 'Carregando mais registros...' : 'Carregar mais'} variant="secondary" loading={isLoadingMore} onPress={loadMore} /> : null}
     </ScreenContainer>
   );
 }
+
+export default function ResponsibleContractsScreen() { return <ContractsHistoryScreen />; }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.xl, gap: spacing.xl },

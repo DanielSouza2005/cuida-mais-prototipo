@@ -1,0 +1,8 @@
+package br.com.cuidaplus.api.contract_termination.dto;
+
+import jakarta.validation.constraints.*;
+
+public record CancelContractBeforeStartRequest(
+  @NotBlank(message = "Informe o motivo.") @Size(max = 1000, message = "O motivo deve ter no máximo 1000 caracteres.") String reason,
+  @Size(max = 1000, message = "As observações devem ter no máximo 1000 caracteres.") String notes
+) {}

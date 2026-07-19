@@ -1,16 +1,19 @@
 import { router, type Href } from 'expo-router';
 import { ArrowRight, CalendarDays, Clock3, UserRound } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { ContractHistoryItem, ContractHistoryStatus } from '@/types/contractsHistory';
-import { contractHiringLabels, contractStatusLabels, formatContractDate, formatContractSchedule, getContractReason } from '@/utils/contractsHistoryLabels';
+import { contractHiringLabels, contractStatusLabels, formatContractDate, formatContractDateTime, formatContractSchedule, getContractReason } from '@/utils/contractsHistoryLabels';
 
 const statusColors: Record<ContractHistoryStatus, { background: string; foreground: string }> = {
   PENDENTE: { background: '#FFF4C7', foreground: '#755B00' },
   ACEITA: { background: colors.mint, foreground: colors.mintForeground },
   AGENDADA: { background: colors.secondary, foreground: colors.primary },
   ATIVA: { background: colors.mint, foreground: colors.mintForeground },
+  ENCERRAMENTO_AGENDADO: { background: '#FFF4C7', foreground: '#755B00' },
+  ENCERRADA: { background: colors.muted, foreground: colors.secondaryForeground },
   FINALIZADA: { background: colors.muted, foreground: colors.secondaryForeground },
   REJEITADA: { background: '#FDE8E5', foreground: colors.destructive },
   CANCELADA: { background: '#FDEDE7', foreground: '#A54E31' },
@@ -22,7 +25,7 @@ export function ContractStatusBadge({ status }: { status: ContractHistoryStatus 
   return <View style={[styles.badge, { backgroundColor: palette.background }]}><Text style={[styles.badgeText, { color: palette.foreground }]}>{contractStatusLabels[status]}</Text></View>;
 }
 
-export function ContractHistoryCard({ item }: { item: ContractHistoryItem }) {
+export function ContractHistoryCard({ item, viewer = 'RESPONSAVEL' }: { item: ContractHistoryItem; viewer?: 'RESPONSAVEL' | 'CUIDADOR' }) {
   const schedule = item.scheduleSummary || formatContractSchedule(item);
   const reason = getContractReason(item);
   const initials = item.participant.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -32,11 +35,11 @@ export function ContractHistoryCard({ item }: { item: ContractHistoryItem }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Ver detalhes do registro com ${item.participant.name}`}
-      onPress={() => router.push(`/responsible-contract/${item.id}?itemType=${item.itemType}` as Href)}
+      onPress={() => router.push((item.itemType === 'SERVICE_REQUEST' && viewer === 'CUIDADOR' ? `/caregiver-service-request/${item.id}` : `/responsible-contract/${item.id}?itemType=${item.itemType}`) as Href)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.topRow}>
-        {item.participant.profilePhotoUrl ? <Image source={{ uri: item.participant.profilePhotoUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.avatarText}>{initials}</Text></View>}
+        <ProfileAvatar imageUrl={item.participant.profilePhotoUrl} initials={initials} size={46} />
         <View style={styles.personCopy}><Text style={styles.name}>{item.participant.name}</Text><Text style={styles.assisted}>Pessoa assistida: {item.assistedPerson.name}</Text></View>
         <ContractStatusBadge status={item.status} />
       </View>
@@ -44,7 +47,7 @@ export function ContractHistoryCard({ item }: { item: ContractHistoryItem }) {
       <View style={styles.divider} />
       <View style={styles.metaRow}><CalendarDays color={colors.primary} size={16} /><Text style={styles.meta}><Text style={styles.metaStrong}>{contractHiringLabels[item.hiringType]}</Text> · {period}</Text></View>
       {schedule ? <View style={styles.metaRow}><Clock3 color={colors.primary} size={16} /><Text style={styles.meta}>{schedule}</Text></View> : null}
-      <View style={styles.metaRow}><UserRound color={colors.primary} size={16} /><Text style={styles.meta}>Atualizado em {formatContractDate(item.updatedAt)}</Text></View>
+      <View style={styles.metaRow}><UserRound color={colors.primary} size={16} /><Text style={styles.meta}>Atualizado em {formatContractDateTime(item.updatedAt)}</Text></View>
       {reason ? <View style={styles.reason}><Text style={styles.reasonLabel}>Motivo</Text><Text numberOfLines={2} style={styles.reasonText}>{reason}</Text></View> : null}
       <View style={styles.link}><Text style={styles.linkText}>Ver detalhes</Text><ArrowRight color={colors.primary} size={17} /></View>
     </Pressable>
@@ -55,9 +58,6 @@ const styles = StyleSheet.create({
   card: { gap: spacing.md, padding: spacing.lg, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, ...shadows.card },
   pressed: { opacity: 0.8, transform: [{ scale: 0.995 }] },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatar: { width: 46, height: 46, borderRadius: radii.full },
-  avatarFallback: { width: 46, height: 46, borderRadius: radii.full, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.secondary },
-  avatarText: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.primary },
   personCopy: { flex: 1, gap: spacing.xxs },
   name: { fontFamily: fontFamily.bold, fontSize: 15, color: colors.foreground },
   assisted: { fontFamily: fontFamily.regular, fontSize: 11, lineHeight: 16, color: colors.mutedForeground },
