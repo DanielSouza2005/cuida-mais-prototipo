@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.cuidaplus.api.care_task.TaskRecurrenceServiceTest
+-------------------------------------------------------------------------------
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.082 s -- in br.com.cuidaplus.api.care_task.TaskRecurrenceServiceTest

@@ -7,7 +7,6 @@ public record ServiceRequestFormDataResponse(
   Caregiver caregiver,
   List<Assisted> assistedPersons,
   List<CareAddress> careAddresses,
-  Set<ServicoOferecido> activityOptions,
   Set<DiaSemana> weekdayOptions,
   Set<HiringType> hiringTypeOptions
 ) {

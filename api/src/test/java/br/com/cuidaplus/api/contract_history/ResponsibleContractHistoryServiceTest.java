@@ -117,6 +117,14 @@ class ResponsibleContractHistoryServiceTest {
     assertEquals(ContractParticipantRole.CUIDADOR, item.participantRole());
     assertEquals("Mudança na rotina da família.", item.terminationReason());
     assertTrue(item.hasScheduledTermination());
+
+    var activeFilterWithScheduledTermination = service.caregiverList(userId, ContractHistoryStatusGroup.ATIVAS, null, null, null, null, 0, 10);
+    assertEquals(0, activeFilterWithScheduledTermination.totalElements());
+
+    when(contract.getStatus()).thenReturn(CareContractStatus.ATIVA);
+    var activeFilter = service.caregiverList(userId, ContractHistoryStatusGroup.ATIVAS, null, null, null, null, 0, 10);
+    assertEquals(1, activeFilter.totalElements());
+    assertEquals("ATIVA", activeFilter.content().get(0).status());
   }
 
   @Test

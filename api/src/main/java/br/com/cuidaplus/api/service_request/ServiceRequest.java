@@ -2,6 +2,7 @@ package br.com.cuidaplus.api.service_request;
 
 import br.com.cuidaplus.api.profile.AssistedPerson;
 import br.com.cuidaplus.api.profile.ServicoOferecido;
+import br.com.cuidaplus.api.care_routine.CareRoutine;
 import br.com.cuidaplus.api.user.User;
 import jakarta.persistence.*;
 import java.time.*;
@@ -14,6 +15,10 @@ public class ServiceRequest {
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "responsible_user_id") private User responsibleUser;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "caregiver_user_id") private User caregiverUser;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "assisted_person_id") private AssistedPerson assistedPerson;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "care_routine_id") private CareRoutine careRoutine;
+  @Column(name = "care_routine_name_snapshot", length = 140) private String careRoutineNameSnapshot;
+  @OneToMany(mappedBy = "serviceRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("sortOrder ASC") private List<ServiceRequestCareItemSnapshot> careItemsSnapshot = new ArrayList<>();
   @Enumerated(EnumType.STRING) @Column(nullable = false, length = 40) private HiringType hiringType;
   @Enumerated(EnumType.STRING) @Column(nullable = false, length = 30) private ServiceRequestStatus status;
   private LocalDate startDate;
@@ -36,6 +41,10 @@ public class ServiceRequest {
   public UUID getId() { return id; } public User getResponsibleUser() { return responsibleUser; } public void setResponsibleUser(User v) { responsibleUser=v; }
   public User getCaregiverUser() { return caregiverUser; } public void setCaregiverUser(User v) { caregiverUser=v; }
   public AssistedPerson getAssistedPerson() { return assistedPerson; } public void setAssistedPerson(AssistedPerson v) { assistedPerson=v; }
+  public CareRoutine getCareRoutine() { return careRoutine; } public void setCareRoutine(CareRoutine v) { careRoutine=v; }
+  public String getCareRoutineNameSnapshot() { return careRoutineNameSnapshot; } public void setCareRoutineNameSnapshot(String v) { careRoutineNameSnapshot=v; }
+  public List<ServiceRequestCareItemSnapshot> getCareItemsSnapshot() { return careItemsSnapshot; }
+  public void addCareItemSnapshot(ServiceRequestCareItemSnapshot item) { item.setServiceRequest(this); careItemsSnapshot.add(item); }
   public HiringType getHiringType() { return hiringType; } public void setHiringType(HiringType v) { hiringType=v; }
   public ServiceRequestStatus getStatus() { return status; } public void setStatus(ServiceRequestStatus v) { status=v; }
   public LocalDate getStartDate() { return startDate; } public void setStartDate(LocalDate v) { startDate=v; } public LocalDate getEndDate() { return endDate; } public void setEndDate(LocalDate v) { endDate=v; }

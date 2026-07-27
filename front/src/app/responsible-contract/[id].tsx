@@ -4,6 +4,7 @@ import { CalendarCheck2, Clock3, Info as InfoIcon, MapPin } from 'lucide-react-n
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { CareRoutineItemDetails } from '@/components/care-routine-item-details';
 import { ContractStatusBadge } from '@/components/contract-history-card';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { ScreenContainer } from '@/components/screen-container';
@@ -129,6 +130,8 @@ export default function ResponsibleContractDetailsScreen() {
         {item.careAddress.referencePoint ? <Info label="Ponto de referência" value={item.careAddress.referencePoint} /> : null}
       </Section>
 
+      {item.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados selecionada" value={item.careRoutine.name} />{item.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}
+
       <Section title="Contratação">
         <Info label="Tipo de contratação" value={contractHiringLabels[item.hiringType]} />
         <Info label="Data de início" value={formatContractDate(item.startDate)} />
@@ -138,9 +141,12 @@ export default function ResponsibleContractDetailsScreen() {
         {schedule.length ? <View style={styles.scheduleList}><Text style={styles.infoLabel}>Dias e horários</Text>{schedule.map((entry) => <View key={`${entry.weekday}-${entry.startTime}`} style={styles.scheduleRow}><Clock3 color={colors.primary} size={15} /><Text style={styles.infoValue}>{contractWeekdayLabels[entry.weekday]} · {formatScheduleTime(entry.startTime)} às {formatScheduleTime(entry.endTime)}</Text></View>)}</View> : null}
       </Section>
 
-      <Section title="Atividades e necessidades">
+      {!item.careRoutine && item.activities.length ? <Section title="Cuidados informados anteriormente">
         <View style={styles.activityChips}>{item.activities.map((activity) => <View key={activity} style={styles.activityChip}><Text style={styles.activityText}>{activity}</Text></View>)}</View>
-        <Info label="Descrição das necessidades" value={item.needsDescription} />
+      </Section> : null}
+
+      <Section title="Necessidades da pessoa assistida">
+        <Info label="Necessidades" value={item.needsDescription} />
         {item.additionalNotes ? <Info label="Observações adicionais" value={item.additionalNotes} /> : null}
         {item.negotiationNotes ? <Info label="Negociação" value={item.negotiationNotes} /> : null}
       </Section>

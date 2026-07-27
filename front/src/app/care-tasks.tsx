@@ -1,39 +1,39 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { router, useFocusEffect, type Href } from 'expo-router';
-import { ClipboardCheck, Plus, RefreshCw, Search } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ClipboardCheck, Plus } from 'lucide-react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+
 import { AppHeader } from '@/components/app-header';
-import { CareTaskCard } from '@/components/care-task-card';
-import { DatePickerField } from '@/components/date-picker-field';
-import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
-import { getCareTasks, getTaskFormData } from '@/services/careTaskService';
-import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
-import type { CareTask, TaskCategory, TaskContractOption, TaskOccurrenceStatus, TaskPriority, TaskSeriesStatus } from '@/types/careTasks';
-import { taskCategoryLabels, taskOccurrenceStatusLabels, taskPriorityLabels, taskSeriesStatusLabels } from '@/utils/careTaskLabels';
-import { displayDateToIso } from '@/utils/contractTerminationLabels';
+import { listCareRoutines } from '@/services/careRoutineService';
+import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
+import type { CareRoutine } from '@/types/careRoutine';
 
-const statuses: (TaskSeriesStatus | undefined)[] = [undefined, 'ATIVA', 'PAUSADA', 'FINALIZADA', 'CANCELADA'];
-export default function CareTasksScreen() {
-  const [tasks, setTasks] = useState<CareTask[] | null>(null); const [search, setSearch] = useState(''); const [status, setStatus] = useState<TaskSeriesStatus>();
-  const [error, setError] = useState(false); const [refreshing, setRefreshing] = useState(false); const [page,setPage]=useState(0); const [last,setLast]=useState(true); const [loadingMore,setLoadingMore]=useState(false);
-  const [advanced,setAdvanced]=useState(false); const [contracts,setContracts]=useState<TaskContractOption[]>([]); const [category,setCategory]=useState<TaskCategory|'TODAS'>('TODAS'); const [priority,setPriority]=useState<TaskPriority|'TODAS'>('TODAS'); const [occurrenceStatus,setOccurrenceStatus]=useState<TaskOccurrenceStatus|'TODAS'>('TODAS'); const [assistedPersonId,setAssistedPersonId]=useState('TODAS'); const [caregiverId,setCaregiverId]=useState('TODOS'); const [startDate,setStartDate]=useState(''); const [endDate,setEndDate]=useState('');
-  const requestFilters=useMemo(()=>({search,status,category:category==='TODAS'?undefined:category,priority:priority==='TODAS'?undefined:priority,occurrenceStatus:occurrenceStatus==='TODAS'?undefined:occurrenceStatus,assistedPersonId:assistedPersonId==='TODAS'?undefined:assistedPersonId,caregiverId:caregiverId==='TODOS'?undefined:caregiverId,startDate:startDate&&endDate?displayDateToIso(startDate):undefined,endDate:startDate&&endDate?displayDateToIso(endDate):undefined,size:10}),[assistedPersonId,caregiverId,category,endDate,occurrenceStatus,priority,search,startDate,status]);
-  const load = useCallback(async (refresh=false) => { if(refresh)setRefreshing(true);setError(false);try{const [result,form]=await Promise.all([getCareTasks({...requestFilters,page:0}),getTaskFormData()]);setTasks(result.content);setPage(0);setLast(result.last);setContracts(form.contracts);}catch{setError(true);}finally{setRefreshing(false);}},[requestFilters]);
-  async function loadMore(){if(last||loadingMore)return;setLoadingMore(true);try{const result=await getCareTasks({...requestFilters,page:page+1});setTasks(current=>[...(current??[]),...result.content]);setPage(result.page);setLast(result.last);}finally{setLoadingMore(false);}}
-  useFocusEffect(useCallback(()=>{void load();},[load]));
-  return <ScreenContainer contentStyle={styles.content} scrollViewProps={{refreshControl:<RefreshControl refreshing={refreshing} onRefresh={()=>void load(true)} tintColor={colors.primary}/>}}>
-    <AppHeader showBack title="Rotina de cuidados" subtitle="Cadastre e acompanhe as tarefas da pessoa assistida." />
-    <PrimaryButton label="Nova tarefa" icon={Plus} onPress={()=>router.push('/care-task-form' as Href)} />
-    <View style={styles.search}><Search color={colors.mutedForeground} size={18}/><TextInput value={search} onChangeText={setSearch} onSubmitEditing={()=>void load()} placeholder="Buscar tarefa" placeholderTextColor={colors.mutedForeground} style={styles.input}/></View>
-    <View style={styles.filters}>{statuses.map((item)=><Pressable key={item??'TODAS'} onPress={()=>setStatus(item)} style={[styles.chip,status===item&&styles.chipActive]}><Text style={[styles.chipText,status===item&&styles.chipTextActive]}>{item?taskSeriesStatusLabels[item]:'Todas'}</Text></Pressable>)}</View>
-    <Pressable accessibilityRole="button" onPress={()=>setAdvanced(value=>!value)} style={styles.advancedButton}><Text style={styles.advancedText}>{advanced?'Ocultar filtros avançados':'Filtros avançados'}</Text></Pressable>
-    {advanced?<View style={styles.advancedCard}><OptionGroup label="Categoria" options={[{value:'TODAS',label:'Todas'},...Object.entries(taskCategoryLabels).map(([value,label])=>({value:value as TaskCategory,label}))]} value={category} onChange={value=>setCategory(value as TaskCategory|'TODAS')}/><OptionGroup label="Prioridade" options={[{value:'TODAS',label:'Todas'},...Object.entries(taskPriorityLabels).map(([value,label])=>({value:value as TaskPriority,label}))]} value={priority} onChange={value=>setPriority(value as TaskPriority|'TODAS')}/><OptionGroup label="Situação da ocorrência" options={[{value:'TODAS',label:'Todas'},...Object.entries(taskOccurrenceStatusLabels).map(([value,label])=>({value:value as TaskOccurrenceStatus,label}))]} value={occurrenceStatus} onChange={value=>setOccurrenceStatus(value as TaskOccurrenceStatus|'TODAS')}/><OptionGroup label="Pessoa assistida" options={[{value:'TODAS',label:'Todas'},...uniqueOptions(contracts,'assistedPersonId','assistedPersonName')]} value={assistedPersonId} onChange={value=>setAssistedPersonId(value as string)}/><OptionGroup label="Cuidador(a)" options={[{value:'TODOS',label:'Todos'},...uniqueOptions(contracts,'caregiverId','caregiverName')]} value={caregiverId} onChange={value=>setCaregiverId(value as string)}/><DatePickerField label="Início do período" optional value={startDate} onChange={setStartDate}/><DatePickerField label="Fim do período" optional value={endDate} onChange={setEndDate}/><Pressable onPress={()=>{setCategory('TODAS');setPriority('TODAS');setOccurrenceStatus('TODAS');setAssistedPersonId('TODAS');setCaregiverId('TODOS');setStartDate('');setEndDate('');}}><Text style={styles.clear}>Limpar filtros avançados</Text></Pressable></View>:null}
-    {tasks===null&&!error?<State icon={<ActivityIndicator color={colors.primary}/>} text="Carregando tarefas..."/>:error?<State icon={<RefreshCw color={colors.destructive}/>} text="Não foi possível carregar as tarefas." action={()=>void load()}/>:tasks?.length===0?<State icon={<ClipboardCheck color={colors.primary}/>} text="Nenhuma tarefa encontrada."/>:<View style={styles.list}>{tasks?.map(task=><CareTaskCard key={task.id} task={task} onPress={()=>router.push(`/care-task/${task.id}` as Href)}/>)}</View>}
-    {!last&&tasks?.length?<PrimaryButton label="Carregar mais" variant="secondary" loading={loadingMore} onPress={()=>void loadMore()}/>:null}
+export default function CareRoutinesScreen() {
+  const [items, setItems] = useState<CareRoutine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
+  const load = useCallback(async (refresh = false) => { if (refresh) setRefreshing(true); else setLoading(true); setError(false); try { setItems(await listCareRoutines()); } catch { setError(true); } finally { setLoading(false); setRefreshing(false); } }, []);
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  return <ScreenContainer contentStyle={styles.content} scrollViewProps={{ refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.primary} /> }}>
+    <AppHeader showBack title="Rotina de Cuidados" subtitle="Cadastre rotinas com cuidados que poderão ser reutilizados nas solicitações." />
+    <PrimaryButton label="Nova rotina" onPress={() => router.push('/care-task-form' as Href)} />
+    {loading ? <View style={styles.state}><ActivityIndicator color={colors.primary} /><Text style={styles.stateText}>Carregando rotinas...</Text></View> : null}
+    {!loading && error ? <View style={styles.state}><Text style={styles.error}>Não foi possível carregar suas rotinas.</Text><PrimaryButton variant="secondary" label="Tentar novamente" onPress={() => void load()} /></View> : null}
+    {!loading && !error && !items.length ? <View style={styles.empty}><ClipboardCheck size={34} color={colors.primary} /><Text style={styles.emptyTitle}>Nenhuma rotina de cuidados cadastrada.</Text><Text style={styles.stateText}>Crie uma rotina para reutilizar seus cuidados nas solicitações de serviço.</Text></View> : null}
+    {!loading && !error ? items.map((routine) => <Pressable key={routine.id} style={styles.card} onPress={() => router.push(`/care-task/${routine.id}` as Href)}>
+      <View style={styles.cardHead}><Text style={styles.cardTitle}>{routine.name}</Text><View style={[styles.badge, !routine.active && styles.badgeInactive]}><Text style={styles.badgeText}>{routine.active ? 'Ativa' : 'Inativa'}</Text></View></View>
+      {routine.assistedPerson ? <Text style={styles.meta}>Pessoa assistida: {routine.assistedPerson.name}</Text> : <Text style={styles.meta}>Rotina geral</Text>}
+      <Text style={styles.meta}>{routine.items.length} {routine.items.length === 1 ? 'cuidado' : 'cuidados'}</Text>
+      {routine.items.some(item=>item.categoryLabel)?<Text style={styles.meta}>Tipos: {[...new Set(routine.items.map(item=>item.categoryLabel).filter(Boolean))].join(', ')}</Text>:null}
+      <View style={styles.linkRow}><Text style={styles.link}>Ver detalhes</Text><Plus size={16} color={colors.primary} /></View>
+    </Pressable>) : null}
   </ScreenContainer>;
 }
-function uniqueOptions(items:TaskContractOption[],idKey:'assistedPersonId'|'caregiverId',nameKey:'assistedPersonName'|'caregiverName'){return [...new Map(items.map(item=>[item[idKey],{value:item[idKey],label:item[nameKey]}])).values()];}
-function State({icon,text,action}:{icon:React.ReactNode;text:string;action?:()=>void}){return <View style={styles.state}>{icon}<Text style={styles.stateText}>{text}</Text>{action?<Pressable onPress={action}><Text style={styles.retry}>Tentar novamente</Text></Pressable>:null}</View>;}
-const styles=StyleSheet.create({content:{paddingHorizontal:spacing.xl,gap:spacing.lg},search:{minHeight:52,flexDirection:'row',alignItems:'center',gap:spacing.sm,paddingHorizontal:spacing.lg,borderRadius:radii.lg,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},input:{flex:1,fontFamily:fontFamily.medium,fontSize:14,color:colors.foreground},filters:{flexDirection:'row',flexWrap:'wrap',gap:spacing.sm},chip:{minHeight:38,justifyContent:'center',paddingHorizontal:spacing.md,borderRadius:radii.full,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},chipActive:{borderColor:colors.primary,backgroundColor:colors.secondary},chipText:{fontFamily:fontFamily.semiBold,fontSize:11,color:colors.mutedForeground},chipTextActive:{color:colors.primary},advancedButton:{alignSelf:'flex-start',minHeight:40,justifyContent:'center',paddingHorizontal:spacing.md,borderRadius:radii.lg,backgroundColor:colors.secondary},advancedText:{fontFamily:fontFamily.bold,fontSize:12,color:colors.primary},advancedCard:{gap:spacing.md,padding:spacing.lg,borderRadius:radii.xl,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card},clear:{fontFamily:fontFamily.bold,fontSize:12,color:colors.primary},list:{gap:spacing.md},state:{minHeight:220,alignItems:'center',justifyContent:'center',gap:spacing.md},stateText:{textAlign:'center',fontFamily:fontFamily.medium,color:colors.mutedForeground},retry:{fontFamily:fontFamily.bold,color:colors.primary}});
+
+const styles = StyleSheet.create({
+  content:{paddingHorizontal:spacing.xl,gap:spacing.lg}, state:{alignItems:'center',gap:spacing.md,paddingVertical:spacing.xxl},stateText:{textAlign:'center',fontFamily:fontFamily.regular,fontSize:13,lineHeight:20,color:colors.mutedForeground},error:{fontFamily:fontFamily.semiBold,color:colors.destructive},empty:{alignItems:'center',gap:spacing.sm,padding:spacing.xl,borderRadius:radii.xl,backgroundColor:colors.muted},emptyTitle:{fontFamily:fontFamily.bold,fontSize:15,color:colors.foreground},card:{gap:spacing.sm,padding:spacing.lg,borderRadius:radii.xl,borderWidth:1,borderColor:colors.border,backgroundColor:colors.card,...shadows.card},cardHead:{flexDirection:'row',alignItems:'center',gap:spacing.sm},cardTitle:{flex:1,fontFamily:fontFamily.extraBold,fontSize:16,color:colors.foreground},badge:{paddingHorizontal:spacing.sm,paddingVertical:spacing.xs,borderRadius:radii.full,backgroundColor:colors.secondary},badgeInactive:{backgroundColor:colors.muted},badgeText:{fontFamily:fontFamily.bold,fontSize:10,color:colors.primary},meta:{fontFamily:fontFamily.regular,fontSize:12,color:colors.mutedForeground},linkRow:{flexDirection:'row',alignItems:'center',gap:spacing.xs,alignSelf:'flex-start'},link:{fontFamily:fontFamily.bold,fontSize:12,color:colors.primary}
+});

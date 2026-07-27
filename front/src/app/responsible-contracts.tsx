@@ -25,7 +25,7 @@ function toIsoDate(value: string) {
 }
 
 export function ContractsHistoryScreen({ viewer = 'RESPONSAVEL' }: { viewer?: 'RESPONSAVEL' | 'CUIDADOR' }) {
-  const [category, setCategory] = useState<ContractHistoryCategory>('TODAS');
+  const [category, setCategory] = useState<ContractHistoryCategory>('ATIVAS');
   const [draftFilters, setDraftFilters] = useState<AppliedFilters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>(emptyFilters);
   const [items, setItems] = useState<ContractHistoryItem[]>([]);

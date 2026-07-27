@@ -1,6 +1,7 @@
 package br.com.cuidaplus.api.contract_history;
 
 import br.com.cuidaplus.api.care_contract.*;
+import br.com.cuidaplus.api.care_routine.StructuredCareItemMapper;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.contract_termination.ContractParticipantRole;
 import br.com.cuidaplus.api.common.BusinessException;
@@ -57,7 +58,7 @@ public class ResponsibleContractHistoryService {
     ContractHistoryStatusGroup group = statusGroup == null ? ContractHistoryStatusGroup.TODAS : statusGroup;
 
     List<ContractHistoryItemResponse> filtered = Stream.concat(requestItems, contractItems)
-      .filter(item -> group == ContractHistoryStatusGroup.TODAS || item.statusGroup() == group)
+      .filter(item -> matchesStatusGroup(item, group))
       .filter(item -> status == null || status.isBlank() || item.status().equalsIgnoreCase(status.trim()))
       .filter(item -> participantFilter.isEmpty() || normalize(item.participantName()).contains(participantFilter))
       .filter(item -> startDateFrom == null || item.startDate() != null && !item.startDate().isBefore(startDateFrom))
@@ -124,6 +125,7 @@ public class ResponsibleContractHistoryService {
       new ContractHistoryDetailsResponse.Responsible(request.getResponsibleUser().getId(), request.getResponsibleUser().getFullName()),
       new ContractHistoryDetailsResponse.Assisted(person.getId(), person.getNome(), dependencyLabel(person.getGrauDependencia()), mobilityLabel(person.getMobilidade()), allergyLabels(person), foodRestrictionLabels(person), person.getObservacoes()),
       new ContractHistoryDetailsResponse.CareAddress(address.getRua(), address.getNumero(), address.getComplemento(), address.getBairro(), address.getCidade(), address.getEstado(), address.getCep(), address.getPontoReferencia()),
+      routine(request),
       request.getHiringType(), isContract ? contract.getStartDate() : request.getStartDate(), isContract ? contract.getEndDate() : request.getEndDate(), new LinkedHashSet<>(request.getSpecificDates()),
       request.getScheduleDays().stream().sorted(Comparator.comparing(day -> day.getWeekday().ordinal())).map(day -> new ContractHistoryDetailsResponse.Schedule(day.getWeekday(), day.getStartTime(), day.getEndTime())).toList(),
       request.getActivities().stream().map(this::activityLabel).collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new)), request.getNeedsDescription(), request.getAdditionalNotes(), request.getNegotiationNotes(), request.getRejectionReason(), isContract ? contract.getCancellationReason() : request.getCancellationReason(), isContract ? contract.getClosureReason() : null,
@@ -131,6 +133,12 @@ public class ResponsibleContractHistoryService {
       isContract && contract.getTerminationRequestedByUser() != null ? contract.getTerminationRequestedByUser().getFullName() : null, isContract ? contract.getTerminationRequestedAt() : null, isContract ? contract.getEffectiveEndDate() : null,
       isContract && contract.getCancellationRequestedByUser() != null ? contract.getCancellationRequestedByUser().getFullName() : null, isContract ? contract.getCancellationRequestedAt() : null, isContract ? contract.getCanceledAt() : null,
       isContract ? contract.getCreatedAt() : request.getCreatedAt(), isContract ? contract.getUpdatedAt() : request.getUpdatedAt(), entries);
+  }
+
+  private ContractHistoryDetailsResponse.CareRoutine routine(ServiceRequest request) {
+    if (request.getCareRoutine() == null) return null;
+    return new ContractHistoryDetailsResponse.CareRoutine(request.getCareRoutine().getId(), request.getCareRoutineNameSnapshot(),
+      request.getCareItemsSnapshot().stream().map(StructuredCareItemMapper::response).toList());
   }
 
   private List<ContractHistoryDetailsResponse.StatusHistoryEntry> historyEntries(ServiceRequest request, CareContract contract) {
@@ -159,6 +167,11 @@ public class ResponsibleContractHistoryService {
   private BusinessException notFound() { return new BusinessException("Contratação não encontrada.", HttpStatus.NOT_FOUND); }
   private String normalize(String value) { return value == null ? "" : Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).trim(); }
   private ContractHistoryStatusGroup requestGroup(ServiceRequestStatus status) { return switch (status) { case PENDENTE -> ContractHistoryStatusGroup.PENDENTES; case REJEITADA -> ContractHistoryStatusGroup.REJEITADAS; case CANCELADA -> ContractHistoryStatusGroup.CANCELADAS; case EXPIRADA -> ContractHistoryStatusGroup.EXPIRADAS; case ACEITA -> throw new IllegalArgumentException("Solicitação aceita é exibida como contratação."); }; }
+  private boolean matchesStatusGroup(ContractHistoryItemResponse item, ContractHistoryStatusGroup group) {
+    if (group == ContractHistoryStatusGroup.TODAS) return true;
+    if (group == ContractHistoryStatusGroup.ATIVAS) return item.itemType() == ContractHistoryItemType.CARE_CONTRACT && CareContractStatus.ATIVA.name().equals(item.status());
+    return item.statusGroup() == group;
+  }
   private ContractHistoryStatusGroup contractGroup(CareContractStatus status) { return switch (status) { case AGENDADA -> ContractHistoryStatusGroup.AGENDADAS; case ATIVA, ENCERRAMENTO_AGENDADO -> ContractHistoryStatusGroup.ATIVAS; case ENCERRADA, FINALIZADA -> ContractHistoryStatusGroup.ENCERRADAS; case CANCELADA -> ContractHistoryStatusGroup.CANCELADAS; }; }
   private String scheduleSummary(ServiceRequest request) { return request.getScheduleDays().stream().sorted(Comparator.comparing(day -> day.getWeekday().ordinal())).map(day -> weekdayLabel(day.getWeekday()) + " · " + day.getStartTime() + " às " + day.getEndTime()).collect(java.util.stream.Collectors.joining("\n")); }
   private String location(AddressFields address) { return address == null || address.getCidade() == null ? null : address.getCidade() + (address.getEstado() == null ? "" : " - " + address.getEstado()); }

@@ -4,6 +4,7 @@ import { CalendarCheck2, Clock3, MapPin } from 'lucide-react-native';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { CareRoutineItemDetails } from '@/components/care-routine-item-details';
 import { ContractStatusBadge } from '@/components/contract-history-card';
 import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
@@ -95,6 +96,8 @@ export default function AgendaEventDetailsScreen() {
         {contract.careAddress.referencePoint ? <Info label="Ponto de referência" value={contract.careAddress.referencePoint} /> : null}
       </Section>
 
+      {contract.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados" value={contract.careRoutine.name} />{contract.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}
+
       <Section title="Contratação">
         <Info label="Data de início" value={formatDateBR(contract.startDate)} />
         {contract.endDate ? <Info label="Data final prevista" value={formatDateBR(contract.endDate)} /> : null}
@@ -107,8 +110,11 @@ export default function AgendaEventDetailsScreen() {
         ))}
       </Section>
 
-      <Section title="Atividades e necessidades">
-        {contract.activities.length ? <View style={styles.chips}>{contract.activities.map((activity) => <View key={activity} style={styles.chip}><Text style={styles.chipText}>{activity}</Text></View>)}</View> : null}
+      {!contract.careRoutine && contract.activities.length ? <Section title="Cuidados informados anteriormente">
+        <View style={styles.chips}>{contract.activities.map((activity) => <View key={activity} style={styles.chip}><Text style={styles.chipText}>{activity}</Text></View>)}</View>
+      </Section> : null}
+
+      <Section title="Necessidades da pessoa assistida">
         <Info label="Necessidades" value={contract.needsDescription} />
         {contract.additionalNotes ? <Info label="Observações adicionais" value={contract.additionalNotes} /> : null}
         {contract.negotiationNotes ? <Info label="Negociação" value={contract.negotiationNotes} /> : null}

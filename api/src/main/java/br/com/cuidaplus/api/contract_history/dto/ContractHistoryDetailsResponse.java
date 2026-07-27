@@ -5,13 +5,14 @@ import br.com.cuidaplus.api.care_contract.ContractTerminationType;
 import br.com.cuidaplus.api.profile.*;
 import br.com.cuidaplus.api.service_request.*;
 import br.com.cuidaplus.api.status_history.StatusHistoryEntityType;
+import br.com.cuidaplus.api.care_routine.dto.StructuredCareItemResponse;
 import java.time.*;
 import java.util.*;
 
 public record ContractHistoryDetailsResponse(
   UUID id, ContractHistoryItemType itemType, UUID serviceRequestId, UUID contractId,
   String status, String statusLabel, Caregiver caregiver, Responsible responsible, Assisted assistedPerson,
-  CareAddress careAddress, HiringType hiringType, LocalDate startDate, LocalDate endDate,
+  CareAddress careAddress, CareRoutine careRoutine, HiringType hiringType, LocalDate startDate, LocalDate endDate,
   Set<LocalDate> specificDates, List<Schedule> scheduleDays, Set<String> activities,
   String needsDescription, String additionalNotes, String negotiationNotes,
   String rejectionReason, String cancellationReason, String closureReason,
@@ -25,5 +26,6 @@ public record ContractHistoryDetailsResponse(
   public record Assisted(UUID id, String name, String dependencyLevel, String mobility, List<String> allergies, List<String> foodRestrictions, String notes) {}
   public record CareAddress(String street, String number, String complement, String neighborhood, String city, String state, String cep, String referencePoint) {}
   public record Schedule(DiaSemana weekday, LocalTime startTime, LocalTime endTime) {}
+  public record CareRoutine(UUID id, String name, List<StructuredCareItemResponse> items) {}
   public record StatusHistoryEntry(UUID id, StatusHistoryEntityType entityType, String previousStatus, String newStatus, String label, String reason, String changedByName, Instant createdAt) {}
 }

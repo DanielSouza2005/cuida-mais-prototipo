@@ -3,6 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { CareRoutineItemDetails } from '@/components/care-routine-item-details';
 import { LoadingState } from '@/components/loading-state';
 import { ScreenContainer } from '@/components/screen-container';
 import { dependencyLevelOptions, mobilityOptions } from '@/constants/enums';
@@ -54,10 +55,11 @@ export default function ResponsibleServiceRequestDetailsScreen() {
       <Section title="Cuidador"><Info label="Nome" value={request.caregiver.name} />{request.caregiver.city ? <Info label="Localização" value={`${request.caregiver.city}${request.caregiver.state ? ` - ${request.caregiver.state}` : ''}`} /> : null}</Section>
       <Section title="Pessoa assistida"><Info label="Nome" value={request.assistedPerson.name} /><Info label="Dependência" value={optionLabel(request.assistedPerson.dependencyLevel, dependencyLevelOptions)} /><Info label="Mobilidade" value={optionLabel(request.assistedPerson.mobility, mobilityOptions)} /></Section>
       <Section title="Endereço do cuidado"><Info label="Endereço" value={`${request.careAddress.street}, ${request.careAddress.number}`} />{request.careAddress.complement ? <Info label="Complemento" value={request.careAddress.complement} /> : null}<Info label="Bairro" value={request.careAddress.neighborhood} /><Info label="Cidade" value={`${request.careAddress.city} - ${request.careAddress.state}`} />{request.careAddress.cep ? <Info label="CEP" value={formatCep(request.careAddress.cep)} /> : null}{request.careAddress.referencePoint ? <Info label="Ponto de referência" value={request.careAddress.referencePoint} /> : null}</Section>
+      {request.careRoutine?<Section title="Rotina de cuidados"><Info label="Rotina selecionada" value={request.careRoutine.name}/><Text style={styles.message}>Cuidados desta rotina</Text>{request.careRoutine.items.map((item,index)=><CareRoutineItemDetails key={item.id??`${index}`} item={item} index={index}/>)}</Section>:null}
       <Section title="Contratação"><Info label="Tipo" value={hiringLabels[request.hiringType]} /><Info label="Data de início" value={formatDateBR(request.startDate)} />{request.endDate ? <Info label="Data de término" value={formatDateBR(request.endDate)} /> : null}{request.specificDates.length ? <Info label="Datas específicas" value={request.specificDates.map(formatDateBR).join(', ')} /> : null}</Section>
       {schedule.length ? <Section title="Dias e horários">{schedule.map((item) => <Text key={item.weekday} style={styles.message}>{weekdayLabels[item.weekday]} • {formatScheduleTime(item.startTime)} às {formatScheduleTime(item.endTime)}</Text>)}</Section> : null}
-      <Section title="Atividades solicitadas"><View style={styles.chips}>{request.activities.map((item) => <View key={item} style={styles.chip}><Text style={styles.chipText}>{activityLabels[item]}</Text></View>)}</View></Section>
-      <Section title="Descrição das necessidades"><Text style={styles.message}>{request.needsDescription}</Text></Section>
+      {!request.careRoutine && request.activities.length ? <Section title="Cuidados informados anteriormente"><View style={styles.chips}>{request.activities.map((item) => <View key={item} style={styles.chip}><Text style={styles.chipText}>{activityLabels[item]}</Text></View>)}</View></Section> : null}
+      <Section title="Necessidades da pessoa assistida"><Text style={styles.message}>{request.needsDescription}</Text></Section>
       {request.additionalNotes ? <Section title="Observações adicionais"><Text style={styles.message}>{request.additionalNotes}</Text></Section> : null}
       {request.negotiationNotes ? <Section title="Negociação"><Text style={styles.message}>{request.negotiationNotes}</Text></Section> : null}
       {request.status === 'REJEITADA' && request.rejectionReason ? <Section title="Motivo da rejeição"><Text style={styles.message}>{request.rejectionReason}</Text></Section> : null}

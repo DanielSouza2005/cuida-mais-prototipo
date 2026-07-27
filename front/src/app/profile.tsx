@@ -156,7 +156,7 @@ export default function ProfileScreen() {
             <SettingsRow title="Pessoa assistida" description="Perfil de cuidado e necessidades importantes" icon={Users} onPress={() => router.push(routes.assistedPerson)} />
             <SettingsRow title="Endereço do cuidado" description="Local onde o cuidado será realizado" icon={MapPin} onPress={() => router.push(routes.careAddress)} />
             <SettingsRow title="Contato de emergência" description="Nome, telefone e vínculo de apoio" icon={HeartPulse} onPress={() => router.push(routes.emergencyContact)} />
-            <SettingsRow title="Rotina de cuidados" description="Cadastre e acompanhe tarefas de cuidado" icon={ClipboardCheck} onPress={() => router.push('/care-tasks' as Href)} />
+            <SettingsRow title="Rotina de Cuidados" description="Cadastre rotinas para reutilizar nas solicitações de serviço" icon={ClipboardCheck} onPress={() => router.push('/care-tasks' as Href)} />
           </>
         )}
         <SettingsRow title="Notificações" description="Preferências de comunicação" icon={Bell} onPress={() => router.push('/profile-notifications')} />

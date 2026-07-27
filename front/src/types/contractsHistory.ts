@@ -44,6 +44,7 @@ export type ContractHistoryItem = {
     state: string;
     referencePoint?: string;
   };
+  careRoutine?: { id: string; name: string; items: { id: string; title: string; description?: string | null; sortOrder: number }[] } | null;
   hiringType: ContractHiringType;
   startDate: string;
   endDate?: string;

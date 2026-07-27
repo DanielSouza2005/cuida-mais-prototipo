@@ -1,6 +1,7 @@
 package br.com.cuidaplus.api.service_request;
 
 import br.com.cuidaplus.api.care_contract.*;
+import br.com.cuidaplus.api.care_routine.StructuredCareItemMapper;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.notification.*;
 import br.com.cuidaplus.api.profile.*;
@@ -78,6 +79,8 @@ public class CaregiverServiceRequestService {
       new CaregiverReceivedRequestResponse.Responsible(entity.getResponsibleUser().getId(), entity.getResponsibleUser().getFullName(), profile == null ? null : String.valueOf(profile.getParentescoOutro() != null ? profile.getParentescoOutro() : profile.getParentesco()), profile == null ? null : String.valueOf(profile.getPreferenciaContato())),
       new CaregiverReceivedRequestResponse.Assisted(person.getId(), person.getNome(), Period.between(person.getDataNascimento(), LocalDate.now()).getYears(), person.getGrauDependencia(), person.getMobilidade(), new LinkedHashSet<>(person.getAlergias()), new LinkedHashSet<>(person.getRestricoesAlimentares()), person.getMedicamentos(), person.getObservacoes()),
       new CaregiverReceivedRequestResponse.CareAddress(address.getCep(), address.getRua(), address.getNumero(), address.getComplemento(), address.getBairro(), address.getCidade(), address.getEstado(), address.getPontoReferencia()), null,
+      routine(entity),
       entity.getHiringType(), entity.getStartDate(), entity.getEndDate(), new LinkedHashSet<>(entity.getSpecificDates()), entity.getScheduleDays().stream().map(day -> new CaregiverReceivedRequestResponse.Schedule(day.getWeekday(), day.getStartTime(), day.getEndTime())).toList(), entity.getNeedsDescription(), new LinkedHashSet<>(entity.getActivities()), entity.getAdditionalNotes(), entity.getNegotiationNotes(), entity.getRejectionReason());
   }
+  private CaregiverReceivedRequestResponse.CareRoutine routine(ServiceRequest entity) { if(entity.getCareRoutine()==null) return null; return new CaregiverReceivedRequestResponse.CareRoutine(entity.getCareRoutine().getId(), entity.getCareRoutineNameSnapshot(), entity.getCareItemsSnapshot().stream().map(StructuredCareItemMapper::response).toList()); }
 }
