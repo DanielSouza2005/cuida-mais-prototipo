@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { CalendarDays, ClipboardClock, ClipboardList, Home, MessageCircle, Search, User } from 'lucide-react-native';
+import { CalendarDays, ClipboardCheck, Handshake, Home, MessageCircle, Search, User } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { LoadingState } from '@/components/loading-state';
@@ -8,7 +8,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
-const tabBarIconSize = 22;
+const tabBarIconSize = 20;
 
 export default function MainTabNavigator() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -52,19 +52,27 @@ export default function MainTabNavigator() {
         }}
       />
       <Tabs.Screen
-        name="solicitacoes"
-        options={{
-          title: 'Solicitações',
-          href: isCaregiver ? undefined : null,
-          tabBarIcon: ({ color }) => <ClipboardList color={color} size={tabBarIconSize} strokeWidth={2.4} />,
-        }}
-      />
-      <Tabs.Screen
         name="buscar"
         options={{
           title: 'Buscar',
           href: isCaregiver ? null : undefined,
           tabBarIcon: ({ color }) => <Search color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+        }}
+      />
+      <Tabs.Screen
+        name="contratacoes"
+        options={{
+          title: 'Contratações',
+          href: isCaregiver ? null : undefined,
+          tabBarIcon: ({ color }) => <Handshake color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+        }}
+      />
+      <Tabs.Screen
+        name="solicitacoes"
+        options={{
+          title: 'Solicitações',
+          href: isCaregiver ? undefined : null,
+          tabBarIcon: ({ color }) => <Handshake color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
@@ -75,18 +83,10 @@ export default function MainTabNavigator() {
         }}
       />
       <Tabs.Screen
-        name="contratacoes"
-        options={{
-          title: 'Contratações',
-          href: isCaregiver ? null : undefined,
-          tabBarIcon: ({ color }) => <ClipboardClock color={color} size={tabBarIconSize} strokeWidth={2.4} />,
-        }}
-      />
-      <Tabs.Screen
         name="cuidados"
         options={{
           title: 'Cuidados',
-          href: null,
+          tabBarIcon: ({ color }) => <ClipboardCheck color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
@@ -115,20 +115,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   tabBar: {
-    minHeight: 72,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    minHeight: 68,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.card,
     ...shadows.card,
   },
   item: {
+    flex: 1,
     borderRadius: radii.lg,
   },
   label: {
     fontFamily: fontFamily.bold,
-    fontSize: 11,
-    marginTop: spacing.xxs,
+    fontSize: 9,
+    marginTop: 1,
   },
 });

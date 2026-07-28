@@ -24,6 +24,14 @@ public class CareRoutineItem {
   private Integer intervalDays;
   private Boolean reminderEnabled;
   private Integer reminderMinutesBefore;
+  private boolean reminderAtScheduledTime = true;
+  private boolean overdueReminderEnabled;
+  private Integer overdueAfterMinutes;
+  private boolean repeatWhilePending;
+  private Integer repeatIntervalMinutes;
+  private boolean important;
+  private boolean notifyResponsibleIfImportant;
+  private boolean requiresCompletionPhoto;
   @Column(length = 2000) private String notes;
   @Embedded private MedicationDetails medication;
   @ElementCollection @CollectionTable(name = "care_routine_item_weekdays", joinColumns = @JoinColumn(name = "care_routine_item_id"))
@@ -51,6 +59,14 @@ public class CareRoutineItem {
   public Integer getIntervalDays() { return intervalDays; } public void setIntervalDays(Integer value) { intervalDays = value; }
   public Boolean getReminderEnabled() { return reminderEnabled; } public void setReminderEnabled(Boolean value) { reminderEnabled = value; }
   public Integer getReminderMinutesBefore() { return reminderMinutesBefore; } public void setReminderMinutesBefore(Integer value) { reminderMinutesBefore = value; }
+  public boolean isReminderAtScheduledTime() { return reminderAtScheduledTime; } public void setReminderAtScheduledTime(boolean value) { reminderAtScheduledTime = value; }
+  public boolean isOverdueReminderEnabled() { return overdueReminderEnabled; } public void setOverdueReminderEnabled(boolean value) { overdueReminderEnabled = value; }
+  public Integer getOverdueAfterMinutes() { return overdueAfterMinutes; } public void setOverdueAfterMinutes(Integer value) { overdueAfterMinutes = value; }
+  public boolean isRepeatWhilePending() { return repeatWhilePending; } public void setRepeatWhilePending(boolean value) { repeatWhilePending = value; }
+  public Integer getRepeatIntervalMinutes() { return repeatIntervalMinutes; } public void setRepeatIntervalMinutes(Integer value) { repeatIntervalMinutes = value; }
+  public boolean isImportant() { return important; } public void setImportant(boolean value) { important = value; }
+  public boolean isNotifyResponsibleIfImportant() { return notifyResponsibleIfImportant; } public void setNotifyResponsibleIfImportant(boolean value) { notifyResponsibleIfImportant = value; }
+  public boolean isRequiresCompletionPhoto() { return requiresCompletionPhoto; } public void setRequiresCompletionPhoto(boolean value) { requiresCompletionPhoto = value; }
   public String getNotes() { return notes; } public void setNotes(String value) { notes = value; }
   public MedicationDetails getMedication() { return medication; } public void setMedication(MedicationDetails value) { medication = value; }
   public Set<DiaSemana> getWeekdays() { return weekdays; } public void setWeekdays(Set<DiaSemana> value) { weekdays = value; }

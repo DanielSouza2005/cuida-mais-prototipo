@@ -9,7 +9,10 @@ public record StructuredCareItemResponse(
   UUID id, String title, String description, int sortOrder,
   TaskCategory category, String categoryLabel, String customCategory, TaskPriority priority,
   TaskRecurrenceType recurrenceType, LocalTime scheduledTime, Integer intervalDays, Set<DiaSemana> weekdays,
-  Boolean reminderEnabled, Integer reminderMinutesBefore, String notes, Medication medication
+  Boolean reminderEnabled, Integer reminderMinutesBefore, boolean reminderAtScheduledTime,
+  boolean overdueReminderEnabled, Integer overdueAfterMinutes, boolean repeatWhilePending,
+  Integer repeatIntervalMinutes, boolean important, boolean notifyResponsibleIfImportant, boolean requiresCompletionPhoto,
+  String notes, Medication medication
 ) {
   public record Medication(String name, String dosage, MedicationUnit unit, String customUnit,
     MedicationAdministrationRoute administrationRoute, String customAdministrationRoute, String additionalInstructions) {}

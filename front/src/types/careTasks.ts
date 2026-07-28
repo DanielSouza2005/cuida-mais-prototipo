@@ -27,9 +27,17 @@ export type TaskOccurrence = {
   priority: TaskPriority; scheduledDate: string; scheduledTime: string; scheduledInstantUtc: string; timezone: string;
   status: TaskOccurrenceStatus; assistedPersonId: string; assistedPersonName: string; contractId: string;
   caregiverId: string; caregiverName: string; responsibleId: string; responsibleName: string; medication?: Medication;
-  taskNotes?: string; completedAt?: string; executedByName?: string; nonCompletionReason?: string; executionNote?: string;
-  activityRecordId?: string; exception: boolean; taskVersion: number; version: number;
+  taskNotes?: string; important: boolean; reminderEnabled: boolean; reminderMinutesBefore?: number;
+  reminderAtScheduledTime: boolean; overdueReminderEnabled: boolean; overdueAfterMinutes?: number;
+  repeatWhilePending: boolean; repeatIntervalMinutes?: number; hiringTypeLabel: string;
+  contractStartDate: string; contractEndDate?: string; careAddress?: string; dependencyLabel: string; mobilityLabel: string;
+  completedAt?: string; executedByName?: string; nonCompletionReason?: string; executionNote?: string;
+  activityRecordId?: string; exception: boolean; requiresCompletionPhoto: boolean; autoMarkedNotDone: boolean;
+  photos: { id: string; url: string; contentType: string; fileSize: number; createdAt: string }[];
+  taskVersion: number; version: number;
 };
+
+export type CareCompletionPhoto = { uri: string; name: string; type: 'image/jpeg' | 'image/png' | 'image/webp'; file?: Blob };
 
 export type TaskAudit = { id: string; action: string; actorName: string; details?: string; createdAt: string };
 export type CareTaskDetails = { task: CareTask; medication?: Medication; audit: TaskAudit[] };

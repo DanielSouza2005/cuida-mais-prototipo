@@ -182,3 +182,23 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return payload as T;
 }
+
+export async function apiImageDataUrl(path: string): Promise<string> {
+  const token = await getSessionItem(AUTH_TOKEN_KEY);
+  const headers = new Headers({ Accept: 'image/jpeg,image/png,image/webp' });
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  let response: Response;
+  const url = /^https?:\/\//i.test(path)
+    ? path
+    : `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  try { response = await fetch(url, { headers }); }
+  catch { throw new ApiError('Não foi possível carregar esta foto.', 0); }
+  if (!response.ok) throw new ApiError('Não foi possível carregar esta foto.', response.status);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new ApiError('Não foi possível carregar esta foto.', 0));
+    reader.onerror = () => reject(new ApiError('Não foi possível carregar esta foto.', 0));
+    reader.readAsDataURL(blob);
+  });
+}

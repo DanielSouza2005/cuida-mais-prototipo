@@ -4,6 +4,7 @@ import br.com.cuidaplus.api.care_contract.CareContract;
 import br.com.cuidaplus.api.profile.AssistedPerson;
 import br.com.cuidaplus.api.profile.DiaSemana;
 import br.com.cuidaplus.api.user.User;
+import br.com.cuidaplus.api.service_request.ServiceRequestCareItemSnapshot;
 import jakarta.persistence.*;
 import java.time.*;
 import java.util.*;
@@ -25,6 +26,15 @@ public class CareTask {
   @Column(nullable = false, length = 80) private String timezone;
   @Column(nullable = false) private boolean reminderEnabled;
   private Integer reminderMinutesBefore;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "source_snapshot_item_id") private ServiceRequestCareItemSnapshot sourceSnapshotItem;
+  private boolean reminderAtScheduledTime = true;
+  private boolean overdueReminderEnabled;
+  private Integer overdueAfterMinutes;
+  private boolean repeatWhilePending;
+  private Integer repeatIntervalMinutes;
+  private boolean important;
+  private boolean notifyResponsibleIfImportant;
+  private boolean requiresCompletionPhoto;
   @Column(length = 2000) private String notes;
   @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private TaskSeriesStatus status;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "assisted_person_id") private AssistedPerson assistedPerson;
@@ -32,6 +42,7 @@ public class CareTask {
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "responsible_creator_id") private User responsibleCreator;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "caregiver_executor_id") private User caregiverExecutor;
   @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "previous_series_id") private CareTask previousSeries;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "duplicate_of_task_id") private CareTask duplicateOfTask;
   @Embedded private MedicationDetails medication;
   @ElementCollection @CollectionTable(name = "care_task_weekdays", joinColumns = @JoinColumn(name = "task_id"))
   @Enumerated(EnumType.STRING) @Column(name = "weekday", length = 20) private Set<DiaSemana> weekdays = new LinkedHashSet<>();
@@ -58,6 +69,15 @@ public class CareTask {
   public String getTimezone() { return timezone; } public void setTimezone(String value) { timezone = value; }
   public boolean isReminderEnabled() { return reminderEnabled; } public void setReminderEnabled(boolean value) { reminderEnabled = value; }
   public Integer getReminderMinutesBefore() { return reminderMinutesBefore; } public void setReminderMinutesBefore(Integer value) { reminderMinutesBefore = value; }
+  public ServiceRequestCareItemSnapshot getSourceSnapshotItem() { return sourceSnapshotItem; } public void setSourceSnapshotItem(ServiceRequestCareItemSnapshot value) { sourceSnapshotItem = value; }
+  public boolean isReminderAtScheduledTime() { return reminderAtScheduledTime; } public void setReminderAtScheduledTime(boolean value) { reminderAtScheduledTime = value; }
+  public boolean isOverdueReminderEnabled() { return overdueReminderEnabled; } public void setOverdueReminderEnabled(boolean value) { overdueReminderEnabled = value; }
+  public Integer getOverdueAfterMinutes() { return overdueAfterMinutes; } public void setOverdueAfterMinutes(Integer value) { overdueAfterMinutes = value; }
+  public boolean isRepeatWhilePending() { return repeatWhilePending; } public void setRepeatWhilePending(boolean value) { repeatWhilePending = value; }
+  public Integer getRepeatIntervalMinutes() { return repeatIntervalMinutes; } public void setRepeatIntervalMinutes(Integer value) { repeatIntervalMinutes = value; }
+  public boolean isImportant() { return important; } public void setImportant(boolean value) { important = value; }
+  public boolean isNotifyResponsibleIfImportant() { return notifyResponsibleIfImportant; } public void setNotifyResponsibleIfImportant(boolean value) { notifyResponsibleIfImportant = value; }
+  public boolean isRequiresCompletionPhoto() { return requiresCompletionPhoto; } public void setRequiresCompletionPhoto(boolean value) { requiresCompletionPhoto = value; }
   public String getNotes() { return notes; } public void setNotes(String value) { notes = value; }
   public TaskSeriesStatus getStatus() { return status; } public void setStatus(TaskSeriesStatus value) { status = value; }
   public AssistedPerson getAssistedPerson() { return assistedPerson; } public void setAssistedPerson(AssistedPerson value) { assistedPerson = value; }
@@ -65,6 +85,7 @@ public class CareTask {
   public User getResponsibleCreator() { return responsibleCreator; } public void setResponsibleCreator(User value) { responsibleCreator = value; }
   public User getCaregiverExecutor() { return caregiverExecutor; } public void setCaregiverExecutor(User value) { caregiverExecutor = value; }
   public CareTask getPreviousSeries() { return previousSeries; } public void setPreviousSeries(CareTask value) { previousSeries = value; }
+  public CareTask getDuplicateOfTask() { return duplicateOfTask; } public void setDuplicateOfTask(CareTask value) { duplicateOfTask = value; }
   public MedicationDetails getMedication() { return medication; } public void setMedication(MedicationDetails value) { medication = value; }
   public Set<DiaSemana> getWeekdays() { return weekdays; } public void setWeekdays(Set<DiaSemana> value) { weekdays = value; }
   public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; }

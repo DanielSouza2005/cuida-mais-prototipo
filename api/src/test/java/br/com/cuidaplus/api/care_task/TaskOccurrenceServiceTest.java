@@ -24,13 +24,17 @@ class TaskOccurrenceServiceTest {
   @Mock TaskRecurrenceService recurrence; @Mock TaskResponseMapper mapper; @Mock TaskAuditService audit;
   @Mock CareActivityIntegrationService activities; @Mock ContractStatusProcessorService contractProcessor;
   @Mock NotificationService notifications; @Mock TaskDateTimeService dateTimes;
+  @Mock TaskReminderService reminders;
+  @Mock ContractCareTaskProvisioningService provisioning;
+  @Mock TaskOccurrenceExpirationService expiration;
+  @Mock CareOccurrencePhotoService photoService;
   @Mock User caregiver; @Mock User responsible; @Mock CareContract contract;
   TaskOccurrenceService service;
   CareTask task; TaskOccurrence occurrence; UUID caregiverId; UUID occurrenceId;
 
   @BeforeEach
   void setUp() {
-    service = new TaskOccurrenceService(tasks, occurrences, authorization, recurrence, mapper, audit, activities, contractProcessor, notifications, dateTimes);
+    service = new TaskOccurrenceService(tasks, occurrences, authorization, recurrence, mapper, audit, activities, contractProcessor, notifications, dateTimes, reminders, provisioning, expiration, photoService);
     caregiverId = UUID.randomUUID(); occurrenceId = UUID.randomUUID();
     task = new CareTask(); task.setStatus(TaskSeriesStatus.ATIVA); task.setResponsibleCreator(responsible); task.setTitle("Administrar medicamento");
     occurrence = mock(TaskOccurrence.class);
@@ -39,6 +43,7 @@ class TaskOccurrenceServiceTest {
     lenient().when(occurrence.getTask()).thenReturn(task); lenient().when(occurrence.getContract()).thenReturn(contract);
     lenient().when(occurrence.getCaregiver()).thenReturn(caregiver); lenient().when(occurrence.getStatus()).thenReturn(TaskOccurrenceStatus.PENDENTE);
     lenient().when(occurrence.getVersion()).thenReturn(2L); lenient().when(contractProcessor.processContractIfDue(contract)).thenReturn(contract);
+    LocalDate today = LocalDate.of(2026, 7, 27); lenient().when(occurrence.getScheduledDate()).thenReturn(today); lenient().when(dateTimes.today(anyString())).thenReturn(today); lenient().when(occurrence.getTimezone()).thenReturn("America/Sao_Paulo");
   }
 
   @Test
@@ -46,8 +51,9 @@ class TaskOccurrenceServiceTest {
     Instant executedAt = Instant.now().minusSeconds(60);
     service.complete(caregiverId, occurrenceId, new CompleteOccurrenceRequest(executedAt, "Executada sem intercorrências.", 2));
     verify(occurrence).setStatus(TaskOccurrenceStatus.CONCLUIDA); verify(occurrence).setCompletedAt(executedAt); verify(occurrence).setExecutedBy(caregiver);
+    verify(reminders).cancelFuture(occurrence);
     verify(activities).createForCompletedOccurrence(occurrence, executedAt, "Executada sem intercorrências.");
-    verify(audit).record(task, occurrence, caregiver, TaskAuditAction.OCORRENCIA_CONCLUIDA, "Ocorrência concluída pelo cuidador.");
+    verify(audit).record(task, occurrence, caregiver, TaskAuditAction.OCORRENCIA_CONCLUIDA, "Cuidado concluído pelo cuidador.");
   }
 
   @Test
@@ -70,6 +76,7 @@ class TaskOccurrenceServiceTest {
     assertThrows(BusinessException.class, () -> service.notCompleted(caregiverId, occurrenceId, new NotCompletedOccurrenceRequest(" ", null, 2)));
     service.notCompleted(caregiverId, occurrenceId, new NotCompletedOccurrenceRequest("Pessoa assistida recusou.", "Responsável avisado.", 2));
     verify(occurrence).setStatus(TaskOccurrenceStatus.NAO_REALIZADA); verify(occurrence).setNonCompletionReason("Pessoa assistida recusou.");
+    verify(reminders).cancelFuture(occurrence); verify(reminders).notifyResponsibleNotDone(occurrence);
   }
 
   @Test
@@ -85,5 +92,23 @@ class TaskOccurrenceServiceTest {
     assertThrows(BusinessException.class, () -> service.complete(caregiverId, occurrenceId, new CompleteOccurrenceRequest(Instant.now(), null, 2)));
     task.setStatus(TaskSeriesStatus.ATIVA); doThrow(new BusinessException("A contratação precisa estar ativa.", HttpStatus.CONFLICT)).when(authorization).requireContractActive(contract);
     assertThrows(BusinessException.class, () -> service.complete(caregiverId, occurrenceId, new CompleteOccurrenceRequest(Instant.now(), null, 2)));
+  }
+
+  @Test
+  void occurrenceCanOnlyBeUpdatedOnItsScheduledDate() {
+    when(occurrence.getScheduledDate()).thenReturn(LocalDate.of(2026, 7, 26));
+    BusinessException error = assertThrows(BusinessException.class,
+      () -> service.complete(caregiverId, occurrenceId, new CompleteOccurrenceRequest(Instant.now(), null, 2)));
+    assertEquals("Este cuidado só pode ser atualizado no dia previsto.", error.getMessage());
+    verifyNoInteractions(activities, photoService);
+  }
+
+  @Test
+  void requiredCompletionPhotoIsAlsoEnforcedByBackend() {
+    task.setRequiresCompletionPhoto(true);
+    BusinessException error = assertThrows(BusinessException.class,
+      () -> service.complete(caregiverId, occurrenceId, new CompleteOccurrenceRequest(Instant.now(), null, 2)));
+    assertEquals("Adicione pelo menos uma foto para concluir este cuidado.", error.getMessage());
+    verifyNoInteractions(activities, photoService);
   }
 }

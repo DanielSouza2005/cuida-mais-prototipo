@@ -26,6 +26,8 @@ public class TaskOccurrence {
   @Column(length = 1000) private String executionNote;
   private Instant canceledAt;
   @Column(nullable = false) private boolean exception;
+  @Column(nullable = false) private boolean autoMarkedNotDone;
+  private Instant statusUpdatedAt;
   @Column(nullable = false, updatable = false) private Instant createdAt;
   @Column(nullable = false) private Instant updatedAt;
   @Version @Column(nullable = false) private long version;
@@ -49,6 +51,8 @@ public class TaskOccurrence {
   public String getExecutionNote() { return executionNote; } public void setExecutionNote(String value) { executionNote = value; }
   public Instant getCanceledAt() { return canceledAt; } public void setCanceledAt(Instant value) { canceledAt = value; }
   public boolean isException() { return exception; } public void setException(boolean value) { exception = value; }
+  public boolean isAutoMarkedNotDone() { return autoMarkedNotDone; } public void setAutoMarkedNotDone(boolean value) { autoMarkedNotDone = value; }
+  public Instant getStatusUpdatedAt() { return statusUpdatedAt; } public void setStatusUpdatedAt(Instant value) { statusUpdatedAt = value; }
   public Instant getCreatedAt() { return createdAt; } public Instant getUpdatedAt() { return updatedAt; }
   public long getVersion() { return version; }
 }

@@ -2,6 +2,7 @@ package br.com.cuidaplus.api.service_request;
 
 import br.com.cuidaplus.api.care_contract.*;
 import br.com.cuidaplus.api.care_routine.StructuredCareItemMapper;
+import br.com.cuidaplus.api.care_task.ContractCareTaskProvisioningService;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.notification.*;
 import br.com.cuidaplus.api.profile.*;
@@ -23,10 +24,11 @@ public class CaregiverServiceRequestService {
   private final NotificationService notifications;
   private final ResponsibleProfileRepository responsibleProfiles;
   private final StatusHistoryService history;
+  private final ContractCareTaskProvisioningService taskProvisioning;
 
-  public CaregiverServiceRequestService(ServiceRequestRepository requests, UserService users, CareContractRepository contracts, NotificationService notifications, ResponsibleProfileRepository responsibleProfiles, StatusHistoryService history) {
+  public CaregiverServiceRequestService(ServiceRequestRepository requests, UserService users, CareContractRepository contracts, NotificationService notifications, ResponsibleProfileRepository responsibleProfiles, StatusHistoryService history, ContractCareTaskProvisioningService taskProvisioning) {
     this.requests = requests; this.users = users; this.contracts = contracts; this.notifications = notifications;
-    this.responsibleProfiles = responsibleProfiles; this.history = history;
+    this.responsibleProfiles = responsibleProfiles; this.history = history; this.taskProvisioning = taskProvisioning;
   }
 
   @Transactional
@@ -50,6 +52,7 @@ public class CaregiverServiceRequestService {
     CareContract contract = new CareContract(); contract.setServiceRequest(entity); contract.setResponsibleUser(entity.getResponsibleUser()); contract.setCaregiverUser(entity.getCaregiverUser()); contract.setAssistedPerson(entity.getAssistedPerson()); contract.setStartDate(entity.getStartDate()); contract.setEndDate(entity.getEndDate());
     contract.setStatus(entity.getStartDate().isAfter(LocalDate.now()) ? CareContractStatus.AGENDADA : CareContractStatus.ATIVA);
     CareContract saved = contracts.save(contract);
+    taskProvisioning.provision(saved);
     history.record(StatusHistoryEntityType.CARE_CONTRACT, saved.getId(), null, saved.getStatus().name(), entity.getCaregiverUser(), null);
     notifications.create(entity.getResponsibleUser(), NotificationType.SERVICE_REQUEST_ACCEPTED, "Solicitação aceita", "O cuidador aceitou sua solicitação de serviço.", entity.getId());
     return response(entity, hasConflict(entity));

@@ -39,7 +39,7 @@ export default function NotificationsScreen() {
         else router.push(`/care-task/${item.relatedEntityId}` as Href);
         return;
       }
-      if (item.relatedEntityType === 'TASK_OCCURRENCE') {
+      if (item.relatedEntityType === 'TASK_OCCURRENCE' || item.relatedEntityType === 'CARE_OCCURRENCE') {
         router.push(`/task-occurrence/${item.relatedEntityId}` as Href);
         return;
       }
@@ -51,7 +51,7 @@ export default function NotificationsScreen() {
       if (user?.userType === 'caregiver') router.push(`/caregiver-service-request/${item.relatedEntityId}` as Href);
       else if (user?.userType === 'family') router.push(`/responsible-service-request/${item.relatedEntityId}` as Href);
     } catch {
-      setMessage('Não foi possível abrir a notificação.');
+      setMessage(item.relatedEntityType === 'CARE_OCCURRENCE' || item.relatedEntityType === 'TASK_OCCURRENCE' ? 'Não foi possível abrir este cuidado.' : 'Não foi possível abrir a notificação.');
     }
   }
 

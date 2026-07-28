@@ -27,14 +27,15 @@ public class CareTaskService {
   private final CareContractRepository contracts;
   private final ContractStatusProcessorService contractStatusProcessor;
   private final NotificationService notifications;
+  private final TaskOccurrenceExpirationService expiration;
 
   public CareTaskService(CareTaskRepository tasks, TaskOccurrenceRepository occurrences, TaskAuthorizationService authorization,
     TaskDateTimeService dateTimes, TaskRecurrenceService recurrence, TaskResponseMapper mapper, TaskAuditService audit,
     CareContractRepository contracts, ContractStatusProcessorService contractStatusProcessor,
-    NotificationService notifications) {
+    NotificationService notifications, TaskOccurrenceExpirationService expiration) {
     this.tasks = tasks; this.occurrences = occurrences; this.authorization = authorization; this.dateTimes = dateTimes;
     this.recurrence = recurrence; this.mapper = mapper; this.audit = audit;
-    this.contracts = contracts; this.contractStatusProcessor = contractStatusProcessor; this.notifications = notifications;
+    this.contracts = contracts; this.contractStatusProcessor = contractStatusProcessor; this.notifications = notifications; this.expiration = expiration;
   }
 
   @Transactional
@@ -48,7 +49,7 @@ public class CareTaskService {
     task = tasks.saveAndFlush(task);
     audit.record(task, null, responsible, TaskAuditAction.CRIADA, "Rotina de cuidados criada.");
     recurrence.generateInitialWindow(task);
-    notifications.create(context.caregiver(), NotificationType.CARE_TASK_CREATED, "Nova tarefa de cuidado", "Uma nova tarefa foi adicionada à sua rotina.", RelatedEntityType.CARE_TASK, task.getId());
+    notifications.create(context.caregiver(), NotificationType.CARE_TASK_CREATED, "Novo cuidado", "Um novo cuidado foi adicionado à sua rotina.", RelatedEntityType.CARE_TASK, task.getId());
     return mapper.details(task);
   }
 
@@ -138,7 +139,7 @@ public class CareTaskService {
   @Transactional
   public CareTaskDetailsResponse pause(UUID userId, UUID taskId, TaskActionRequest request) {
     User actor = authorization.requireResponsible(userId); CareTask task = ownedTask(taskId, actor); checkVersion(task.getVersion(), request.version());
-    if (task.getStatus() != TaskSeriesStatus.ATIVA) throw new BusinessException("Apenas tarefas ativas podem ser pausadas.", HttpStatus.CONFLICT);
+    if (task.getStatus() != TaskSeriesStatus.ATIVA) throw new BusinessException("Apenas cuidados ativos podem ser pausados.", HttpStatus.CONFLICT);
     task.setStatus(TaskSeriesStatus.PAUSADA); task.setUpdatedBy(actor); audit.record(task, null, actor, TaskAuditAction.PAUSADA, safeReason(request.reason(), "Rotina pausada."));
     return mapper.details(task);
   }
@@ -146,7 +147,7 @@ public class CareTaskService {
   @Transactional
   public CareTaskDetailsResponse reactivate(UUID userId, UUID taskId, TaskActionRequest request) {
     User actor = authorization.requireResponsible(userId); CareTask task = ownedTask(taskId, actor); checkVersion(task.getVersion(), request.version());
-    if (task.getStatus() != TaskSeriesStatus.PAUSADA) throw new BusinessException("Apenas tarefas pausadas podem ser reativadas.", HttpStatus.CONFLICT);
+    if (task.getStatus() != TaskSeriesStatus.PAUSADA) throw new BusinessException("Apenas cuidados pausados podem ser reativados.", HttpStatus.CONFLICT);
     authorization.requireContractActive(contractStatusProcessor.processContractIfDue(task.getContract()));
     task.setStatus(TaskSeriesStatus.ATIVA); task.setUpdatedBy(actor); audit.record(task, null, actor, TaskAuditAction.REATIVADA, safeReason(request.reason(), "Rotina reativada."));
     tasks.flush(); extendCurrentWindow(task); return mapper.details(task);
@@ -155,10 +156,10 @@ public class CareTaskService {
   @Transactional
   public CareTaskDetailsResponse cancel(UUID userId, UUID taskId, TaskActionRequest request) {
     User actor = authorization.requireResponsible(userId); CareTask task = ownedTask(taskId, actor); checkVersion(task.getVersion(), request.version());
-    if (task.getStatus() == TaskSeriesStatus.CANCELADA || task.getStatus() == TaskSeriesStatus.FINALIZADA) throw new BusinessException("Esta tarefa não pode mais ser cancelada.", HttpStatus.CONFLICT);
+    if (task.getStatus() == TaskSeriesStatus.CANCELADA || task.getStatus() == TaskSeriesStatus.FINALIZADA) throw new BusinessException("Este cuidado não pode mais ser cancelado.", HttpStatus.CONFLICT);
     task.setStatus(TaskSeriesStatus.CANCELADA); task.setUpdatedBy(actor); cancelPendingFrom(task, LocalDate.MIN);
     audit.record(task, null, actor, TaskAuditAction.CANCELADA, safeReason(request.reason(), "Rotina cancelada."));
-    notifications.create(task.getCaregiverExecutor(), NotificationType.CARE_TASK_CANCELED, "Tarefa cancelada", "Uma tarefa da rotina foi cancelada.", RelatedEntityType.CARE_TASK, task.getId());
+    notifications.create(task.getCaregiverExecutor(), NotificationType.CARE_TASK_CANCELED, "Cuidado cancelado", "Um cuidado da rotina foi cancelado.", RelatedEntityType.CARE_TASK, task.getId());
     return mapper.details(task);
   }
 
@@ -166,6 +167,7 @@ public class CareTaskService {
   public TaskOccurrencePageResponse occurrences(UUID userId, UUID taskId, LocalDate start, LocalDate end, TaskOccurrenceStatus status, boolean history, int page, int size) {
     User responsible = authorization.requireResponsible(userId); CareTask task = ownedTask(taskId, responsible);
     recurrence.validateRange(start, end); contractStatusProcessor.processContractIfDue(task.getContract()); recurrence.generate(task, start, end);
+    expiration.processExpiredPendingCareOccurrences();
     Comparator<TaskOccurrence> order = Comparator.comparing(TaskOccurrence::getScheduledInstantUtc);
     if (history) order = order.reversed();
     List<TaskOccurrenceResponse> items = occurrences.findByTaskAndScheduledDateBetweenOrderByScheduledInstantUtcAsc(task, start, end).stream()
@@ -184,9 +186,10 @@ public class CareTaskService {
     return mapper.occurrence(occurrence);
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public TaskOccurrenceResponse occurrenceDetails(UUID userId, UUID occurrenceId) {
     User actor = authorization.requireResponsible(userId);
+    expiration.processExpiredPendingCareOccurrences();
     TaskOccurrence occurrence = occurrences.findById(occurrenceId).orElseThrow(() -> new BusinessException("Ocorrência não encontrada.", HttpStatus.NOT_FOUND));
     if (!occurrence.getTask().getResponsibleCreator().getId().equals(actor.getId())) throw new BusinessException("Você não tem permissão para acessar esta ocorrência.", HttpStatus.FORBIDDEN);
     return mapper.occurrence(occurrence);
@@ -212,9 +215,9 @@ public class CareTaskService {
     if (recurrenceType == TaskRecurrenceType.INTERVALO && (intervalDays == null || intervalDays <= 0)) throw new BusinessException("O intervalo deve ser maior que zero.");
     if (category == TaskCategory.PERSONALIZADA && blank(customCategory)) throw new BusinessException("Informe o nome da categoria personalizada.");
     if (reminderEnabled && reminderMinutesBefore == null) throw new BusinessException("Informe a antecedência do lembrete.");
-    if (startDate.isBefore(contract.getStartDate())) throw new BusinessException("A tarefa não pode começar antes da contratação.");
+    if (startDate.isBefore(contract.getStartDate())) throw new BusinessException("O cuidado não pode começar antes da contratação.");
     LocalDate contractEnd = contract.getStatus() == CareContractStatus.ENCERRAMENTO_AGENDADO ? contract.getEffectiveEndDate() : contract.getEndDate();
-    if (contractEnd != null && (startDate.isAfter(contractEnd) || endDate != null && endDate.isAfter(contractEnd))) throw new BusinessException("O período da tarefa ultrapassa a vigência da contratação.");
+    if (contractEnd != null && (startDate.isAfter(contractEnd) || endDate != null && endDate.isAfter(contractEnd))) throw new BusinessException("O período do cuidado ultrapassa a vigência da contratação.");
     validateMedication(category, medication);
   }
 
@@ -281,7 +284,7 @@ public class CareTaskService {
     occurrence.setScheduledDate(date); occurrence.setScheduledTime(time); occurrence.setTimezone(timezone); occurrence.setScheduledInstantUtc(dateTimes.toInstant(date, time, timezone)); occurrence.setException(true);
     audit.record(occurrence.getTask(), occurrence, actor, TaskAuditAction.OCORRENCIA_ALTERADA, "Somente esta ocorrência foi atualizada.");
   }
-  private CareTask ownedTask(UUID id, User owner) { return tasks.findByIdAndResponsibleCreator(id, owner).orElseThrow(() -> new BusinessException("Tarefa não encontrada.", HttpStatus.NOT_FOUND)); }
+  private CareTask ownedTask(UUID id, User owner) { return tasks.findByIdAndResponsibleCreator(id, owner).orElseThrow(() -> new BusinessException("Cuidado não encontrado.", HttpStatus.NOT_FOUND)); }
   private TaskOccurrence ownedOccurrence(CareTask task, UUID id) { if (id == null) throw new BusinessException("Ocorrência não encontrada."); return occurrences.findById(id).filter(item -> item.getTask().getId().equals(task.getId())).orElseThrow(() -> new BusinessException("Ocorrência não encontrada.", HttpStatus.NOT_FOUND)); }
   private void requireMutable(TaskOccurrence occurrence) { if (occurrence.getStatus() == TaskOccurrenceStatus.CONCLUIDA) throw new BusinessException("Uma ocorrência concluída não pode ser alterada.", HttpStatus.CONFLICT); if (occurrence.getStatus() == TaskOccurrenceStatus.CANCELADA) throw new BusinessException("Uma ocorrência cancelada não pode ser alterada.", HttpStatus.CONFLICT); if (occurrence.getStatus() == TaskOccurrenceStatus.NAO_REALIZADA) throw new BusinessException("Uma ocorrência não realizada não pode ser alterada.", HttpStatus.CONFLICT); }
   private void checkVersion(long current, long requested) { if (current != requested) throw new BusinessException("Este registro foi atualizado em outro dispositivo. Recarregue os dados.", HttpStatus.CONFLICT); }

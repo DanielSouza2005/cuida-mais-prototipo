@@ -5,7 +5,9 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import br.com.cuidaplus.api.care_contract.*;
+import br.com.cuidaplus.api.profile.AssistedPerson;
 import br.com.cuidaplus.api.profile.DiaSemana;
+import br.com.cuidaplus.api.user.User;
 import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.*;
@@ -16,21 +18,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TaskRecurrenceServiceTest {
   @Mock TaskOccurrenceRepository occurrences;
+  @Mock TaskReminderService reminders;
   @Mock TaskDateTimeService dateTimes;
-  @Captor ArgumentCaptor<List<TaskOccurrence>> createdCaptor;
+  @Mock CareTaskRepository tasks;
+  @Captor ArgumentCaptor<LocalDate> dateCaptor;
   TaskRecurrenceService service;
   CareTask task;
   CareContract contract;
 
   @BeforeEach
   void setUp() {
-    service = new TaskRecurrenceService(occurrences, dateTimes);
+    service = new TaskRecurrenceService(occurrences, dateTimes, reminders, tasks);
     task = new CareTask(); contract = new CareContract();
     contract.setStatus(CareContractStatus.ATIVA); contract.setStartDate(LocalDate.of(2026, 7, 1)); contract.setEndDate(LocalDate.of(2026, 12, 31));
     task.setContract(contract); task.setStatus(TaskSeriesStatus.ATIVA); task.setStartDate(LocalDate.of(2026, 7, 1));
+    task.setAssistedPerson(new AssistedPerson()); task.setCaregiverExecutor(new User());
     task.setScheduledTime(LocalTime.of(14, 0)); task.setTimezone("America/Sao_Paulo"); task.setWeekdays(new LinkedHashSet<>());
     lenient().when(dateTimes.toInstant(any(), any(), anyString())).thenAnswer(invocation ->
       ZonedDateTime.of(invocation.getArgument(0), invocation.getArgument(1), ZoneId.of(invocation.getArgument(2))).toInstant());
+    lenient().when(occurrences.insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any())).thenReturn(1);
+    lenient().when(occurrences.findById(any())).thenReturn(Optional.of(new TaskOccurrence()));
   }
 
   @Test
@@ -73,9 +80,24 @@ class TaskRecurrenceServiceTest {
   @Test
   void duplicateScheduleIsNotInsertedAgain() {
     task.setRecurrenceType(TaskRecurrenceType.UNICA);
-    when(occurrences.existsByTaskAndScheduledDateAndScheduledTime(task, task.getStartDate(), task.getScheduledTime())).thenReturn(true);
+    when(occurrences.findByContractAndTaskAndScheduledDateAndScheduledTime(contract, task, task.getStartDate(), task.getScheduledTime()))
+      .thenReturn(Optional.of(new TaskOccurrence()));
     service.generate(task, task.getStartDate(), task.getStartDate());
-    verify(occurrences, never()).saveAll(any());
+    verify(occurrences, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any());
+  }
+
+  @Test
+  void concurrentConflictReturnsOccurrenceInsertedByOtherRequest() {
+    task.setRecurrenceType(TaskRecurrenceType.UNICA);
+    TaskOccurrence concurrent = new TaskOccurrence();
+    when(occurrences.findByContractAndTaskAndScheduledDateAndScheduledTime(contract, task, task.getStartDate(), task.getScheduledTime()))
+      .thenReturn(Optional.empty(), Optional.of(concurrent));
+    when(occurrences.insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any())).thenReturn(0);
+
+    TaskRecurrenceService.OccurrenceCreationResult result = service.getOrCreateCareOccurrence(task, task.getStartDate());
+
+    assertSame(concurrent, result.occurrence());
+    assertFalse(result.created());
   }
 
   @Test
@@ -84,7 +106,7 @@ class TaskRecurrenceServiceTest {
     service.generate(task, task.getStartDate(), task.getStartDate().plusDays(2));
     task.setStatus(TaskSeriesStatus.ATIVA); contract.setStatus(CareContractStatus.ENCERRADA);
     service.generate(task, task.getStartDate(), task.getStartDate().plusDays(2));
-    verify(occurrences, never()).saveAll(any());
+    verify(occurrences, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any());
   }
 
   @Test
@@ -95,7 +117,7 @@ class TaskRecurrenceServiceTest {
   }
 
   private List<LocalDate> createdDates() {
-    verify(occurrences).saveAll(createdCaptor.capture());
-    return createdCaptor.getValue().stream().map(TaskOccurrence::getScheduledDate).toList();
+    verify(occurrences, atLeastOnce()).insertIfAbsent(any(), any(), any(), any(), any(), dateCaptor.capture(), any(), any(), anyString(), any());
+    return dateCaptor.getAllValues();
   }
 }

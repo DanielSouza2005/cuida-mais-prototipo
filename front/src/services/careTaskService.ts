@@ -1,5 +1,5 @@
 import { apiRequest } from '@/services/api';
-import type { CareTaskDetails, CareTaskPage, CareTaskPayload, TaskCategory, TaskContractOption, TaskEditScope, TaskFormData, TaskOccurrence, TaskOccurrencePage, TaskOccurrenceStatus, TaskPriority, TaskSeriesStatus } from '@/types/careTasks';
+import type { CareCompletionPhoto, CareTaskDetails, CareTaskPage, CareTaskPayload, TaskCategory, TaskContractOption, TaskEditScope, TaskFormData, TaskOccurrence, TaskOccurrencePage, TaskOccurrenceStatus, TaskPriority, TaskSeriesStatus } from '@/types/careTasks';
 
 function queryString(values: Record<string, string | number | undefined>) {
   const query = new URLSearchParams();
@@ -26,10 +26,16 @@ export function getTaskOccurrences(id: string, params: { startDate: string; endD
 export function cancelTaskOccurrence(id: string, version: number, reason?: string) { return apiRequest<TaskOccurrence>(`/api/responsible/care-tasks/occurrences/${id}/cancel`, { method: 'PATCH', body: { version, reason } }); }
 export function getResponsibleOccurrence(id: string) { return apiRequest<TaskOccurrence>(`/api/responsible/care-tasks/occurrences/${id}`); }
 export function getCaregiverDayTasks(date: string, timezone: string, filters: { category?: TaskCategory; status?: TaskOccurrenceStatus; assistedPersonId?: string } = {}) {
-  return apiRequest<TaskOccurrencePage>(`/api/caregiver/care-tasks/day?${queryString({ date, timezone, ...filters })}`);
+  return apiRequest<TaskOccurrencePage>(`/api/caregiver/tasks?${queryString({ date, timezone, ...filters, page: 0, size: 50 })}`);
 }
 export function getCaregiverOccurrence(id: string) { return apiRequest<TaskOccurrence>(`/api/caregiver/care-tasks/occurrences/${id}`); }
-export function completeTaskOccurrence(id: string, version: number, executionNote?: string) { return apiRequest<TaskOccurrence>(`/api/caregiver/care-tasks/occurrences/${id}/complete`, { method: 'PATCH', body: { executedAt: new Date().toISOString(), executionNote, version } }); }
+export function getResponsibleDayCareOccurrences(date:string,timezone:string,status?:TaskOccurrenceStatus,page=0,size=50){return apiRequest<TaskOccurrencePage>(`/api/responsible/care-occurrences?${queryString({date,timezone,status,page,size})}`);}
+export function getResponsibleCareOccurrence(id:string){return apiRequest<TaskOccurrence>(`/api/responsible/care-occurrences/${id}`);}
+export function completeTaskOccurrence(id: string, version: number, executionNote: string | undefined, photos: CareCompletionPhoto[]) {
+  const form = new FormData(); form.append('version', String(version)); if (executionNote) form.append('notes', executionNote);
+  photos.forEach((photo) => form.append('photos', photo.file ?? ({ uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob)));
+  return apiRequest<TaskOccurrence>(`/api/caregiver/care-tasks/occurrences/${id}/complete`, { method: 'PATCH', body: form });
+}
 export function markTaskOccurrenceNotCompleted(id: string, version: number, reason: string, executionNote?: string) { return apiRequest<TaskOccurrence>(`/api/caregiver/care-tasks/occurrences/${id}/not-completed`, { method: 'PATCH', body: { reason, executionNote, version } }); }
 
 export function optionForTask(task: { contractId: string; assistedPersonId: string; assistedPersonName: string; caregiverId: string; caregiverName: string; startDate: string; endDate?: string }): TaskContractOption {

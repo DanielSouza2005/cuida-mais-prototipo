@@ -11,9 +11,10 @@ public class TaskResponseMapper {
   private final CareActivityRecordRepository activities;
   private final TaskAuditEntryRepository audit;
   private final TaskRecurrenceService recurrence;
+  private final CareOccurrencePhotoRepository photos;
 
-  public TaskResponseMapper(TaskOccurrenceRepository occurrences, CareActivityRecordRepository activities, TaskAuditEntryRepository audit, TaskRecurrenceService recurrence) {
-    this.occurrences = occurrences; this.activities = activities; this.audit = audit; this.recurrence = recurrence;
+  public TaskResponseMapper(TaskOccurrenceRepository occurrences, CareActivityRecordRepository activities, TaskAuditEntryRepository audit, TaskRecurrenceService recurrence, CareOccurrencePhotoRepository photos) {
+    this.occurrences = occurrences; this.activities = activities; this.audit = audit; this.recurrence = recurrence; this.photos = photos;
   }
 
   public CareTaskSummaryResponse summary(CareTask task) {
@@ -31,7 +32,7 @@ public class TaskResponseMapper {
 
   public CareTaskDetailsResponse details(CareTask task) {
     List<TaskAuditResponse> auditResponses = audit.findByTaskOrderByCreatedAtDesc(task).stream().limit(30)
-      .map(entry -> new TaskAuditResponse(entry.getId(), entry.getAction(), entry.getActor().getFullName(), entry.getDetails(), entry.getCreatedAt())).toList();
+      .map(entry -> new TaskAuditResponse(entry.getId(), entry.getAction(), entry.getActor() == null ? "Sistema" : entry.getActor().getFullName(), entry.getDetails(), entry.getCreatedAt())).toList();
     return new CareTaskDetailsResponse(summary(task), medication(task), auditResponses);
   }
 
@@ -43,10 +44,19 @@ public class TaskResponseMapper {
       occurrence.getScheduledDate(), occurrence.getScheduledTime(), occurrence.getScheduledInstantUtc(), occurrence.getTimezone(), recurrence.effectiveStatus(occurrence),
       occurrence.getAssistedPerson().getId(), occurrence.getAssistedPerson().getNome(), occurrence.getContract().getId(), occurrence.getCaregiver().getId(),
       occurrence.getCaregiver().getFullName(), task.getResponsibleCreator().getId(), task.getResponsibleCreator().getFullName(), medication(task), task.getNotes(),
+      task.isImportant(), task.isReminderEnabled(), task.getReminderMinutesBefore(), task.isReminderAtScheduledTime(), task.isOverdueReminderEnabled(), task.getOverdueAfterMinutes(), task.isRepeatWhilePending(), task.getRepeatIntervalMinutes(),
+      hiringLabel(occurrence.getContract().getServiceRequest().getHiringType()), occurrence.getContract().getStartDate(), occurrence.getContract().getEndDate(), address(occurrence), dependencyLabel(occurrence), mobilityLabel(occurrence),
       occurrence.getCompletedAt(), occurrence.getExecutedBy() == null ? null : occurrence.getExecutedBy().getFullName(), occurrence.getNonCompletionReason(),
-      occurrence.getExecutionNote(), activityId, occurrence.isException(), task.getVersion(), occurrence.getVersion()
+      occurrence.getExecutionNote(), activityId, occurrence.isException(), task.isRequiresCompletionPhoto(), occurrence.isAutoMarkedNotDone(),
+      photos.findByOccurrenceOrderByCreatedAtAsc(occurrence).stream().map(photo -> new CareOccurrencePhotoResponse(photo.getId(), "/api/care-occurrences/" + occurrence.getId() + "/photos/" + photo.getId(), photo.getContentType(), photo.getFileSize(), photo.getCreatedAt())).toList(),
+      task.getVersion(), occurrence.getVersion()
     );
   }
+
+  private String hiringLabel(br.com.cuidaplus.api.service_request.HiringType value){return switch(value){case PONTUAL->"Serviço pontual";case PERIODO_DETERMINADO->"Período determinado";case PERIODO_INDETERMINADO->"Período indeterminado";};}
+  private String address(TaskOccurrence occurrence){var a=occurrence.getAssistedPerson().getEnderecoCuidado();return a==null?null:String.join(", ",a.getRua()+", "+a.getNumero(),a.getBairro(),a.getCidade()+" - "+a.getEstado());}
+  private String dependencyLabel(TaskOccurrence occurrence){return switch(occurrence.getAssistedPerson().getGrauDependencia()){case BAIXA->"Baixa";case MODERADA->"Moderada";case ALTA->"Alta";case TOTAL->"Total";case NAO_SEI_INFORMAR->"Não informada";};}
+  private String mobilityLabel(TaskOccurrence occurrence){return switch(occurrence.getAssistedPerson().getMobilidade()){case INDEPENDENTE->"Independente";case BENGALA->"Usa bengala";case ANDADOR->"Usa andador";case CADEIRA_RODAS->"Usa cadeira de rodas";case ACAMADO->"Pessoa acamada";case AUXILIO_PESSOA->"Precisa de auxílio";case OUTRO->"Outra condição";};}
 
   public MedicationResponse medication(CareTask task) {
     MedicationDetails value = task.getMedication();

@@ -54,7 +54,7 @@ public class TaskAuthorizationService {
 
   public void requireContractActive(CareContract contract) {
     if (contract.getStatus() != CareContractStatus.ATIVA && contract.getStatus() != CareContractStatus.ENCERRAMENTO_AGENDADO) {
-      throw new BusinessException("A contratação precisa estar ativa para gerenciar tarefas.", HttpStatus.CONFLICT);
+      throw new BusinessException("A contratação precisa estar ativa para gerenciar cuidados.", HttpStatus.CONFLICT);
     }
   }
 

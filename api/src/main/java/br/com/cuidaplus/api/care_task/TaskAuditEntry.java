@@ -11,7 +11,7 @@ public class TaskAuditEntry {
   @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "task_id") private CareTask task;
   @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "occurrence_id") private TaskOccurrence occurrence;
-  @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "actor_user_id") private User actor;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "actor_user_id") private User actor;
   @Enumerated(EnumType.STRING) @Column(nullable = false, length = 40) private TaskAuditAction action;
   @Column(length = 500) private String details;
   @Column(nullable = false, updatable = false) private Instant createdAt;

@@ -63,15 +63,10 @@ export default function HomeScreen() {
           {isCaregiver ? (
             <>
               <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.requests)} />
-              <QuickActionCard title="Tarefas de hoje" description="Visualize e registre os cuidados do dia." icon={ClipboardCheck} onPress={() => router.push('/caregiver-tasks' as Href)} />
+              <QuickActionCard title="Cuidados de hoje" description="Visualize e registre os cuidados do dia." icon={ClipboardCheck} onPress={() => router.push('/caregiver-tasks' as Href)} />
             </>
           ) : (
-            <QuickActionCard
-              title="Buscar cuidadores"
-              description="Encontre profissionais disponíveis"
-              icon={Search}
-              onPress={() => router.push(tabRoutes.caregiverSearch)}
-            />
+            <><QuickActionCard title="Buscar cuidadores" description="Encontre profissionais disponíveis" icon={Search} onPress={() => router.push(tabRoutes.caregiverSearch)}/><QuickActionCard title="Cuidados do dia" description="Acompanhe os cuidados previstos e realizados." icon={ClipboardCheck} onPress={()=>router.push('/responsible-care-occurrences' as Href)}/></>
           )}
           <QuickActionCard
             title={isCaregiver ? 'Serviços oferecidos' : 'Pessoa assistida'}

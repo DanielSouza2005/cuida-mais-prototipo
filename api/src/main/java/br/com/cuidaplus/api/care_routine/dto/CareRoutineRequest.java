@@ -27,6 +27,14 @@ public record CareRoutineRequest(
     Set<DiaSemana> weekdays,
     boolean reminderEnabled,
     @PositiveOrZero Integer reminderMinutesBefore,
+    boolean reminderAtScheduledTime,
+    boolean overdueReminderEnabled,
+    @PositiveOrZero Integer overdueAfterMinutes,
+    boolean repeatWhilePending,
+    @Positive Integer repeatIntervalMinutes,
+    boolean important,
+    boolean notifyResponsibleIfImportant,
+    boolean requiresCompletionPhoto,
     @Size(max = 2000) String notes,
     @Valid MedicationRequest medication
   ) {}
