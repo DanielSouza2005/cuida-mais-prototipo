@@ -9,6 +9,7 @@ import br.com.cuidaplus.api.care_task.dto.*;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.notification.*;
+import br.com.cuidaplus.api.service_request.ServiceRequestCareItemSnapshot;
 import br.com.cuidaplus.api.user.User;
 import java.time.*;
 import java.util.*;
@@ -110,5 +111,38 @@ class TaskOccurrenceServiceTest {
       () -> service.complete(caregiverId, occurrenceId, new CompleteOccurrenceRequest(Instant.now(), null, 2)));
     assertEquals("Adicione pelo menos uma foto para concluir este cuidado.", error.getMessage());
     verifyNoInteractions(activities, photoService);
+  }
+
+  @Test
+  void dayResponseUsesContractCareItemKeyAndPrefersCanonicalPendingOccurrence() {
+    UUID contractId=UUID.randomUUID(),sourceId=UUID.randomUUID();
+    CareContract sameContract=mock(CareContract.class);when(sameContract.getId()).thenReturn(contractId);
+    ServiceRequestCareItemSnapshot source=mock(ServiceRequestCareItemSnapshot.class);when(source.getId()).thenReturn(sourceId);
+    CareTask canonical=mock(CareTask.class),legacy=mock(CareTask.class);
+    when(canonical.getSourceSnapshotItem()).thenReturn(source);when(legacy.getDuplicateOfTask()).thenReturn(canonical);
+    TaskOccurrence canonicalOccurrence=occurrence(canonical,sameContract,TaskOccurrenceStatus.PENDENTE,Instant.parse("2026-07-27T10:00:00Z"));
+    TaskOccurrence legacyOccurrence=occurrence(legacy,sameContract,TaskOccurrenceStatus.ATRASADA,Instant.parse("2026-07-27T09:00:00Z"));
+
+    List<TaskOccurrence> result=service.uniqueOccurrences(List.of(legacyOccurrence,canonicalOccurrence));
+
+    assertEquals(List.of(canonicalOccurrence),result);
+  }
+
+  @Test
+  void equalCareItemsFromDifferentContractsRemainDistinct() {
+    ServiceRequestCareItemSnapshot source=mock(ServiceRequestCareItemSnapshot.class);when(source.getId()).thenReturn(UUID.randomUUID());
+    CareTask sharedTask=mock(CareTask.class);when(sharedTask.getSourceSnapshotItem()).thenReturn(source);
+    CareContract recurring=mock(CareContract.class),oneOff=mock(CareContract.class);
+    when(recurring.getId()).thenReturn(UUID.randomUUID());when(oneOff.getId()).thenReturn(UUID.randomUUID());
+    TaskOccurrence first=occurrence(sharedTask,recurring,TaskOccurrenceStatus.PENDENTE,Instant.parse("2026-07-27T09:00:00Z"));
+    TaskOccurrence second=occurrence(sharedTask,oneOff,TaskOccurrenceStatus.PENDENTE,Instant.parse("2026-07-27T09:01:00Z"));
+
+    assertEquals(2,service.uniqueOccurrences(List.of(first,second)).size());
+  }
+
+  private TaskOccurrence occurrence(CareTask value,CareContract valueContract,TaskOccurrenceStatus status,Instant createdAt){
+    TaskOccurrence item=mock(TaskOccurrence.class);when(item.getTask()).thenReturn(value);when(item.getContract()).thenReturn(valueContract);
+    when(item.getScheduledDate()).thenReturn(LocalDate.of(2026,7,27));when(item.getScheduledTime()).thenReturn(LocalTime.of(8,0));
+    lenient().when(item.getStatus()).thenReturn(status);lenient().when(item.getCreatedAt()).thenReturn(createdAt);return item;
   }
 }

@@ -45,10 +45,6 @@ export default function OnboardingScreen() {
         <Text style={styles.loginHint}>
           Já possui uma conta? <Link href="/login" style={styles.link}>Já tenho conta</Link>
         </Text>
-
-        <Link href="/overview" style={styles.overviewLink}>
-          Ver visão geral do protótipo →
-        </Link>
       </View>
     </ScreenContainer>
   );
@@ -142,10 +138,5 @@ const styles = StyleSheet.create({
   link: {
     fontFamily: fontFamily.semiBold,
     color: colors.primary,
-  },
-  overviewLink: {
-    fontFamily: fontFamily.medium,
-    fontSize: 11,
-    color: colors.mutedForeground,
   },
 });
