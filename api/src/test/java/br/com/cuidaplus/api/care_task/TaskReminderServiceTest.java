@@ -40,7 +40,7 @@ class TaskReminderServiceTest {
     service.dispatchDue();
 
     verify(occurrence,never()).setStatus(any());
-    verify(notifications).create(eq(caregiver),eq(NotificationType.CARE_OCCURRENCE_OVERDUE),eq("Cuidado atrasado"),anyString(),eq(RelatedEntityType.CARE_OCCURRENCE),eq(occurrenceId));
+    verify(notifications).create(eq(caregiver),eq(NotificationType.CARE_OCCURRENCE_OVERDUE),eq("Cuidado atrasado"),anyString(),eq(RelatedEntityType.CARE_OCCURRENCE),eq(occurrenceId),eq(reminder.getScheduledAt()));
   }
 
   @Test

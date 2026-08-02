@@ -19,7 +19,7 @@ import { SummaryCard } from '@/components/home/summary-card';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
-import { getUnreadNotificationCount } from '@/services/receivedServiceRequestService';
+import { getUnreadNotificationCount } from '@/services/notificationService';
 
 const tabRoutes = {
   requests: '/solicitacoes' as Href,

@@ -132,7 +132,7 @@ public class TaskReminderService {
             title = "Lembrete de cuidado";
             message = occurrence.getAssistedPerson().getNome() + " · " + task.getTitle() + " às " + time;
         }
-        notifications.create(reminder.getRecipient(), type, title, message, RelatedEntityType.CARE_OCCURRENCE, occurrence.getId());
+        notifications.create(reminder.getRecipient(), type, title, message, RelatedEntityType.CARE_OCCURRENCE, occurrence.getId(), reminder.getScheduledAt());
         audit.record(task, occurrence, null, TaskAuditAction.NOTIFICACAO_INTERNA_CRIADA, "Notificação interna do cuidado criada.");
         reminder.setStatus(TaskReminderStatus.SENT);
         reminder.setSentAt(now);

@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { router, type Href, useFocusEffect } from 'expo-router';
-import { Bell } from 'lucide-react-native';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/app-header';
 import { LoadingState } from '@/components/loading-state';
@@ -8,14 +7,15 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/api';
-import { clearAllNotifications, getNotifications, readNotification } from '@/services/receivedServiceRequestService';
+import { clearAllNotifications, getNotifications, readNotification } from '@/services/notificationService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
-import type { CaregiverNotification } from '@/types/receivedServiceRequest';
+import type { NotificationItem } from '@/types/notification';
 import { formatDateTimeLocal } from '@/utils/dateTime';
+import { getNotificationVisualConfig } from '@/utils/notificationCatalog';
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
-  const [items, setItems] = useState<CaregiverNotification[]>([]);
+  const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -30,7 +30,7 @@ export default function NotificationsScreen() {
     return () => { active = false; };
   }, []));
 
-  async function open(item: CaregiverNotification) {
+  async function open(item: NotificationItem) {
     try {
       await readNotification(item.id);
       setItems((current) => current.map((value) => value.id === item.id ? { ...value, readAt: new Date().toISOString() } : value));
@@ -78,16 +78,21 @@ export default function NotificationsScreen() {
     <ScreenContainer contentStyle={styles.content}>
       <AppHeader showBack title="Notificações" subtitle="Acompanhe solicitações e atualizações importantes." />
       <View style={styles.list}>
-        {items.map((item) => (
-          <Pressable key={item.id} onPress={() => void open(item)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-            <View style={styles.icon}><Bell color={colors.primary} size={20} />{!item.readAt ? <View style={styles.dot} /> : null}</View>
-            <View style={styles.flex}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.message}>{item.message}</Text>
-              <Text style={styles.date}>{formatDateTimeLocal(item.createdAt)}</Text>
-            </View>
-          </Pressable>
-        ))}
+        {items.map((item) => {
+          const visual = getNotificationVisualConfig(item.type);
+          const Icon = visual.icon;
+          return (
+            <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${visual.label}: ${item.title}`} onPress={() => void open(item)} style={({ pressed }) => [styles.card, !item.readAt && styles.unreadCard, pressed && styles.pressed]}>
+              <View style={[styles.icon, { backgroundColor: visual.backgroundColor }]}><Icon color={visual.color} size={21} />{!item.readAt ? <View style={styles.dot} /> : null}</View>
+              <View style={styles.flex}>
+                <View style={styles.metaRow}><Text style={[styles.category, { color: visual.color }]}>{visual.category}</Text>{!item.readAt ? <Text style={styles.unreadLabel}>Não lida</Text> : null}</View>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.message}>{item.message}</Text>
+                <Text style={[styles.date, { color: visual.color }]}>{formatDateTimeLocal(item.createdAt)}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
         {items.length === 0 ? <Text style={styles.empty}>Nenhuma notificação encontrada.</Text> : null}
       </View>
       {items.length ? <PrimaryButton label="Limpar notificações" variant="secondary" onPress={confirmClear} /> : null}
@@ -101,10 +106,14 @@ const styles = StyleSheet.create({
   center: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
   list: { gap: spacing.md },
   card: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+  unreadCard: { borderColor: '#BDD9E8', backgroundColor: '#FBFDFF' },
   pressed: { opacity: 0.78 },
   icon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.secondary },
   dot: { position: 'absolute', top: 2, right: 2, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.destructive },
   flex: { flex: 1, gap: spacing.xs },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  category: { fontFamily: fontFamily.bold, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  unreadLabel: { fontFamily: fontFamily.semiBold, fontSize: 10, color: colors.destructive },
   title: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.foreground },
   message: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.mutedForeground },
   date: { fontFamily: fontFamily.semiBold, fontSize: 11, color: colors.primary },

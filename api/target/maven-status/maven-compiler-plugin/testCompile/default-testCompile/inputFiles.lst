@@ -1,8 +1,14 @@
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\agenda\AgendaServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\auth\AuthServicePasswordResetTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\CareDiaryServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\ContractCareSchedulePolicyTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\ContractCareTaskProvisioningServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\TaskOccurrenceExpirationServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\TaskOccurrenceServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\TaskRecurrenceServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\TaskReminderServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\contract_history\ResponsibleContractHistoryServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\contract_termination\ContractTerminationServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationCatalogTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationPreferenceServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationServicePreferenceTest.java

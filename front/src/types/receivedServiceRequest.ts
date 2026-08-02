@@ -11,7 +11,6 @@ export type ReceivedServiceRequest = {
   scheduleDays: { weekday: string; startTime: string; endTime: string }[];
   needsDescription: string; activities: RequestedActivity[]; additionalNotes?: string; negotiationNotes?: string; rejectionReason?: string;
 };
-export type CaregiverNotification = { id: string; type: string; title: string; message: string; relatedEntityType: string; relatedEntityId: string; readAt?: string | null; createdAt: string };
 export type RejectionReasonPayload = { reason?: string };
 export type ReceivedServiceRequestPage = { content: ReceivedServiceRequest[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean };
 export type ResponsibleServiceRequest = {
