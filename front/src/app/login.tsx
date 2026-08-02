@@ -1,16 +1,16 @@
-import { useState } from 'react';
 import { router, type Href } from 'expo-router';
 import { Lock, Mail } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BackButton } from '@/components/back-button';
-import { BrandMark } from '@/components/brand';
 import { AppTextInput } from '@/components/app-text-input';
+import { BackButton } from '@/components/back-button';
+import { Brand } from '@/components/brand';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
-import { ApiError } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
+import { ApiError } from '@/services/api';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
@@ -62,7 +62,7 @@ export default function LoginScreen() {
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton disabled={isSubmitting} />
-        <BrandMark />
+        <Brand />
       </View>
 
       <View style={styles.heading}>
@@ -126,7 +126,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   subtitle: {
-    marginTop: spacing.xs,
     fontFamily: fontFamily.regular,
     fontSize: 14,
     color: colors.mutedForeground,
