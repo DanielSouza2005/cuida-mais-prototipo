@@ -1,5 +1,5 @@
 import { apiRequest } from '@/services/api';
-import type { CareCompletionPhoto, CareTaskDetails, CareTaskPage, CareTaskPayload, TaskCategory, TaskContractOption, TaskEditScope, TaskFormData, TaskOccurrence, TaskOccurrencePage, TaskOccurrenceStatus, TaskPriority, TaskSeriesStatus } from '@/types/careTasks';
+import type { CareCompletionPhoto, CareDiaryItem, CareDiaryResponse, CareTaskDetails, CareTaskPage, CareTaskPayload, ManualCareFormData, ManualCarePayload, TaskCategory, TaskContractOption, TaskEditScope, TaskFormData, TaskOccurrence, TaskOccurrencePage, TaskOccurrenceStatus, TaskPriority, TaskSeriesStatus } from '@/types/careTasks';
 
 function queryString(values: Record<string, string | number | undefined>) {
   const query = new URLSearchParams();
@@ -37,6 +37,27 @@ export function completeTaskOccurrence(id: string, version: number, executionNot
   return apiRequest<TaskOccurrence>(`/api/caregiver/care-tasks/occurrences/${id}/complete`, { method: 'PATCH', body: form });
 }
 export function markTaskOccurrenceNotCompleted(id: string, version: number, reason: string, executionNote?: string) { return apiRequest<TaskOccurrence>(`/api/caregiver/care-tasks/occurrences/${id}/not-completed`, { method: 'PATCH', body: { reason, executionNote, version } }); }
+
+export function getManualCareFormData(date: string) { return apiRequest<ManualCareFormData>(`/api/caregiver/care-occurrences/manual/form-data?${queryString({ date })}`); }
+export function createManualCare(payload: ManualCarePayload) {
+  const form = new FormData();
+  form.append('contractId', payload.contractId); form.append('assistedPersonId', payload.assistedPersonId);
+  form.append('entryDate', payload.entryDate); form.append('occurredTime', payload.occurredTime);
+  form.append('careType', payload.careType); form.append('title', payload.title); form.append('description', payload.description);
+  form.append('timezone', payload.timezone); form.append('important', String(payload.important));
+  if (payload.notes) form.append('notes', payload.notes);
+  payload.photos.forEach((photo) => form.append('photos', photo.file ?? ({ uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob)));
+  return apiRequest<CareDiaryItem>('/api/caregiver/care-occurrences/manual', { method: 'POST', body: form });
+}
+export function getCaregiverDiary(date: string, timezone: string, filters: { assistedPersonId?: string; contractId?: string } = {}) {
+  return apiRequest<CareDiaryResponse>(`/api/caregiver/assisted-person-diary?${queryString({ date, timezone, ...filters })}`);
+}
+export function getResponsibleDiary(date: string, timezone: string, filters: { assistedPersonId?: string; contractId?: string } = {}) {
+  return apiRequest<CareDiaryResponse>(`/api/responsible/assisted-person-diary?${queryString({ date, timezone, ...filters })}`);
+}
+export function getManualCare(id: string, caregiver: boolean) {
+  return apiRequest<CareDiaryItem>(`/api/${caregiver ? 'caregiver' : 'responsible'}/care-occurrences/manual/${id}`);
+}
 
 export function optionForTask(task: { contractId: string; assistedPersonId: string; assistedPersonName: string; caregiverId: string; caregiverName: string; startDate: string; endDate?: string }): TaskContractOption {
   return { contractId: task.contractId, assistedPersonId: task.assistedPersonId, assistedPersonName: task.assistedPersonName, caregiverId: task.caregiverId, caregiverName: task.caregiverName, startDate: task.startDate, endDate: task.endDate, status: 'ATIVA' };

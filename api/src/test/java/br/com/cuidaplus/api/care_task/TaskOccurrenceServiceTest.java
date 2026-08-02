@@ -42,6 +42,7 @@ class TaskOccurrenceServiceTest {
     lenient().when(authorization.requireCaregiver(caregiverId)).thenReturn(caregiver);
     lenient().when(occurrences.findByIdAndCaregiver(occurrenceId, caregiver)).thenReturn(Optional.of(occurrence));
     lenient().when(occurrence.getTask()).thenReturn(task); lenient().when(occurrence.getContract()).thenReturn(contract);
+    lenient().when(recurrence.isWithinContractSchedule(any())).thenReturn(true);
     lenient().when(occurrence.getCaregiver()).thenReturn(caregiver); lenient().when(occurrence.getStatus()).thenReturn(TaskOccurrenceStatus.PENDENTE);
     lenient().when(occurrence.getVersion()).thenReturn(2L); lenient().when(contractProcessor.processContractIfDue(contract)).thenReturn(contract);
     LocalDate today = LocalDate.of(2026, 7, 27); lenient().when(occurrence.getScheduledDate()).thenReturn(today); lenient().when(dateTimes.today(anyString())).thenReturn(today); lenient().when(occurrence.getTimezone()).thenReturn("America/Sao_Paulo");

@@ -61,6 +61,12 @@ export default function RequestServiceFormScreen() {
     return <ScreenContainer contentStyle={styles.center}><Text style={styles.feedback}>{feedback ?? 'Selecione um cuidador antes de iniciar a solicitação.'}</Text><PrimaryButton label="Voltar para busca" onPress={() => router.replace('/(tabs)/buscar' as Href)} /></ScreenContainer>;
   }
   const currentDraft = draft;
+  const outOfScheduleTimes = currentDraft.careRoutine && currentDraft.startTime && currentDraft.endTime
+    ? [...new Set(currentDraft.careRoutine.items
+      .map((item) => item.scheduledTime?.slice(0, 5))
+      .filter((time): time is string => typeof time === 'string')
+      .filter((time) => time < currentDraft.startTime || time > currentDraft.endTime))]
+    : [];
 
   function update<K extends keyof ServiceRequestDraft>(key: K, value: ServiceRequestDraft[K]) {
     setDraft((current) => current ? { ...current, [key]: value } : current);
@@ -131,6 +137,7 @@ export default function RequestServiceFormScreen() {
       <Section title="Horários">
         <View style={styles.inline}><View style={styles.inlineField}><TimePickerField required label="Horário inicial" value={draft.startTime} onChange={(value) => update('startTime', value)} /></View><View style={styles.inlineField}><TimePickerField required label="Horário final" value={draft.endTime} onChange={(value) => update('endTime', value)} /></View></View>
         <Text style={styles.helper}>Nesta versão visual, o mesmo horário será aplicado a todos os dias selecionados.</Text>
+        {outOfScheduleTimes.length ? <View style={styles.scheduleWarning} accessibilityRole="alert"><Text style={styles.scheduleWarningTitle}>Atenção aos horários da rotina</Text><Text style={styles.scheduleWarningText}>Alguns cuidados desta rotina estão fora do horário do serviço e não serão considerados neste atendimento.</Text><Text style={styles.scheduleWarningText}>Fora do horário do serviço: {outOfScheduleTimes.sort().join(', ')}</Text></View> : null}
       </Section>
 
       <Section title="Necessidades da pessoa assistida">
@@ -152,5 +159,5 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg, gap: spacing.lg }, center: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.lg }, subtitle: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: colors.mutedForeground },
   section: { gap: spacing.md, padding: spacing.lg, borderRadius: radii.xl, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...shadows.card }, sectionTitle: { fontFamily: fontFamily.extraBold, fontSize: 17, color: colors.foreground },
   caregiverRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, choiceList: { gap: spacing.sm }, infoCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border }, infoCardSelected: { backgroundColor: colors.secondary, borderColor: colors.primary }, flex: { flex: 1 }, cardTitle: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.foreground }, cardText: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.mutedForeground }, selected: { fontFamily: fontFamily.semiBold, fontSize: 10, color: colors.mintForeground }, helper: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: colors.mutedForeground },
-  inline: { flexDirection: 'row', gap: spacing.sm }, inlineField: { flex: 1 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }, chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.full, backgroundColor: colors.secondary }, chipText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.primary }, feedback: { fontFamily: fontFamily.semiBold, fontSize: 13, lineHeight: 19, color: colors.destructive }, routineCard:{gap:spacing.xs,padding:spacing.md,borderRadius:radii.lg,borderWidth:1,borderColor:colors.border,backgroundColor:colors.muted},noRoutine:{gap:spacing.md,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.muted},careList:{gap:spacing.sm,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.secondary},
+  inline: { flexDirection: 'row', gap: spacing.sm }, inlineField: { flex: 1 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }, chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.full, backgroundColor: colors.secondary }, chipText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.primary }, feedback: { fontFamily: fontFamily.semiBold, fontSize: 13, lineHeight: 19, color: colors.destructive }, routineCard:{gap:spacing.xs,padding:spacing.md,borderRadius:radii.lg,borderWidth:1,borderColor:colors.border,backgroundColor:colors.muted},noRoutine:{gap:spacing.md,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.muted},careList:{gap:spacing.sm,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.secondary}, scheduleWarning: { gap: spacing.xs, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.coral, backgroundColor: '#FFF4EE' }, scheduleWarningTitle: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.foreground }, scheduleWarningText: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.foreground },
 });

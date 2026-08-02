@@ -3,6 +3,8 @@ export type TaskPriority = 'BAIXA' | 'NORMAL' | 'ALTA';
 export type TaskRecurrenceType = 'UNICA' | 'DIARIA' | 'DIAS_ESPECIFICOS' | 'INTERVALO' | 'PERIODO_DETERMINADO' | 'SEM_DATA_FINAL';
 export type TaskSeriesStatus = 'ATIVA' | 'PAUSADA' | 'CANCELADA' | 'FINALIZADA';
 export type TaskOccurrenceStatus = 'PENDENTE' | 'CONCLUIDA' | 'ATRASADA' | 'NAO_REALIZADA' | 'CANCELADA';
+export type CareRecordSourceType = 'PLANNED' | 'MANUAL';
+export type ManualCareType = 'MEDICACAO' | 'ALIMENTACAO' | 'HIGIENE' | 'MOBILIDADE' | 'COMPANHIA' | 'OBSERVACAO' | 'OCORRENCIA' | 'OUTRO';
 export type TaskEditScope = 'SOMENTE_ESTA_OCORRENCIA' | 'ESTA_E_FUTURAS' | 'TODA_A_SERIE';
 export type TaskWeekday = 'SEGUNDA' | 'TERCA' | 'QUARTA' | 'QUINTA' | 'SEXTA' | 'SABADO' | 'DOMINGO';
 export type MedicationUnit = 'MG' | 'G' | 'ML' | 'GOTAS' | 'COMPRIMIDO' | 'CAPSULA' | 'APLICACAO' | 'PERSONALIZADA';
@@ -43,6 +45,20 @@ export type TaskAudit = { id: string; action: string; actorName: string; details
 export type CareTaskDetails = { task: CareTask; medication?: Medication; audit: TaskAudit[] };
 export type CareTaskPage = { content: CareTask[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean };
 export type TaskOccurrencePage = { content: TaskOccurrence[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean };
+export type CareDiaryItem = {
+  id: string; sourceType: CareRecordSourceType; sourceLabel: string; occurrenceId?: string; manualEntryId?: string;
+  contractId: string; date: string; time: string; occurredAt: string; registeredAt?: string; careType: string;
+  careTypeLabel: string; title: string; description?: string; notes?: string; status: TaskOccurrenceStatus | 'REALIZADO';
+  statusLabel: string; assistedPersonId: string; assistedPersonName: string; caregiverName: string; important: boolean;
+  photos: { id: string; url: string; contentType: string; fileSize: number; createdAt: string }[];
+};
+export type CareDiaryResponse = { content: CareDiaryItem[] };
+export type ManualCareContractOption = { contractId: string; contractLabel: string; assistedPersonId: string; assistedPersonName: string };
+export type ManualCareFormData = { date: string; contracts: ManualCareContractOption[] };
+export type ManualCarePayload = {
+  contractId: string; assistedPersonId: string; entryDate: string; occurredTime: string; careType: ManualCareType;
+  title: string; description: string; notes?: string; timezone: string; important: boolean; photos: CareCompletionPhoto[];
+};
 export type TaskContractOption = {
   contractId: string; status: 'ATIVA' | 'ENCERRAMENTO_AGENDADO'; startDate: string; endDate?: string; effectiveEndDate?: string;
   assistedPersonId: string; assistedPersonName: string; caregiverId: string; caregiverName: string;

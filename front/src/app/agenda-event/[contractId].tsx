@@ -10,12 +10,14 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { ScreenContainer } from '@/components/screen-container';
 import { getAgendaEventDetails } from '@/services/agendaService';
+import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { AgendaEventDetails } from '@/types/agenda';
 import { contractHiringLabels, contractWeekdayLabels, formatCep } from '@/utils/contractsHistoryLabels';
 import { formatDateBR, formatScheduleTime } from '@/utils/dateTime';
 
 export default function AgendaEventDetailsScreen() {
+  const { user } = useAuth();
   const params = useLocalSearchParams<{ contractId: string; eventDate: string }>();
   const contractId = Array.isArray(params.contractId) ? params.contractId[0] : params.contractId;
   const eventDate = Array.isArray(params.eventDate) ? params.eventDate[0] : params.eventDate;
@@ -98,6 +100,11 @@ export default function AgendaEventDetailsScreen() {
 
       {contract.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados" value={contract.careRoutine.name} />{contract.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}
 
+      <Section title="Diário do dia">
+        <Text style={styles.diaryText}>Veja os cuidados planejados, realizados, não realizados e avulsos em ordem cronológica.</Text>
+        <PrimaryButton label="Ver cuidados e anotações do dia" variant="secondary" onPress={() => router.push({ pathname: user?.userType === 'caregiver' ? '/caregiver-tasks' : '/responsible-care-occurrences', params: { date: event.eventDate, contractId: contract.id } } as Href)} />
+      </Section>
+
       <Section title="Contratação">
         <Info label="Data de início" value={formatDateBR(contract.startDate)} />
         {contract.endDate ? <Info label="Data final prevista" value={formatDateBR(contract.endDate)} /> : null}
@@ -158,4 +165,5 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.full, backgroundColor: colors.secondary },
   chipText: { fontFamily: fontFamily.semiBold, fontSize: 11, color: colors.primary },
+  diaryText: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 20, color: colors.mutedForeground },
 });

@@ -5,21 +5,29 @@ import br.com.cuidaplus.api.profile.AssistedPerson;
 import br.com.cuidaplus.api.user.User;
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
 @Table(name = "care_activity_records")
 public class CareActivityRecord {
   @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
-  @OneToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "occurrence_id", unique = true) private TaskOccurrence occurrence;
+  @OneToOne(fetch = FetchType.LAZY) @JoinColumn(name = "occurrence_id", unique = true) private TaskOccurrence occurrence;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "contract_id") private CareContract contract;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "assisted_person_id") private AssistedPerson assistedPerson;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "responsible_user_id") private User responsible;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "caregiver_user_id") private User caregiver;
   @Column(nullable = false, length = 40) private String activityType;
+  @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private CareRecordSourceType sourceType;
+  @Column(nullable = false) private LocalDate entryDate;
+  @Column(nullable = false, length = 80) private String timezone;
+  @Column(nullable = false, length = 40) private String careType;
   @Column(nullable = false, length = 180) private String title;
+  @Column(length = 2000) private String description;
   @Column(length = 1000) private String notes;
+  @Column(nullable = false) private boolean important;
   @Column(nullable = false) private Instant occurredAt;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "created_by_user_id") private User createdBy;
   @Column(nullable = false, updatable = false) private Instant createdAt;
   @PrePersist void create() { createdAt = Instant.now(); }
   public UUID getId() { return id; }
@@ -29,8 +37,15 @@ public class CareActivityRecord {
   public User getResponsible() { return responsible; } public void setResponsible(User value) { responsible = value; }
   public User getCaregiver() { return caregiver; } public void setCaregiver(User value) { caregiver = value; }
   public String getActivityType() { return activityType; } public void setActivityType(String value) { activityType = value; }
+  public CareRecordSourceType getSourceType() { return sourceType; } public void setSourceType(CareRecordSourceType value) { sourceType = value; }
+  public LocalDate getEntryDate() { return entryDate; } public void setEntryDate(LocalDate value) { entryDate = value; }
+  public String getTimezone() { return timezone; } public void setTimezone(String value) { timezone = value; }
+  public String getCareType() { return careType; } public void setCareType(String value) { careType = value; }
   public String getTitle() { return title; } public void setTitle(String value) { title = value; }
+  public String getDescription() { return description; } public void setDescription(String value) { description = value; }
   public String getNotes() { return notes; } public void setNotes(String value) { notes = value; }
+  public boolean isImportant() { return important; } public void setImportant(boolean value) { important = value; }
   public Instant getOccurredAt() { return occurredAt; } public void setOccurredAt(Instant value) { occurredAt = value; }
+  public User getCreatedBy() { return createdBy; } public void setCreatedBy(User value) { createdBy = value; }
   public Instant getCreatedAt() { return createdAt; }
 }

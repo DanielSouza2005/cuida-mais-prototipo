@@ -93,7 +93,7 @@ export default function MainTabNavigator() {
         name="mensagens"
         options={{
           title: 'Mensagens',
-          href: isCaregiver ? undefined : null,
+          href: null,
           tabBarIcon: ({ color }) => <MessageCircle color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />

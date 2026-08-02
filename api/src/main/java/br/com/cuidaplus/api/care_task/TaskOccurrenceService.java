@@ -71,6 +71,7 @@ public class TaskOccurrenceService {
         List<TaskOccurrence> unique = uniqueOccurrences(occurrences.findByCaregiverAndScheduledDateBetweenOrderByScheduledInstantUtcAsc(caregiver, start, end).stream()
                 .filter(item -> item.getTask().getStatus() == TaskSeriesStatus.ATIVA || item.getStatus() != TaskOccurrenceStatus.PENDENTE)
                 .filter(item -> activeContract(item) || item.getStatus() != TaskOccurrenceStatus.PENDENTE)
+                .filter(recurrence::isWithinContractSchedule)
                 .filter(item -> category == null || item.getTask().getCategory() == category)
                 .filter(item -> assistedPersonId == null || item.getAssistedPerson().getId().equals(assistedPersonId))
                 .toList());
@@ -90,6 +91,7 @@ public class TaskOccurrenceService {
         });
         expiration.processExpiredPendingCareOccurrences();
         List<TaskOccurrenceResponse> content = uniqueOccurrences(occurrences.findByResponsibleAndScheduledDateBetween(responsible, date, date)).stream()
+                .filter(recurrence::isWithinContractSchedule)
                 .filter(item -> status == null || recurrence.effectiveStatus(item) == status)
                 .sorted(Comparator.comparing(TaskOccurrence::getScheduledInstantUtc).thenComparingInt(this::statusRank)).map(mapper::occurrence).toList();
         return page(content, page, size);
@@ -132,6 +134,8 @@ public class TaskOccurrenceService {
         TaskOccurrence occurrence = occurrences.findById(occurrenceId).orElseThrow(() -> new BusinessException("Cuidado não encontrado.", HttpStatus.NOT_FOUND));
         if (!occurrence.getTask().getResponsibleCreator().getId().equals(responsible.getId()))
             throw new BusinessException("Você não tem permissão para acessar este cuidado.", HttpStatus.FORBIDDEN);
+        if (!recurrence.isWithinContractSchedule(occurrence))
+            throw new BusinessException("Cuidado não encontrado.", HttpStatus.NOT_FOUND);
         return mapper.occurrence(occurrence);
     }
 
@@ -209,7 +213,9 @@ public class TaskOccurrenceService {
     }
 
     private TaskOccurrence owned(UUID id, User caregiver) {
-        return occurrences.findByIdAndCaregiver(id, caregiver).orElseThrow(() -> new BusinessException("Cuidado não encontrado.", HttpStatus.NOT_FOUND));
+        return occurrences.findByIdAndCaregiver(id, caregiver)
+                .filter(recurrence::isWithinContractSchedule)
+                .orElseThrow(() -> new BusinessException("Cuidado não encontrado.", HttpStatus.NOT_FOUND));
     }
 
     private boolean activeContract(TaskOccurrence occurrence) {

@@ -31,7 +31,7 @@ public class TaskReminderService {
     @Transactional
     public void scheduleFor(TaskOccurrence occurrence) {
         CareTask task = occurrence.getTask();
-        if (!task.isReminderEnabled()) return;
+        if (!task.isReminderEnabled() || !ContractCareSchedulePolicy.allows(occurrence.getContract(), occurrence.getScheduledDate(), occurrence.getScheduledTime())) return;
         Instant base = occurrence.getScheduledInstantUtc();
         if (task.getReminderMinutesBefore() != null && task.getReminderMinutesBefore() > 0)
             create(occurrence, task.getCaregiverExecutor(), TaskReminderType.BEFORE_SCHEDULED_TIME, base.minusSeconds(task.getReminderMinutesBefore() * 60L));
@@ -93,6 +93,11 @@ public class TaskReminderService {
 
     private void send(TaskReminder reminder, Instant now) {
         TaskOccurrence occurrence = reminder.getOccurrence();
+        if (!ContractCareSchedulePolicy.allows(occurrence.getContract(), occurrence.getScheduledDate(), occurrence.getScheduledTime())) {
+            reminder.setStatus(TaskReminderStatus.CANCELED);
+            reminder.setCanceledAt(now);
+            return;
+        }
         var contractStatus = occurrence.getContract().getStatus();
         if (contractStatus == br.com.cuidaplus.api.care_contract.CareContractStatus.CANCELADA || contractStatus == br.com.cuidaplus.api.care_contract.CareContractStatus.ENCERRADA || contractStatus == br.com.cuidaplus.api.care_contract.CareContractStatus.FINALIZADA) {
             reminder.setStatus(TaskReminderStatus.CANCELED);

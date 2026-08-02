@@ -2,8 +2,14 @@ package br.com.cuidaplus.api.care_task;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
+import br.com.cuidaplus.api.care_contract.CareContract;
+import br.com.cuidaplus.api.profile.DiaSemana;
+import br.com.cuidaplus.api.service_request.HiringType;
+import br.com.cuidaplus.api.service_request.ServiceRequest;
+import br.com.cuidaplus.api.service_request.ServiceRequestScheduleDay;
 import java.time.*;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class TaskOccurrenceExpirationServiceTest {
@@ -11,9 +17,26 @@ class TaskOccurrenceExpirationServiceTest {
   void expiredPendingCareIsMarkedNotDoneWithoutReason() {
     TaskOccurrenceRepository occurrences=mock(TaskOccurrenceRepository.class);TaskDateTimeService dates=mock(TaskDateTimeService.class);
     TaskReminderService reminders=mock(TaskReminderService.class);TaskAuditService audit=mock(TaskAuditService.class);
-    TaskOccurrence occurrence=mock(TaskOccurrence.class);CareTask task=mock(CareTask.class);
-    when(occurrences.findByStatusIn(any())).thenReturn(List.of(occurrence));when(occurrence.getScheduledDate()).thenReturn(LocalDate.of(2026,7,26));when(occurrence.getTimezone()).thenReturn("America/Sao_Paulo");when(dates.today("America/Sao_Paulo")).thenReturn(LocalDate.of(2026,7,27));when(occurrence.getTask()).thenReturn(task);
+    TaskOccurrence occurrence=mock(TaskOccurrence.class);CareTask task=mock(CareTask.class);CareContract contract=mock(CareContract.class);
+    when(occurrences.findByStatusIn(any())).thenReturn(List.of(occurrence));when(occurrence.getContract()).thenReturn(contract);when(occurrence.getScheduledDate()).thenReturn(LocalDate.of(2026,7,26));when(occurrence.getScheduledTime()).thenReturn(LocalTime.of(15,0));when(occurrence.getTimezone()).thenReturn("America/Sao_Paulo");when(dates.today("America/Sao_Paulo")).thenReturn(LocalDate.of(2026,7,27));when(occurrence.getTask()).thenReturn(task);
     int changed=new TaskOccurrenceExpirationService(occurrences,dates,reminders,audit).processExpiredPendingCareOccurrences();
     assertEquals(1,changed);verify(occurrence).setStatus(TaskOccurrenceStatus.NAO_REALIZADA);verify(occurrence).setExecutedBy(null);verify(occurrence).setNonCompletionReason(null);verify(occurrence).setAutoMarkedNotDone(true);verify(reminders).cancelFuture(occurrence);verify(reminders).notifyResponsibleNotDone(occurrence);verify(audit).record(task,occurrence,null,TaskAuditAction.OCORRENCIA_NAO_REALIZADA_AUTOMATICAMENTE,"Não realizado automaticamente, pois o dia previsto já passou.");
+  }
+
+  @Test
+  void invalidExpiredCareIsCanceledWithoutResponsibleAlert() {
+    TaskOccurrenceRepository occurrences=mock(TaskOccurrenceRepository.class);TaskDateTimeService dates=mock(TaskDateTimeService.class);
+    TaskReminderService reminders=mock(TaskReminderService.class);TaskAuditService audit=mock(TaskAuditService.class);
+    TaskOccurrence occurrence=mock(TaskOccurrence.class);CareTask task=mock(CareTask.class);CareContract contract=new CareContract();
+    ServiceRequest request=new ServiceRequest();ServiceRequestScheduleDay schedule=new ServiceRequestScheduleDay();
+    schedule.setWeekday(DiaSemana.SEGUNDA);schedule.setStartTime(LocalTime.of(14,0));schedule.setEndTime(LocalTime.of(22,0));
+    request.setHiringType(HiringType.PERIODO_INDETERMINADO);request.setScheduleDays(Set.of(schedule));contract.setServiceRequest(request);
+    when(occurrences.findByStatusIn(any())).thenReturn(List.of(occurrence));when(occurrence.getContract()).thenReturn(contract);when(occurrence.getTask()).thenReturn(task);
+    when(occurrence.getScheduledDate()).thenReturn(LocalDate.of(2026,8,3));when(occurrence.getScheduledTime()).thenReturn(LocalTime.of(8,0));
+
+    int changed=new TaskOccurrenceExpirationService(occurrences,dates,reminders,audit).processExpiredPendingCareOccurrences();
+
+    assertEquals(1,changed);verify(occurrence).setStatus(TaskOccurrenceStatus.CANCELADA);verify(reminders).cancelFuture(occurrence);
+    verify(reminders,never()).notifyResponsibleNotDone(any());verify(occurrence,never()).setAutoMarkedNotDone(true);
   }
 }

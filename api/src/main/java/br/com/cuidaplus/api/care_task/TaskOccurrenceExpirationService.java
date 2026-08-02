@@ -12,6 +12,10 @@ public class TaskOccurrenceExpirationService {
   public int processExpiredPendingCareOccurrences() {
     Instant now=Instant.now(); int changed=0;
     for (TaskOccurrence occurrence:occurrences.findByStatusIn(List.of(TaskOccurrenceStatus.PENDENTE,TaskOccurrenceStatus.ATRASADA))) {
+      if (!ContractCareSchedulePolicy.allows(occurrence.getContract(), occurrence.getScheduledDate(), occurrence.getScheduledTime())) {
+        occurrence.setStatus(TaskOccurrenceStatus.CANCELADA); occurrence.setCanceledAt(now); occurrence.setStatusUpdatedAt(now);
+        reminders.cancelFuture(occurrence); audit.record(occurrence.getTask(),occurrence,null,TaskAuditAction.OCORRENCIA_CANCELADA,"Ocorrência cancelada por estar fora do horário da contratação."); changed++; continue;
+      }
       if (!occurrence.getScheduledDate().isBefore(dateTimes.today(occurrence.getTimezone()))) continue;
       occurrence.setStatus(TaskOccurrenceStatus.NAO_REALIZADA); occurrence.setCompletedAt(null); occurrence.setExecutedBy(null); occurrence.setNonCompletionReason(null); occurrence.setExecutionNote(null); occurrence.setAutoMarkedNotDone(true); occurrence.setStatusUpdatedAt(now);
       reminders.cancelFuture(occurrence); reminders.notifyResponsibleNotDone(occurrence); audit.record(occurrence.getTask(),occurrence,null,TaskAuditAction.OCORRENCIA_NAO_REALIZADA_AUTOMATICAMENTE,"Não realizado automaticamente, pois o dia previsto já passou."); changed++;

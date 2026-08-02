@@ -43,7 +43,7 @@ public class TaskRecurrenceService {
 
     List<TaskOccurrence> created = new ArrayList<>();
     for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-      if (!matchesContract(task, date) || !matches(task, date)) continue;
+      if (!matchesContract(task, date) || !matches(task, date) || !ContractCareSchedulePolicy.allows(task.getContract(), date, task.getScheduledTime())) continue;
       OccurrenceCreationResult result = getOrCreateCareOccurrence(task, date);
       if (result.created()) created.add(result.occurrence());
     }
@@ -98,6 +98,12 @@ public class TaskRecurrenceService {
     if (request == null) return true;
     if (request.getHiringType() == br.com.cuidaplus.api.service_request.HiringType.PONTUAL) return request.getSpecificDates().contains(date);
     return request.getScheduleDays().stream().anyMatch(day -> day.getWeekday() == toWeekday(date.getDayOfWeek()));
+  }
+
+  boolean isWithinContractSchedule(TaskOccurrence occurrence) {
+    return ContractCareSchedulePolicy.allows(
+      occurrence.getContract(), occurrence.getScheduledDate(), occurrence.getScheduledTime()
+    );
   }
 
   private DiaSemana toWeekday(DayOfWeek value) {

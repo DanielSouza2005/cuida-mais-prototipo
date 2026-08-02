@@ -21,9 +21,15 @@ public class CareActivityIntegrationService {
     record.setResponsible(occurrence.getTask().getResponsibleCreator());
     record.setCaregiver(occurrence.getCaregiver());
     record.setActivityType("TAREFA_CONCLUIDA");
+    record.setSourceType(CareRecordSourceType.PLANNED);
+    record.setEntryDate(occurrence.getScheduledDate());
+    record.setTimezone(occurrence.getTimezone());
+    record.setCareType(occurrence.getTask().getCategory().name());
     record.setTitle(occurrence.getTask().getTitle());
     record.setNotes(note);
+    record.setImportant(occurrence.getTask().isImportant());
     record.setOccurredAt(executedAt);
+    record.setCreatedBy(occurrence.getCaregiver());
     try {
       return repository.saveAndFlush(record);
     } catch (RuntimeException exception) {
