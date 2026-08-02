@@ -27,7 +27,7 @@ export default function OnboardingScreen() {
           Bem-vindo ao Cuidar<Text style={styles.titlePlus}>+</Text>
         </Text>
         <Text style={styles.description}>
-          Conectando corações e organizando o cuidado domiciliar com carinho e tecnologia.
+          Conectando pessoas e organizando o cuidado domiciliar com carinho e tecnologia.
         </Text>
       </View>
 

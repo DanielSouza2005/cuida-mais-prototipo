@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { router, useSegments, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Bell, ClipboardCheck, HeartPulse, Home, LogOut, MapPin, Shield, User, Users } from 'lucide-react-native';
+import { router, useSegments, type Href } from 'expo-router';
+import { Bell, ClipboardCheck, IdCard, LogOut, Shield } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ProfileAvatar } from '@/components/profile-avatar';
-import { PrimaryButton } from '@/components/primary-button';
 import { ProfileTypeBadge } from '@/components/profile-type-badge';
 import { ScreenContainer } from '@/components/screen-container';
 import { SettingsRow } from '@/components/settings-row';
@@ -15,12 +14,6 @@ import { ApiError } from '@/services/api';
 import { deleteProfilePhoto, updateProfilePhoto } from '@/services/profileService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import { MAX_PROFILE_PHOTO_SIZE, toSelectedProfilePhoto } from '@/utils/profilePhoto';
-
-const routes = {
-  assistedPerson: '/profile-assisted-person' as Href,
-  careAddress: '/profile-care-address' as Href,
-  emergencyContact: '/profile-emergency-contact' as Href,
-};
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
@@ -127,38 +120,30 @@ export default function ProfileScreen() {
       <AppHeader showBack={!isTabRoute} />
 
       <View style={styles.profileCard}>
-        <ProfileAvatar imageUrl={user?.profilePhotoUrl} initials={initials} name={user?.fullName ?? 'Cuidar+'} subtitle={user?.email ?? 'Perfil de protótipo'} />
-        {isCaregiver ? (
-          <PrimaryButton
-            label={isUpdatingPhoto ? 'Atualizando foto...' : user?.profilePhotoUrl ? 'Editar foto' : 'Adicionar foto'}
-            variant="secondary"
-            onPress={showPhotoOptions}
-            loading={isUpdatingPhoto}
-            disabled={isUpdatingPhoto}
-            style={styles.photoButton}
-          />
-        ) : null}
+        <ProfileAvatar
+          imageUrl={user?.profilePhotoUrl}
+          initials={initials}
+          name={user?.fullName ?? 'Cuidar+'}
+          subtitle={user?.email ?? 'Perfil de protótipo'}
+          editable={isCaregiver}
+          editDisabled={isUpdatingPhoto}
+          editLoading={isUpdatingPhoto}
+          onEditPress={isCaregiver ? showPhotoOptions : undefined}
+        />
         {user ? <ProfileTypeBadge type={isCaregiver ? 'CUIDADOR' : 'RESPONSAVEL'} /> : <Text style={styles.profileNote}>Carregando dados do perfil.</Text>}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configurações</Text>
-        <SettingsRow title="Informações pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
-        {isCaregiver ? (
-          <>
-            <SettingsRow title="Endereço" description="Localização e dados de endereço" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />
-            <SettingsRow title="Experiência" description="Trajetória, formação e biografia profissional" icon={HeartPulse} onPress={() => router.push('/profile-caregiver-experience')} />
-            <SettingsRow title="Disponibilidade" description="Horários, modalidade de atendimento e agenda" icon={MapPin} onPress={() => router.push('/profile-caregiver-availability')} />
-            <SettingsRow title="Serviços oferecidos" description="Atividades de cuidado disponíveis" icon={Users} onPress={() => router.push('/profile-caregiver-services')} />
-          </>
-        ) : (
-          <>
-            <SettingsRow title="Pessoa assistida" description="Perfil de cuidado e necessidades importantes" icon={Users} onPress={() => router.push(routes.assistedPerson)} />
-            <SettingsRow title="Endereço do cuidado" description="Local onde o cuidado será realizado" icon={MapPin} onPress={() => router.push(routes.careAddress)} />
-            <SettingsRow title="Contato de emergência" description="Nome, telefone e vínculo de apoio" icon={HeartPulse} onPress={() => router.push(routes.emergencyContact)} />
-            <SettingsRow title="Rotina de Cuidados" description="Cadastre rotinas para reutilizar nas solicitações de serviço" icon={ClipboardCheck} onPress={() => router.push('/care-tasks' as Href)} />
-          </>
-        )}
+        <SettingsRow
+          title="Dados cadastrais"
+          description={isCaregiver
+            ? 'Gerencie suas informações pessoais, experiência, disponibilidade e serviços oferecidos.'
+            : 'Gerencie suas informações pessoais, pessoa assistida, endereço do cuidado e contato de emergência.'}
+          icon={IdCard}
+          onPress={() => router.push('/profile-registration-settings' as Href)}
+        />
+        {!isCaregiver ? <SettingsRow title="Rotina de Cuidados" description="Cadastre rotinas para reutilizar nas solicitações de serviço" icon={ClipboardCheck} onPress={() => router.push('/care-tasks' as Href)} /> : null}
         <SettingsRow title="Notificações" description="Preferências de comunicação" icon={Bell} onPress={() => router.push('/profile-notifications')} />
         <SettingsRow title="Privacidade" description="Segurança da conta e dados pessoais" icon={Shield} onPress={() => router.push('/profile-privacy')} />
         <SettingsRow
@@ -197,10 +182,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: colors.mutedForeground,
-  },
-  photoButton: {
-    alignSelf: 'stretch',
-    minHeight: 48,
   },
   section: {
     gap: spacing.md,
