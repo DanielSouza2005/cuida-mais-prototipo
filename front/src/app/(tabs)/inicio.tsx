@@ -1,199 +1,142 @@
+import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import {
   Bell,
+  CalendarDays,
   ClipboardCheck,
   ClipboardList,
-  HeartPulse,
-  MapPin,
+  Handshake,
   Search,
-  ShieldCheck,
-  Stethoscope,
   UserRound,
-  Users,
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useCallback, useState } from 'react';
 
-import { QuickActionCard } from '@/components/home/quick-action-card';
-import { SummaryCard } from '@/components/home/summary-card';
+import { NextCareCard } from '@/components/home/next-care-card';
+import { QuickAccessGrid, type QuickAccessItem } from '@/components/home/quick-access-grid';
+import { WellnessTipCard } from '@/components/home/wellness-tip-card';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
-import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
+import { getCaregiverDayTasks, getResponsibleDayCareOccurrences } from '@/services/careTaskService';
 import { getUnreadNotificationCount } from '@/services/notificationService';
+import { colors, fontFamily, shadows, spacing } from '@/theme/tokens';
+import type { TaskOccurrence } from '@/types/careTasks';
+import { todayDateOnly } from '@/utils/agendaDate';
+import { deviceTimezone } from '@/utils/careTaskLabels';
+import { getWellnessTip } from '@/utils/wellnessTips';
 
-const tabRoutes = {
-  requests: '/solicitacoes' as Href,
-  caregiverSearch: '/caregiver-search' as Href,
-  cuidados: '/cuidados' as Href,
-  mensagens: '/mensagens' as Href,
-  perfil: '/perfil' as Href,
+const routes = {
+  requests: '/(tabs)/solicitacoes' as Href,
+  search: '/(tabs)/buscar' as Href,
+  contracts: '/(tabs)/contratacoes' as Href,
+  agenda: '/(tabs)/agenda' as Href,
+  profile: '/(tabs)/perfil' as Href,
 } as const;
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const firstName = user?.fullName?.trim().split(/\s+/)[0] ?? 'Daniel';
   const isCaregiver = user?.userType === 'caregiver';
-  const [unreadCount,setUnreadCount]=useState(0);
-  useFocusEffect(useCallback(()=>{if(user)getUnreadNotificationCount().then((result)=>setUnreadCount(result.count)).catch(()=>setUnreadCount(0));},[user]));
+  const firstName = user?.fullName?.trim().split(/\s+/)[0] || 'você';
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [nextCare, setNextCare] = useState<TaskOccurrence | null>(null);
+  const [careLoading, setCareLoading] = useState(true);
+  const [careError, setCareError] = useState(false);
+  const today = todayDateOnly();
+  const dayCareRoute = (isCaregiver ? `/caregiver-tasks?date=${today}` : `/responsible-care-occurrences?date=${today}`) as Href;
+
+  const loadNextCare = useCallback(async () => {
+    if (!user) return;
+    setCareLoading(true);
+    setCareError(false);
+    try {
+      const date = todayDateOnly();
+      const timezone = deviceTimezone();
+      const result = isCaregiver
+        ? await getCaregiverDayTasks(date, timezone)
+        : await getResponsibleDayCareOccurrences(date, timezone);
+      setNextCare(selectNextCare(result.content));
+    } catch {
+      setCareError(true);
+    } finally {
+      setCareLoading(false);
+    }
+  }, [isCaregiver, user]);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void loadNextCare();
+    if (user) {
+      getUnreadNotificationCount()
+        .then((result) => { if (active) setUnreadCount(result.count); })
+        .catch(() => { if (active) setUnreadCount(0); });
+    }
+    return () => { active = false; };
+  }, [loadNextCare, user]));
+
+  const quickAccessItems = useMemo<QuickAccessItem[]>(() => isCaregiver ? [
+    { title: 'Solicitações', description: 'Avalie novos pedidos de cuidado.', icon: ClipboardList, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.requests) },
+    { title: 'Agenda', description: 'Confira seus próximos atendimentos.', icon: CalendarDays, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.agenda) },
+    { title: 'Cuidados de hoje', description: 'Visualize e registre os cuidados do dia.', icon: ClipboardCheck, iconColor: '#A9573C', iconBackground: '#FCE9E1', onPress: () => router.push(dayCareRoute) },
+    { title: 'Perfil', description: 'Acesse seus dados e preferências.', icon: UserRound, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(routes.profile) },
+  ] : [
+    { title: 'Buscar cuidadores', description: 'Encontre profissionais disponíveis.', icon: Search, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.search) },
+    { title: 'Contratações', description: 'Acompanhe seus serviços contratados.', icon: Handshake, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.contracts) },
+    { title: 'Agenda', description: 'Veja os atendimentos programados.', icon: CalendarDays, iconColor: '#A9573C', iconBackground: '#FCE9E1', onPress: () => router.push(routes.agenda) },
+    { title: 'Cuidados do dia', description: 'Acompanhe os cuidados previstos e realizados.', icon: ClipboardCheck, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(dayCareRoute) },
+  ], [dayCareRoute, isCaregiver]);
+
+  function openCare() {
+    router.push(nextCare ? (`/task-occurrence/${nextCare.id}` as Href) : dayCareRoute);
+  }
 
   return (
     <ScreenContainer contentStyle={styles.content}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerCopy}>
           <Text style={styles.greeting}>Olá, {firstName}</Text>
           <Text style={styles.subtitle}>Bem-vindo ao Cuidar+</Text>
         </View>
-        {user ? <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => router.push('/caregiver-notifications' as Href)} style={styles.notificationButton}><Bell color={colors.primary} size={22} />{unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount}</Text></View> : null}</Pressable> : null}
+        {user ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => router.push('/caregiver-notifications' as Href)} style={styles.notificationButton}>
+            <Bell color={colors.primary} size={22} />
+            {unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View> : null}
+          </Pressable>
+        ) : null}
       </View>
 
-      <SummaryCard
-        eyebrow="Resumo de hoje"
-        title="Nenhum cuidado agendado para hoje"
-        description="Acompanhe suas atividades e informações importantes por aqui."
-        icon={ShieldCheck}
-      />
+      <NextCareCard care={nextCare} error={careError} isCaregiver={isCaregiver} loading={careLoading} onPress={openCare} onRetry={() => void loadNextCare()} />
 
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Acesso rápido</Text>
-          <Text style={styles.sectionHint}>Funcionalidades em construção</Text>
-        </View>
-
-        <View style={styles.grid}>
-          {isCaregiver ? (
-            <>
-              <QuickActionCard title="Solicitações" description="Avalie novos pedidos de cuidado." icon={ClipboardList} onPress={() => router.push(tabRoutes.requests)} />
-              <QuickActionCard title="Cuidados de hoje" description="Visualize e registre os cuidados do dia." icon={ClipboardCheck} onPress={() => router.push('/caregiver-tasks' as Href)} />
-            </>
-          ) : (
-            <><QuickActionCard title="Buscar cuidadores" description="Encontre profissionais disponíveis" icon={Search} onPress={() => router.push(tabRoutes.caregiverSearch)}/><QuickActionCard title="Cuidados do dia" description="Acompanhe os cuidados previstos e realizados." icon={ClipboardCheck} onPress={()=>router.push('/responsible-care-occurrences' as Href)}/></>
-          )}
-          <QuickActionCard
-            title={isCaregiver ? 'Serviços oferecidos' : 'Pessoa assistida'}
-            description={isCaregiver ? 'Organize os serviços do perfil.' : 'Consulte dados principais de cuidado.'}
-            icon={isCaregiver ? Stethoscope : Users}
-            onPress={() => router.push(tabRoutes.cuidados)}
-          />
-          <QuickActionCard
-            title="Mensagens"
-            description="Espaço preparado para conversas futuras."
-            icon={HeartPulse}
-            onPress={() => router.push(tabRoutes.mensagens)}
-          />
-          <QuickActionCard
-            title="Perfil"
-            description="Acesse dados da conta e preferências."
-            icon={UserRound}
-            onPress={() => router.push(tabRoutes.perfil)}
-          />
-        </View>
+        <Text style={styles.sectionTitle}>Acesso rápido</Text>
+        <QuickAccessGrid items={quickAccessItems} />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{isCaregiver ? 'Área do cuidador' : 'Área do responsável'}</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoIcon}>
-            {isCaregiver ? (
-              <Stethoscope color={colors.mintForeground} size={20} strokeWidth={2.4} />
-            ) : (
-              <MapPin color={colors.mintForeground} size={20} strokeWidth={2.4} />
-            )}
-          </View>
-          <View style={styles.infoCopy}>
-            <Text style={styles.infoTitle}>{isCaregiver ? 'Próximos atendimentos' : 'Endereço do cuidado'}</Text>
-            <Text style={styles.infoText}>
-              {isCaregiver
-                ? 'Esta área será personalizada com disponibilidade e serviços nas próximas versões.'
-                : 'Esta área será personalizada com dados da pessoa assistida nas próximas versões.'}
-            </Text>
-          </View>
-        </View>
+        <Text style={styles.sectionTitle}>Área do bem-estar</Text>
+        <WellnessTipCard tip={getWellnessTip()} />
       </View>
     </ScreenContainer>
   );
 }
 
+function selectNextCare(items: TaskOccurrence[]) {
+  return [...items]
+    .filter((item) => item.status === 'ATRASADA' || item.status === 'PENDENTE')
+    .sort((first, second) => {
+      const statusDifference = Number(first.status !== 'ATRASADA') - Number(second.status !== 'ATRASADA');
+      if (statusDifference !== 0) return statusDifference;
+      return first.scheduledInstantUtc.localeCompare(second.scheduledInstantUtc);
+    })[0] ?? null;
+}
+
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-    gap: spacing.xl,
-  },
-  header: {
-    paddingTop: spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  notificationButton: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...shadows.card },
-  badge: { position: 'absolute', top: -3, right: -3, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.destructive },
-  badgeText: { fontFamily: fontFamily.bold, fontSize: 10, color: colors.primaryForeground },
-  greeting: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: 26,
-    lineHeight: 32,
-    color: colors.foreground,
-  },
-  subtitle: {
-    marginTop: spacing.xs,
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.mutedForeground,
-  },
-  section: {
-    gap: spacing.md,
-  },
-  sectionHeader: {
-    gap: spacing.xxs,
-  },
-  sectionTitle: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: 18,
-    color: colors.foreground,
-  },
-  sectionHint: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: colors.mutedForeground,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: spacing.md,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    borderRadius: radii.xxl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.mint,
-    padding: spacing.lg,
-    ...shadows.card,
-  },
-  infoIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.full,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  infoTitle: {
-    fontFamily: fontFamily.bold,
-    fontSize: 14,
-    color: colors.mintForeground,
-  },
-  infoText: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12.5,
-    lineHeight: 19,
-    color: colors.mintForeground,
-  },
+  content: { gap: spacing.xl, paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
+  header: { paddingTop: spacing.sm, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  headerCopy: { flex: 1 },
+  greeting: { fontFamily: fontFamily.extraBold, fontSize: 26, lineHeight: 32, color: colors.foreground },
+  subtitle: { marginTop: spacing.xs, fontFamily: fontFamily.regular, fontSize: 14, color: colors.mutedForeground },
+  notificationButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, ...shadows.card },
+  badge: { position: 'absolute', top: -4, right: -5, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, borderRadius: 10, backgroundColor: colors.destructive },
+  badgeText: { fontFamily: fontFamily.bold, fontSize: 9, color: colors.primaryForeground },
+  section: { gap: spacing.md },
+  sectionTitle: { fontFamily: fontFamily.extraBold, fontSize: 18, color: colors.foreground },
 });
