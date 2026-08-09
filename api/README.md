@@ -25,6 +25,8 @@ Esse arquivo contem as propriedades de desenvolvimento local para:
 - recuperacao de senha;
 - SMTP.
 
+As credenciais do banco e a chave JWT são obrigatoriamente fornecidas por variáveis de ambiente. Use `api/.env.example` como referência e não coloque valores reais no arquivo versionado.
+
 ## Rodando localmente
 
 Na raiz do repositorio:
@@ -40,6 +42,53 @@ mvn spring-boot:run
 ```
 
 Por padrao a API sobe em `http://localhost:8080`.
+
+## Docker
+
+O build usa Ubuntu 24.04 e OpenJDK 21 no estágio de compilação. A execução usa a imagem JRE 21 do Eclipse Temurin, contém apenas o JAR da aplicação e roda com o UID/GID não-root `10001:10001`.
+
+Na raiz do repositório, gere a imagem:
+
+```bash
+docker build -t cuida-plus-api .
+```
+
+Prepare um arquivo local de variáveis, ajuste os valores e mantenha-o fora do controle de versão:
+
+```bash
+cp api/.env.example api/.env
+```
+
+Execute a API com acesso ao PostgreSQL instalado na máquina hospedeira:
+
+```bash
+docker run --rm \
+  --name cuida-plus-api \
+  --add-host=host.docker.internal:host-gateway \
+  --env-file api/.env \
+  -p 8080:8080 \
+  -v cuida-plus-uploads:/app/uploads \
+  cuida-plus-api
+```
+
+No Docker Desktop, `host.docker.internal` já está disponível; a opção `--add-host` mantém o mesmo comando compatível com Docker Engine no Linux.
+
+Para definir somente o profile adicionalmente:
+
+```bash
+docker run --rm -p 8080:8080 \
+  --env-file api/.env \
+  -e SPRING_PROFILES_ACTIVE=prod \
+  cuida-plus-api
+```
+
+Depois da inicialização, verifique o endpoint público existente:
+
+```bash
+curl --fail http://localhost:8080/health
+```
+
+A imagem também possui um healthcheck contra `/health`. Ele reutiliza o `curl` já fornecido pela imagem oficial do Eclipse Temurin, sem instalar pacotes adicionais no estágio final.
 
 ## Recuperacao de senha
 
