@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BackButton } from '@/components/back-button';
-import { Brand } from '@/components/brand';
+import { BrandMark } from '@/components/brand';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 type Props = {
@@ -15,8 +15,8 @@ export function AppHeader({ backDisabled = false, title, subtitle, showBack = fa
   return (
     <View style={styles.wrapper}>
       <View style={styles.topRow}>
-        {showBack ? <BackButton disabled={backDisabled} /> : <Brand />}
-        {showBack ? <Brand /> : null}
+        {showBack ? <BackButton disabled={backDisabled} /> : <BrandMark />}
+        {showBack ? <BrandMark /> : null}
       </View>
       {title ? (
         <View style={styles.copy}>

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppTextInput } from '@/components/app-text-input';
 import { BackButton } from '@/components/back-button';
-import { Brand } from '@/components/brand';
+import { BrandMark } from '@/components/brand';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
@@ -108,7 +108,7 @@ export default function LoginScreen() {
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
       <View style={styles.topRow}>
         <BackButton disabled={isSubmitting} />
-        <Brand />
+        <BrandMark />
       </View>
 
       <View style={styles.heading}>

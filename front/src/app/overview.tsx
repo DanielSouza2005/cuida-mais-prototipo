@@ -16,7 +16,7 @@ import {
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Brand } from '@/components/brand';
+import { BrandMark } from '@/components/brand';
 import { ScreenContainer } from '@/components/screen-container';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
@@ -66,7 +66,7 @@ export default function OverviewScreen() {
   return (
     <ScreenContainer contentStyle={styles.content}>
       <View style={styles.header}>
-        <Brand />
+        <BrandMark />
         <Text style={styles.title}>Visão geral do protótipo</Text>
         <Text style={styles.description}>
           Todas as telas do app, organizadas por fluxo. Cada cartão abre a rota navegável dentro da migração visual.
