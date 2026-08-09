@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import * as authService from '@/services/authService';
+import { disableCurrentDevice } from '@/services/pushNotificationService';
 import { AUTH_TOKEN_KEY, deleteSessionItem, getSessionItem, setSessionItem } from '@/services/sessionStorage';
 import type {
   AuthResponse,
@@ -105,6 +106,11 @@ export function AuthProvider({ children }: Props) {
 
   const logout = useCallback(async () => {
     const currentToken = token;
+    try {
+      await disableCurrentDevice(currentToken);
+    } catch {
+      // A troca de usuário também reassocia globalmente o token no próximo login.
+    }
     setUser(null);
     setToken(null);
     await deleteSessionItem(AUTH_TOKEN_KEY);

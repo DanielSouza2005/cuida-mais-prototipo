@@ -10,11 +10,13 @@ import br.com.cuidaplus.api.user.UserService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 
 class NotificationServicePreferenceTest {
   private final NotificationRepository repository = mock(NotificationRepository.class);
   private final NotificationPreferenceService preferences = mock(NotificationPreferenceService.class);
-  private final NotificationService service = new NotificationService(repository, mock(UserService.class), preferences);
+  private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
+  private final NotificationService service = new NotificationService(repository, mock(UserService.class), preferences, events);
   private final User recipient = new User();
 
   @Test
@@ -24,6 +26,7 @@ class NotificationServicePreferenceTest {
     service.create(recipient, NotificationType.SERVICE_REQUEST_CREATED, "Nova solicitação", "Mensagem", RelatedEntityType.SERVICE_REQUEST, UUID.randomUUID());
 
     verify(repository, never()).save(org.mockito.ArgumentMatchers.any(Notification.class));
+    verify(events, never()).publishEvent(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
@@ -33,6 +36,7 @@ class NotificationServicePreferenceTest {
     service.create(recipient, NotificationType.SERVICE_REQUEST_CREATED, "Nova solicitação", "Mensagem", RelatedEntityType.SERVICE_REQUEST, UUID.randomUUID());
 
     verify(repository).save(org.mockito.ArgumentMatchers.any(Notification.class));
+    verify(events).publishEvent(org.mockito.ArgumentMatchers.any(NotificationCreatedEvent.class));
   }
 
   @Test
@@ -44,6 +48,7 @@ class NotificationServicePreferenceTest {
     service.create(recipient, NotificationType.CARE_TASK_OVERDUE, "Cuidado atrasado", "Mensagem", RelatedEntityType.CARE_OCCURRENCE, relatedId);
 
     verify(repository, never()).save(org.mockito.ArgumentMatchers.any(Notification.class));
+    verify(events, never()).publishEvent(org.mockito.ArgumentMatchers.any());
   }
 
   @Test

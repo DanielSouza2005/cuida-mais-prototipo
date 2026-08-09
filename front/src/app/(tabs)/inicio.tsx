@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import {
   Bell,
@@ -18,6 +18,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { getCaregiverDayTasks, getResponsibleDayCareOccurrences } from '@/services/careTaskService';
 import { getUnreadNotificationCount } from '@/services/notificationService';
+import { subscribeNotificationsChanged } from '@/services/notificationEvents';
 import { colors, fontFamily, shadows, spacing } from '@/theme/tokens';
 import type { TaskOccurrence } from '@/types/careTasks';
 import { todayDateOnly } from '@/utils/agendaDate';
@@ -61,14 +62,17 @@ export default function HomeScreen() {
     }
   }, [isCaregiver, user]);
 
+  const loadUnreadCount = useCallback(() => {
+    if (!user) return;
+    getUnreadNotificationCount().then((result) => setUnreadCount(result.count)).catch(() => setUnreadCount(0));
+  }, [user]);
+
+  useEffect(() => subscribeNotificationsChanged(loadUnreadCount), [loadUnreadCount]);
+
   useFocusEffect(useCallback(() => {
     let active = true;
     void loadNextCare();
-    if (user) {
-      getUnreadNotificationCount()
-        .then((result) => { if (active) setUnreadCount(result.count); })
-        .catch(() => { if (active) setUnreadCount(0); });
-    }
+    if (user) getUnreadNotificationCount().then((result) => { if (active) setUnreadCount(result.count); }).catch(() => { if (active) setUnreadCount(0); });
     return () => { active = false; };
   }, [loadNextCare, user]));
 

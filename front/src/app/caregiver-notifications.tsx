@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { router, type Href, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/app-header';
 import { LoadingState } from '@/components/loading-state';
@@ -8,16 +8,25 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/api';
 import { clearAllNotifications, getNotifications, readNotification } from '@/services/notificationService';
+import { emitNotificationsChanged, subscribeNotificationsChanged } from '@/services/notificationEvents';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 import type { NotificationItem } from '@/types/notification';
 import { formatDateTimeLocal } from '@/utils/dateTime';
 import { getNotificationVisualConfig } from '@/utils/notificationCatalog';
+import { getNotificationHref } from '@/utils/notificationNavigation';
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setMessage(null);
+    return getNotifications()
+      .then(setItems)
+      .catch(() => setMessage('Não foi possível carregar as notificações.'));
+  }, []);
 
   useFocusEffect(useCallback(() => {
     let active = true;
@@ -30,26 +39,16 @@ export default function NotificationsScreen() {
     return () => { active = false; };
   }, []));
 
+  useFocusEffect(useCallback(() => subscribeNotificationsChanged(() => { void load(); }), [load]));
+
   async function open(item: NotificationItem) {
     try {
       await readNotification(item.id);
       setItems((current) => current.map((value) => value.id === item.id ? { ...value, readAt: new Date().toISOString() } : value));
-      if (item.relatedEntityType === 'CARE_TASK') {
-        if (user?.userType === 'caregiver') router.push('/caregiver-tasks' as Href);
-        else router.push(`/care-task/${item.relatedEntityId}` as Href);
-        return;
-      }
-      if (item.relatedEntityType === 'TASK_OCCURRENCE' || item.relatedEntityType === 'CARE_OCCURRENCE') {
-        router.push(`/task-occurrence/${item.relatedEntityId}` as Href);
-        return;
-      }
-      if (item.relatedEntityType === 'CARE_CONTRACT') {
-        router.push(`/responsible-contract/${item.relatedEntityId}?itemType=CARE_CONTRACT` as Href);
-        return;
-      }
-      if (item.relatedEntityType !== 'SERVICE_REQUEST') return;
-      if (user?.userType === 'caregiver') router.push(`/caregiver-service-request/${item.relatedEntityId}` as Href);
-      else if (user?.userType === 'family') router.push(`/responsible-service-request/${item.relatedEntityId}` as Href);
+      emitNotificationsChanged();
+      const href = getNotificationHref(item, user?.userType);
+      if (!href) throw new Error('Rota de notificação indisponível.');
+      router.push(href);
     } catch {
       setMessage(item.relatedEntityType === 'CARE_OCCURRENCE' || item.relatedEntityType === 'TASK_OCCURRENCE' ? 'Não foi possível abrir este cuidado.' : 'Não foi possível abrir a notificação.');
     }
@@ -66,6 +65,7 @@ export default function NotificationsScreen() {
     try {
       await clearAllNotifications();
       setItems([]);
+      emitNotificationsChanged();
       Alert.alert('Tudo certo', 'Notificações limpas com sucesso.');
     } catch (error) {
       setMessage(error instanceof ApiError ? error.message : 'Não foi possível limpar as notificações.');

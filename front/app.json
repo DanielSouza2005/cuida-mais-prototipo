@@ -36,6 +36,13 @@
       ],
       "expo-secure-store",
       [
+        "expo-notifications",
+        {
+          "color": "#2F8FC4",
+          "defaultChannel": "default"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Permita que o Cuidar+ acesse suas fotos para adicionar imagens de perfil e comprovação de cuidados.",
