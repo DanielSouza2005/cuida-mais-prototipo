@@ -1,7 +1,13 @@
-# O build da API precisa somente destes arquivos.
-**
-!Dockerfile
-!api/
-!api/pom.xml
-!api/src/
-!api/src/**
+.git
+.gitignore
+target
+api/target
+*.log
+.env
+.env.*
+.DS_Store
+.idea
+.vscode
+node_modules
+dist
+build

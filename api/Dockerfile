@@ -11,17 +11,14 @@ RUN apt-get update \
 
 WORKDIR /workspace
 
-# Como o Root Directory do Render já é /api,
-# pom.xml e src estão diretamente no contexto do Docker.
 COPY pom.xml ./pom.xml
 
-# Baixa dependências primeiro para aproveitar cache.
 RUN mvn --batch-mode --no-transfer-progress dependency:go-offline
 
-COPY src ./src
+COPY . .
 
 RUN mvn --batch-mode --no-transfer-progress clean package -DskipTests \
-    && cp target/cuida-plus-api-0.1.0.jar /workspace/app.jar
+    && cp target/*.jar /workspace/app.jar
 
 
 FROM eclipse-temurin:21-jre-noble AS runtime
