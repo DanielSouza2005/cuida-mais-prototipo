@@ -11,18 +11,24 @@ RUN apt-get update \
 
 WORKDIR /workspace
 
-COPY api/pom.xml api/pom.xml
-RUN mvn --batch-mode --no-transfer-progress -f api/pom.xml dependency:go-offline
+# Como o Root Directory do Render já é /api,
+# pom.xml e src estão diretamente no contexto do Docker.
+COPY pom.xml ./pom.xml
 
-COPY api/src api/src
-RUN mvn --batch-mode --no-transfer-progress -f api/pom.xml clean package -DskipTests \
-    && cp api/target/cuida-plus-api-0.1.0.jar /workspace/app.jar
+# Baixa dependências primeiro para aproveitar cache.
+RUN mvn --batch-mode --no-transfer-progress dependency:go-offline
+
+COPY src ./src
+
+RUN mvn --batch-mode --no-transfer-progress clean package -DskipTests \
+    && cp target/cuida-plus-api-0.1.0.jar /workspace/app.jar
+
 
 FROM eclipse-temurin:21-jre-noble AS runtime
 
-ENV PORT=8080
-
 WORKDIR /app
+
+ENV PORT=8080
 
 RUN mkdir -p /app/uploads \
     && chown -R 10001:10001 /app
@@ -33,7 +39,4 @@ USER 10001:10001
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD curl --fail --silent --show-error "http://localhost:${PORT}/health" > /dev/null || exit 1
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
