@@ -12,7 +12,7 @@ import {
   Phone,
   User,
 } from 'lucide-react-native';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTextInput } from '@/components/app-text-input';
 import { BackButton } from '@/components/back-button';
@@ -168,6 +168,7 @@ export default function SignupScreen() {
   const today = useMemo(() => new Date(), []);
   const caregiverCepRequestRef = useRef('');
   const careCepRequestRef = useRef('');
+  const scrollRef = useRef<ScrollView>(null);
 
   const maxStep = role === 'family' ? 4 : 4;
   const showAllergyDetails = needsDetail(allergies);
@@ -178,6 +179,14 @@ export default function SignupScreen() {
   const careAddressDisabled = screenBusy;
   const caregiverAddressDisabled = screenBusy;
   useBlockNavigationWhenBusy(screenBusy);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ animated: step > 0, y: 0 });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [role, step]);
 
   function handlePickedAsset(asset: ImagePicker.ImagePickerAsset) {
     if (asset.fileSize && asset.fileSize > MAX_PROFILE_PHOTO_SIZE) {
@@ -523,7 +532,7 @@ export default function SignupScreen() {
           profilePhoto,
         });
       }
-      router.replace('/profile');
+      router.replace('/(tabs)/perfil');
     } catch (error) {
       setFeedback(getSignupFeedback(error));
     } finally {
@@ -532,7 +541,7 @@ export default function SignupScreen() {
   }
 
   return (
-    <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
+    <ScreenContainer keyboardAvoiding contentStyle={styles.content} scrollViewRef={scrollRef}>
       <View style={styles.topRow}>
         <BackButton disabled={screenBusy} />
         <BrandMark />

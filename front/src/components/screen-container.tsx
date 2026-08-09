@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, Ref } from 'react';
 import { useSegments } from 'expo-router';
 import {
   KeyboardAvoidingView,
@@ -20,6 +20,7 @@ type Props = PropsWithChildren<{
   scroll?: boolean;
   keyboardAvoiding?: boolean;
   safeAreaEdges?: Edge[];
+  scrollViewRef?: Ref<ScrollView>;
   scrollViewProps?: Omit<ScrollViewProps, 'contentContainerStyle'>;
 }>;
 
@@ -29,6 +30,7 @@ export function ScreenContainer({
   scroll = true,
   keyboardAvoiding = false,
   safeAreaEdges,
+  scrollViewRef,
   scrollViewProps,
 }: Props) {
   const segments = useSegments();
@@ -36,6 +38,7 @@ export function ScreenContainer({
   const resolvedEdges = safeAreaEdges ?? (insideTabs ? ['top', 'right', 'left'] : ['top', 'right', 'bottom', 'left']);
   const content = scroll ? (
     <ScrollView
+      ref={scrollViewRef}
       {...scrollViewProps}
       contentContainerStyle={[styles.content, contentStyle]}
       keyboardShouldPersistTaps="handled"
