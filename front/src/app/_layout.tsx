@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/context/AuthContext';
 import { colors } from '@/theme/tokens';
 
+SplashScreen.setOptions({ duration: 400, fade: true });
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
