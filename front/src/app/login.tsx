@@ -1,6 +1,6 @@
 import { router, type Href } from 'expo-router';
-import { Lock, Mail } from 'lucide-react-native';
-import { useState } from 'react';
+import { Check, Lock, Mail } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppTextInput } from '@/components/app-text-input';
@@ -11,7 +11,12 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useAuth } from '@/hooks/useAuth';
 import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
-import { colors, fontFamily, spacing } from '@/theme/tokens';
+import {
+  clearRememberedEmail,
+  getRememberedEmail,
+  saveRememberedEmail,
+} from '@/services/rememberMeService';
+import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 const emailRegex = /\S+@\S+\.\S+/;
 const authenticatedHomeRoute = '/inicio' as Href;
@@ -28,28 +33,69 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasEditedEmail = useRef(false);
+  const hasChangedRememberMe = useRef(false);
   useBlockNavigationWhenBusy(isSubmitting);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRememberedEmail() {
+      const rememberedEmail = await getRememberedEmail();
+      if (!isMounted || !rememberedEmail) return;
+
+      if (!hasEditedEmail.current) setEmail(rememberedEmail);
+      if (!hasChangedRememberMe.current) setRememberMe(true);
+    }
+
+    loadRememberedEmail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function handleEmailChange(value: string) {
+    hasEditedEmail.current = true;
+    setEmail(value);
+  }
+
+  function handleRememberMeChange() {
+    if (isSubmitting) return;
+
+    hasChangedRememberMe.current = true;
+    setRememberMe((currentValue) => !currentValue);
+  }
 
   async function handleLogin() {
     if (isSubmitting) return;
 
     setFeedback(null);
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (!email.trim() || !password) {
+    if (!normalizedEmail || !password) {
       setFeedback('Informe e-mail e senha.');
       return;
     }
 
-    if (!emailRegex.test(email.trim())) {
+    if (!emailRegex.test(normalizedEmail)) {
       setFeedback('Informe um e-mail válido.');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await login({ email: email.trim(), password });
+      await login({ email: normalizedEmail, password });
+
+      if (rememberMe) {
+        await saveRememberedEmail(normalizedEmail);
+      } else {
+        await clearRememberedEmail();
+      }
+
       router.replace(authenticatedHomeRoute);
     } catch (error) {
       setFeedback(getLoginFeedback(error));
@@ -73,12 +119,49 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.form}>
-        <AppTextInput label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" disabled={isSubmitting} />
+        <AppTextInput
+          label="E-mail"
+          icon={Mail}
+          placeholder="seu@email.com"
+          value={email}
+          onChangeText={handleEmailChange}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          disabled={isSubmitting}
+        />
         <View style={styles.passwordBlock}>
-          <AppTextInput label="Senha" icon={Lock} placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry disabled={isSubmitting} />
-          <Pressable disabled={isSubmitting} onPress={() => router.push('/forgot-password')} style={styles.forgotButton}>
-            <Text style={[styles.forgotLink, isSubmitting && styles.disabledLink]}>Esqueci minha senha</Text>
-          </Pressable>
+          <AppTextInput
+            label="Senha"
+            icon={Lock}
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            disabled={isSubmitting}
+          />
+          <View style={styles.authOptions}>
+            <Pressable
+              accessibilityLabel="Lembrar de mim"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: rememberMe, disabled: isSubmitting }}
+              disabled={isSubmitting}
+              hitSlop={spacing.xs}
+              onPress={handleRememberMeChange}
+              style={({ pressed }) => [
+                styles.rememberButton,
+                isSubmitting && styles.disabledControl,
+                pressed && !isSubmitting && styles.pressedControl,
+              ]}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkedCheckbox]}>
+                {rememberMe ? <Check aria-hidden color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
+              </View>
+              <Text style={styles.rememberLabel}>Lembrar de mim</Text>
+            </Pressable>
+            <Pressable disabled={isSubmitting} onPress={() => router.push('/forgot-password')} style={styles.forgotButton}>
+              <Text style={[styles.forgotLink, isSubmitting && styles.disabledLink]}>Esqueci minha senha</Text>
+            </Pressable>
+          </View>
         </View>
 
         {feedback ? <Text style={styles.errorText}>{feedback}</Text> : null}
@@ -136,15 +219,53 @@ const styles = StyleSheet.create({
   passwordBlock: {
     gap: spacing.sm,
   },
+  authOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: spacing.md,
+    rowGap: spacing.xs,
+  },
+  rememberButton: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.sm / 2,
+    borderWidth: 1.5,
+    borderColor: colors.mutedForeground,
+    backgroundColor: colors.card,
+  },
+  checkedCheckbox: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  rememberLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: 12,
+    color: colors.foreground,
+  },
   forgotLink: {
-    textAlign: 'right',
-    alignSelf: 'flex-end',
     fontFamily: fontFamily.semiBold,
     fontSize: 12,
     color: colors.primary,
   },
   forgotButton: {
-    alignSelf: 'flex-end',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  disabledControl: {
+    opacity: 0.55,
+  },
+  pressedControl: {
+    opacity: 0.7,
   },
   errorText: {
     fontFamily: fontFamily.medium,
