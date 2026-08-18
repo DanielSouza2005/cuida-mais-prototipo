@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, useSegments, type Href } from 'expo-router';
 import { ChevronLeft, ChevronRight, ClipboardCheck, RefreshCw } from 'lucide-react-native';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
@@ -17,6 +17,8 @@ import { displayDateToIso, isoDateToDisplay } from '@/utils/contractTerminationL
 const filters: (TaskOccurrenceStatus | undefined)[] = [undefined, 'PENDENTE', 'ATRASADA', 'CONCLUIDA', 'NAO_REALIZADA'];
 
 export default function ResponsibleCareOccurrencesScreen() {
+  const segments = useSegments();
+  const isTabRoute = (segments as string[])[0] === '(tabs)';
   const params = useLocalSearchParams<{ date?: string; contractId?: string }>();
   const initialDate = typeof params.date === 'string' ? params.date : todayDateOnly();
   const contractId = typeof params.contractId === 'string' ? params.contractId : undefined;
@@ -46,7 +48,7 @@ export default function ResponsibleCareOccurrencesScreen() {
   function move(amount: number) { setDate(isoDateToDisplay(addDays(displayDateToIso(date), amount))); }
 
   return <ScreenContainer contentStyle={styles.content} scrollViewProps={{ refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.primary} /> }}>
-    <AppHeader showBack title="Diário da Pessoa Assistida" subtitle="Veja os cuidados realizados e anotações do dia em ordem cronológica." />
+    <AppHeader showBack={!isTabRoute} title="Diário da Pessoa Assistida" subtitle="Veja os cuidados realizados e anotações do dia em ordem cronológica." />
     <View style={styles.dateNavigation}><Pressable accessibilityLabel="Dia anterior" onPress={() => move(-1)} style={styles.dayButton}><ChevronLeft color={colors.primary} /></Pressable><View style={styles.dateField}><DatePickerField label="Data" value={date} onChange={setDate} /></View><Pressable accessibilityLabel="Próximo dia" onPress={() => move(1)} style={styles.dayButton}><ChevronRight color={colors.primary} /></Pressable></View>
     <Pressable onPress={() => setDate(isoDateToDisplay(todayDateOnly()))} style={styles.todayButton}><Text style={styles.retry}>Hoje</Text></Pressable>
     <View style={styles.filters}>{filters.map((item) => <Pressable key={item ?? 'TODOS'} onPress={() => setStatus(item)} style={[styles.chip, status === item && styles.active]}><Text style={[styles.chipText, status === item && styles.activeText]}>{item ? taskOccurrenceStatusLabels[item] : 'Todos'}</Text></Pressable>)}</View>

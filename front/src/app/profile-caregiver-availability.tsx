@@ -8,6 +8,7 @@ import { LoadingState } from '@/components/loading-state';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { TimePickerField } from '@/components/time-picker-field';
 import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import {
   careModalityOptions,
@@ -66,6 +67,7 @@ export default function ProfileCaregiverAvailabilityScreen() {
     if (diasSemana.length === 0) return setFeedback('Informe ao menos um dia de disponibilidade.');
     if (periodos.length === 0) return setFeedback('Informe ao menos um período de disponibilidade.');
     if (usesCustomSchedule && (!horarioInicio.trim() || !horarioFim.trim())) return setFeedback('Informe horário inicial e final.');
+    if (usesCustomSchedule && horarioFim <= horarioInicio) return setFeedback('O horário final deve ser posterior ao horário inicial.');
     if (modalidades.length === 0) return setFeedback('Informe ao menos uma modalidade de atendimento.');
     if (modalidades.includes('OUTRO') && !modalidadeOutro.trim()) return setFeedback('Informe a modalidade personalizada.');
 
@@ -103,8 +105,8 @@ export default function ProfileCaregiverAvailabilityScreen() {
             <OptionGroup required multiple label="Períodos" options={dayPeriodOptions} value={periodos} onChange={(value) => setPeriodos(value as DayPeriod[])} disabled={formDisabled} />
             {usesCustomSchedule ? (
               <>
-                <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={horarioInicio} onChangeText={setHorarioInicio} disabled={formDisabled} />
-                <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={horarioFim} onChangeText={setHorarioFim} disabled={formDisabled} />
+                <TimePickerField required label="Horário inicial" value={horarioInicio} onChange={setHorarioInicio} disabled={formDisabled} />
+                <TimePickerField required label="Horário final" value={horarioFim} onChange={setHorarioFim} disabled={formDisabled} />
               </>
             ) : null}
             <OptionGroup required multiple label="Modalidades de atendimento" options={careModalityOptions} value={modalidades} onChange={(value) => setModalidades(value as CareModality[])} disabled={formDisabled} />

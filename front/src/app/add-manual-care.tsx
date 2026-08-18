@@ -6,9 +6,11 @@ import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { DatePickerField } from '@/components/date-picker-field';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
+import { TimePickerField } from '@/components/time-picker-field';
 import { useBlockNavigationWhenBusy } from '@/hooks/useBlockNavigationWhenBusy';
 import { ApiError } from '@/services/api';
 import { createManualCare, getManualCareFormData } from '@/services/careTaskService';
@@ -16,7 +18,7 @@ import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 import type { CareCompletionPhoto, ManualCareContractOption, ManualCareType } from '@/types/careTasks';
 import { todayDateOnly } from '@/utils/agendaDate';
 import { deviceTimezone } from '@/utils/careTaskLabels';
-import { isoDateToDisplay } from '@/utils/contractTerminationLabels';
+import { displayDateToIso, isoDateToDisplay } from '@/utils/contractTerminationLabels';
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
@@ -30,10 +32,11 @@ const careTypes: { value: ManualCareType; label: string }[] = [
 
 export default function AddManualCareScreen() {
   const params = useLocalSearchParams<{ date?: string }>();
-  const entryDate = typeof params.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : todayDateOnly();
+  const initialEntryDate = typeof params.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : todayDateOnly();
+  const [entryDate, setEntryDate] = useState(initialEntryDate);
   const [contracts, setContracts] = useState<ManualCareContractOption[] | null>(null);
   const [contractId, setContractId] = useState('');
-  const [occurredTime, setOccurredTime] = useState(entryDate === todayDateOnly() ? currentTime() : '');
+  const [occurredTime, setOccurredTime] = useState(initialEntryDate === todayDateOnly() ? currentTime() : '');
   const [careType, setCareType] = useState<ManualCareType | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -105,8 +108,8 @@ export default function AddManualCareScreen() {
     {loading ? <Text style={styles.state}>Carregando contratações...</Text> : loadError ? <Text style={styles.error}>Não foi possível carregar as contratações disponíveis.</Text> : contracts?.length === 0 ? <Text style={styles.state}>Não há contratação válida para registrar cuidados nesta data.</Text> : <>
       <OptionGroup required disabled={saving} label="Contratação/atendimento" options={(contracts ?? []).map((item) => ({ value: item.contractId, label: item.contractLabel }))} value={contractId || null} onChange={(value) => setContractId(value as string)} />
       <AppTextInput required label="Pessoa assistida" value={selectedContract?.assistedPersonName ?? ''} editable={false} placeholder="Selecione a contratação" />
-      <AppTextInput required label="Data do cuidado" value={isoDateToDisplay(entryDate)} editable={false} />
-      <AppTextInput required disabled={saving} label="Horário em que ocorreu" placeholder="HH:mm" value={occurredTime} onChangeText={setOccurredTime} keyboardType="numbers-and-punctuation" maxLength={5} />
+      <DatePickerField required disabled={saving} label="Data do cuidado" value={isoDateToDisplay(entryDate)} onChange={(value) => setEntryDate(displayDateToIso(value))} maximumDate={new Date()} />
+      <TimePickerField required disabled={saving} label="Horário em que ocorreu" value={occurredTime} onChange={setOccurredTime} />
       <OptionGroup required disabled={saving} label="Tipo de cuidado" options={careTypes} value={careType} onChange={(value) => setCareType(value as ManualCareType)} />
       <AppTextInput required disabled={saving} label="Título do cuidado" value={title} onChangeText={setTitle} maxLength={180} />
       <AppTextInput required disabled={saving} label="Descrição do cuidado" value={description} onChangeText={setDescription} multiline maxLength={2000} />

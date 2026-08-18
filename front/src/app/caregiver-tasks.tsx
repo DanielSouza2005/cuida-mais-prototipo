@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, useSegments, type Href } from 'expo-router';
 import { ChevronLeft, ChevronRight, ClipboardCheck, Plus, RefreshCw } from 'lucide-react-native';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,8 @@ import { displayDateToIso, isoDateToDisplay } from '@/utils/contractTerminationL
 const filters: (TaskOccurrenceStatus | undefined)[] = [undefined, 'PENDENTE', 'ATRASADA', 'CONCLUIDA', 'NAO_REALIZADA'];
 
 export default function CaregiverTasksScreen() {
+  const segments = useSegments();
+  const isTabRoute = (segments as string[])[0] === '(tabs)';
   const params = useLocalSearchParams<{ date?: string; contractId?: string }>();
   const initialDate = typeof params.date === 'string' ? params.date : todayDateOnly();
   const contractId = typeof params.contractId === 'string' ? params.contractId : undefined;
@@ -61,7 +63,7 @@ export default function CaregiverTasksScreen() {
   function openManualForm() { router.push(`/add-manual-care?date=${displayDateToIso(date)}` as Href); }
 
   return <View style={styles.screen}><ScreenContainer contentStyle={styles.content} scrollViewProps={{ refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={colors.primary} /> }}>
-    <AppHeader showBack title="Cuidados do dia" subtitle="Cuidados planejados e anotações do dia em ordem cronológica." />
+    <AppHeader showBack={!isTabRoute} title="Cuidados do dia" subtitle="Cuidados planejados e anotações do dia em ordem cronológica." />
     <View style={styles.dateNavigation}>
       <Pressable accessibilityLabel="Dia anterior" onPress={() => move(-1)} style={styles.dayButton}><ChevronLeft color={colors.primary} /></Pressable>
       <View style={styles.dateField}><DatePickerField label="Data" value={date} onChange={setDate} /></View>

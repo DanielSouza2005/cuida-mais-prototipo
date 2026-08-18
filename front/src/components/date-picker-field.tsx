@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { createElement, useState } from 'react';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 
@@ -19,31 +20,16 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-type PickerMode = 'day' | 'month' | 'year';
-
-const monthNames = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
-];
-
-const shortMonthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-
 function formatDate(date: Date) {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  return `${day}/${month}/${date.getFullYear()}`;
+}
+
+function formatIsoDate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function parseDate(value: string) {
@@ -51,22 +37,34 @@ function parseDate(value: string) {
   if (!day || !month || !year) return null;
 
   const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-    return null;
-  }
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : null;
+}
 
-  return date;
+function parseIsoDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  if (!day || !month || !year) return null;
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : null;
 }
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function getDecadeStart(year: number) {
-  return Math.floor(year / 12) * 12;
+function initialPickerDate(value: string, minimumDate?: Date, maximumDate?: Date) {
+  const selected = parseDate(value);
+  if (selected) return selected;
+  const today = startOfDay(new Date());
+  if (minimumDate && today < minimumDate) return minimumDate;
+  if (maximumDate && today > maximumDate) return maximumDate;
+  return today;
 }
 
-export function AdvancedDatePickerField({
+export function DatePickerField({
   disabled,
   error,
   label,
@@ -80,73 +78,29 @@ export function AdvancedDatePickerField({
   value,
   onChange,
 }: Props) {
-  const selectedDate = parseDate(value);
-  const today = useMemo(() => startOfDay(new Date()), []);
-  const maxBoundary = maxDate ?? maximumDate;
-  const minBoundary = minDate ?? minimumDate;
-  const normalizedMaxDate = maxBoundary ? startOfDay(maxBoundary) : undefined;
-  const normalizedMinDate = minBoundary ? startOfDay(minBoundary) : undefined;
-  const initialDate = selectedDate ?? normalizedMaxDate ?? today;
+  const minimumBoundary = minimumDate ?? minDate;
+  const maximumBoundary = maximumDate ?? maxDate;
+  const normalizedMinimum = minimumBoundary ? startOfDay(minimumBoundary) : undefined;
+  const normalizedMaximum = maximumBoundary ? startOfDay(maximumBoundary) : undefined;
   const [visible, setVisible] = useState(false);
-  const [pickerMode, setPickerMode] = useState<PickerMode>('day');
-  const [visibleMonth, setVisibleMonth] = useState(new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
-  const [yearRangeStart, setYearRangeStart] = useState(getDecadeStart(initialDate.getFullYear()));
+  const [temporary, setTemporary] = useState(() => initialPickerDate(value, normalizedMinimum, normalizedMaximum));
 
-  const days = useMemo(() => {
-    const year = visibleMonth.getFullYear();
-    const month = visibleMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const blanks = Array.from({ length: firstDay }, () => null);
-    const monthDays = Array.from({ length: daysInMonth }, (_, index) => new Date(year, month, index + 1));
-
-    return [...blanks, ...monthDays];
-  }, [visibleMonth]);
-
-  function isDateDisabled(date: Date) {
-    if (normalizedMaxDate && date > normalizedMaxDate) return true;
-    if (normalizedMinDate && date < normalizedMinDate) return true;
-    return false;
-  }
-
-  function changeMonth(delta: number) {
-    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + delta, 1));
-  }
-
-  function changeYear(delta: number) {
-    setVisibleMonth((current) => new Date(current.getFullYear() + delta, current.getMonth(), 1));
-  }
-
-  function changeYearRange(delta: number) {
-    setYearRangeStart((current) => current + delta * 12);
-  }
-
-  function handleSelect(date: Date) {
-    if (isDateDisabled(date)) return;
-
-    onChange(formatDate(date));
-    setVisible(false);
-  }
-
-  function selectMonth(month: number) {
-    setVisibleMonth((current) => new Date(current.getFullYear(), month, 1));
-    setPickerMode('day');
-  }
-
-  function selectYear(year: number) {
-    setVisibleMonth((current) => new Date(year, current.getMonth(), 1));
-    setYearRangeStart(getDecadeStart(year));
-    setPickerMode('month');
-  }
-
-  function openPicker() {
+  function open() {
     if (disabled) return;
-
-    const nextDate = selectedDate ?? normalizedMaxDate ?? today;
-    setVisibleMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1));
-    setYearRangeStart(getDecadeStart(nextDate.getFullYear()));
-    setPickerMode('day');
+    setTemporary(initialPickerDate(value, normalizedMinimum, normalizedMaximum));
     setVisible(true);
+  }
+
+  function handleNativeChange(event: DateTimePickerEvent, date?: Date) {
+    if (Platform.OS === 'android') setVisible(false);
+    if (event.type !== 'set' || !date) return;
+    setTemporary(date);
+    if (Platform.OS === 'android') onChange(formatDate(date));
+  }
+
+  function handleWebChange(nextValue: string) {
+    const date = parseIsoDate(nextValue);
+    if (date) setTemporary(date);
   }
 
   return (
@@ -158,111 +112,79 @@ export function AdvancedDatePickerField({
       </Text>
 
       <Pressable
+        accessibilityLabel={`${label}. ${value || placeholder}`}
         accessibilityRole="button"
+        accessibilityState={{ disabled: Boolean(disabled) }}
         disabled={disabled}
-        onPress={openPicker}
-        style={({ pressed }) => [styles.inputShell, disabled && styles.disabledShell, pressed && !disabled && styles.pressed]}
+        onPress={open}
+        style={({ pressed }) => [
+          styles.inputShell,
+          error && styles.inputError,
+          disabled && styles.disabledShell,
+          pressed && !disabled && styles.pressed,
+        ]}
       >
         <Calendar color={colors.mutedForeground} size={19} />
-        <Text style={[styles.valueText, !value && styles.placeholderText]}>
-          {value || placeholder}
-        </Text>
+        <Text style={[styles.valueText, !value && styles.placeholderText]}>{value || placeholder}</Text>
       </Pressable>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Modal animationType="fade" transparent visible={visible} onRequestClose={() => setVisible(false)}>
+      {visible && Platform.OS === 'android' ? (
+        <DateTimePicker
+          value={temporary}
+          mode="date"
+          display="default"
+          minimumDate={normalizedMinimum}
+          maximumDate={normalizedMaximum}
+          onChange={handleNativeChange}
+        />
+      ) : null}
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={visible && Platform.OS !== 'android'}
+        onRequestClose={() => setVisible(false)}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <View style={styles.calendarHeader}>
-              <Pressable accessibilityRole="button" onPress={() => pickerMode === 'year' ? changeYearRange(-1) : pickerMode === 'month' ? changeYear(-1) : changeMonth(-1)} style={styles.monthButton}>
-                <Text style={styles.monthButtonText}>Voltar</Text>
+            <Text style={styles.modalTitle}>Selecionar data</Text>
+            {Platform.OS === 'ios' ? (
+              <DateTimePicker
+                value={temporary}
+                mode="date"
+                display="spinner"
+                minimumDate={normalizedMinimum}
+                maximumDate={normalizedMaximum}
+                onChange={handleNativeChange}
+              />
+            ) : (
+              createElement('input', {
+                'aria-label': label,
+                autoFocus: true,
+                max: normalizedMaximum ? formatIsoDate(normalizedMaximum) : undefined,
+                min: normalizedMinimum ? formatIsoDate(normalizedMinimum) : undefined,
+                onChange: (event: { target: { value: string } }) => handleWebChange(event.target.value),
+                style: webInputStyle,
+                type: 'date',
+                value: formatIsoDate(temporary),
+              })
+            )}
+            <View style={styles.actions}>
+              <Pressable accessibilityRole="button" onPress={() => setVisible(false)} style={styles.action}>
+                <Text style={styles.cancelText}>Cancelar</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setPickerMode(pickerMode === 'day' ? 'month' : 'year')} style={styles.titleButton}>
-                <Text style={styles.monthTitle}>
-                  {pickerMode === 'year'
-                    ? `${yearRangeStart}-${yearRangeStart + 11}`
-                    : pickerMode === 'month'
-                      ? String(visibleMonth.getFullYear())
-                      : `${monthNames[visibleMonth.getMonth()]} ${visibleMonth.getFullYear()}`}
-                </Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => pickerMode === 'year' ? changeYearRange(1) : pickerMode === 'month' ? changeYear(1) : changeMonth(1)} style={styles.monthButton}>
-                <Text style={styles.monthButtonText}>Avançar</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  onChange(formatDate(temporary));
+                  setVisible(false);
+                }}
+                style={[styles.action, styles.confirmAction]}
+              >
+                <Text style={styles.confirmText}>Confirmar</Text>
               </Pressable>
             </View>
-
-            <View style={styles.quickRow}>
-              <Pressable accessibilityRole="button" onPress={() => changeYear(-1)} style={styles.quickButton}>
-                <Text style={styles.quickButtonText}>-1 ano</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => setPickerMode('year')} style={styles.quickButton}>
-                <Text style={styles.quickButtonText}>Anos</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => changeYear(1)} style={styles.quickButton}>
-                <Text style={styles.quickButtonText}>+1 ano</Text>
-              </Pressable>
-            </View>
-
-            {pickerMode === 'day' ? (
-              <>
-                <View style={styles.weekRow}>
-                  {weekDays.map((day, index) => (
-                    <Text key={`${day}-${index}`} style={styles.weekDay}>{day}</Text>
-                  ))}
-                </View>
-
-                <View style={styles.daysGrid}>
-                  {days.map((date, index) => {
-                    const selected = date && selectedDate && formatDate(date) === formatDate(selectedDate);
-                    const dateDisabled = Boolean(date && isDateDisabled(date));
-
-                    return (
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={!date || dateDisabled}
-                        key={date ? formatDate(date) : `blank-${index}`}
-                        onPress={() => date && handleSelect(date)}
-                        style={[
-                          styles.dayCell,
-                          selected && styles.selectedDay,
-                          dateDisabled && styles.disabledDay,
-                        ]}
-                      >
-                        <Text style={[
-                          styles.dayText,
-                          selected && styles.selectedDayText,
-                          dateDisabled && styles.disabledDayText,
-                        ]}>
-                          {date ? date.getDate() : ''}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </>
-            ) : null}
-
-            {pickerMode === 'month' ? (
-              <View style={styles.optionGrid}>
-                {shortMonthNames.map((month, index) => (
-                  <Pressable key={month} accessibilityRole="button" onPress={() => selectMonth(index)} style={styles.gridOption}>
-                    <Text style={styles.gridOptionText}>{month}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            {pickerMode === 'year' ? (
-              <View style={styles.optionGrid}>
-                {Array.from({ length: 12 }, (_, index) => yearRangeStart + index).map((year) => (
-                  <Pressable key={year} accessibilityRole="button" onPress={() => selectYear(year)} style={styles.gridOption}>
-                    <Text style={styles.gridOptionText}>{year}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            <PrimaryActions onClose={() => setVisible(false)} />
           </View>
         </View>
       </Modal>
@@ -270,28 +192,22 @@ export function AdvancedDatePickerField({
   );
 }
 
-export const DatePickerField = AdvancedDatePickerField;
+export const AdvancedDatePickerField = DatePickerField;
 
-function PrimaryActions({ onClose }: { onClose: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
-      <Text style={styles.closeButtonText}>Fechar</Text>
-    </Pressable>
-  );
-}
+const webInputStyle = {
+  minHeight: 52,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.lg,
+  padding: `0 ${spacing.lg}px`,
+  backgroundColor: colors.card,
+  color: colors.foreground,
+  fontSize: 16,
+};
 
 const styles = StyleSheet.create({
-  wrapper: {
-    gap: spacing.xs,
-  },
-  label: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 13,
-    color: colors.foreground,
-  },
-  requiredMark: {
-    color: colors.destructive,
-  },
+  wrapper: { gap: spacing.xs },
+  label: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.foreground },
+  requiredMark: { color: colors.destructive },
   inputShell: {
     minHeight: 54,
     borderRadius: radii.lg,
@@ -303,150 +219,18 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  disabledShell: {
-    opacity: 0.5,
-  },
-  pressed: {
-    opacity: 0.82,
-  },
-  valueText: {
-    flex: 1,
-    fontFamily: fontFamily.medium,
-    fontSize: 14,
-    color: colors.foreground,
-  },
-  placeholderText: {
-    color: colors.mutedForeground,
-  },
-  errorText: {
-    fontFamily: fontFamily.medium,
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.destructive,
-  },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-    backgroundColor: 'rgba(27, 45, 64, 0.34)',
-  },
-  modalCard: {
-    borderRadius: radii.xl,
-    backgroundColor: colors.card,
-    padding: spacing.lg,
-    gap: spacing.md,
-    ...shadows.soft,
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  monthButton: {
-    minHeight: 36,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  monthButtonText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 12,
-    color: colors.primary,
-  },
-  titleButton: {
-    flex: 1,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  monthTitle: {
-    textAlign: 'center',
-    fontFamily: fontFamily.bold,
-    fontSize: 15,
-    color: colors.foreground,
-  },
-  quickRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  quickButton: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: radii.md,
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickButtonText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 12,
-    color: colors.primary,
-  },
-  weekRow: {
-    flexDirection: 'row',
-  },
-  weekDay: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: fontFamily.semiBold,
-    fontSize: 12,
-    color: colors.mutedForeground,
-  },
-  daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.full,
-  },
-  selectedDay: {
-    backgroundColor: colors.primary,
-  },
-  disabledDay: {
-    opacity: 0.35,
-  },
-  dayText: {
-    fontFamily: fontFamily.medium,
-    fontSize: 13,
-    color: colors.foreground,
-  },
-  selectedDayText: {
-    color: colors.primaryForeground,
-  },
-  disabledDayText: {
-    color: colors.mutedForeground,
-  },
-  optionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  gridOption: {
-    width: '31%',
-    minHeight: 46,
-    borderRadius: radii.lg,
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gridOptionText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 13,
-    color: colors.foreground,
-  },
-  closeButton: {
-    minHeight: 44,
-    borderRadius: radii.lg,
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 14,
-    color: colors.primary,
-  },
+  inputError: { borderColor: colors.destructive },
+  disabledShell: { opacity: 0.5 },
+  pressed: { opacity: 0.82 },
+  valueText: { flex: 1, fontFamily: fontFamily.medium, fontSize: 14, color: colors.foreground },
+  placeholderText: { color: colors.mutedForeground },
+  errorText: { fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 18, color: colors.destructive },
+  modalBackdrop: { flex: 1, justifyContent: 'center', padding: spacing.xl, backgroundColor: 'rgba(27, 45, 64, 0.34)' },
+  modalCard: { gap: spacing.lg, borderRadius: radii.xl, backgroundColor: colors.card, padding: spacing.lg, ...shadows.soft },
+  modalTitle: { textAlign: 'center', fontFamily: fontFamily.bold, fontSize: 17, color: colors.foreground },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  action: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: radii.lg, backgroundColor: colors.secondary },
+  confirmAction: { backgroundColor: colors.primary },
+  cancelText: { fontFamily: fontFamily.semiBold, color: colors.primary },
+  confirmText: { fontFamily: fontFamily.bold, color: colors.primaryForeground },
 });

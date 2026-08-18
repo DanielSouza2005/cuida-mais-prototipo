@@ -18,6 +18,7 @@ import { AppTextInput } from '@/components/app-text-input';
 import { BackButton } from '@/components/back-button';
 import { BrandMark } from '@/components/brand';
 import { DatePickerField } from '@/components/date-picker-field';
+import { TimePickerField } from '@/components/time-picker-field';
 import { OptionGroup } from '@/components/option-group';
 import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
@@ -345,7 +346,7 @@ export default function SignupScreen() {
     if (!isValidEmailFormat(email)) return 'Informe um e-mail válido.';
     if (!password) return 'Informe uma senha.';
     if (!passwordConfirmation) return 'Confirme sua senha.';
-    if (passwordConfirmation !== password) return 'A confirmacao de senha deve ser igual a senha.';
+    if (passwordConfirmation !== password) return 'A confirmação de senha deve ser igual à senha.';
     if (!phone.trim()) return 'Informe seu telefone.';
     if (!birthDate.trim()) return 'Informe sua data de nascimento.';
     return null;
@@ -407,6 +408,9 @@ export default function SignupScreen() {
     if (dayPeriods.length === 0) return 'Informe ao menos um período de disponibilidade.';
     if (usesCustomAvailability && (!availabilityStart.trim() || !availabilityEnd.trim())) {
       return 'Informe horário inicial e final.';
+    }
+    if (usesCustomAvailability && availabilityEnd <= availabilityStart) {
+      return 'O horário final deve ser posterior ao horário inicial.';
     }
     if (careModes.length === 0) return 'Informe ao menos uma modalidade de atendimento.';
     if (careModes.includes('OUTRO') && !careModeCustom.trim()) return 'Informe a modalidade personalizada.';
@@ -698,8 +702,8 @@ export default function SignupScreen() {
             <OptionGroup required multiple label="Períodos disponíveis" options={dayPeriodOptions} value={dayPeriods} onChange={(value) => setDayPeriods(value as DayPeriod[])} disabled={formDisabled} />
             {usesCustomAvailability ? (
               <View style={styles.inlineFields}>
-                <AppTextInput required label="Horário inicial" icon={Calendar} placeholder="08:00" value={availabilityStart} onChangeText={setAvailabilityStart} disabled={formDisabled} />
-                <AppTextInput required label="Horário final" icon={Calendar} placeholder="18:00" value={availabilityEnd} onChangeText={setAvailabilityEnd} disabled={formDisabled} />
+                <TimePickerField required label="Horário inicial" value={availabilityStart} onChange={setAvailabilityStart} disabled={formDisabled} />
+                <TimePickerField required label="Horário final" value={availabilityEnd} onChange={setAvailabilityEnd} disabled={formDisabled} />
               </View>
             ) : null}
             <AppTextInput optional label="Observação de disponibilidade" icon={Calendar} placeholder="Detalhes de agenda" value={availabilityNote} onChangeText={setAvailabilityNote} disabled={formDisabled} />

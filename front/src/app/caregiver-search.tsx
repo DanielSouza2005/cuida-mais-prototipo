@@ -265,7 +265,7 @@ export default function CaregiverSearchScreen() {
         ListHeaderComponent={
           <View style={styles.headerContent}>
             <AppHeader
-              showBack
+              showBack={!isTabRoute}
               title="Buscar cuidadores"
               subtitle="Encontre profissionais disponíveis para apoiar o cuidado domiciliar."
             />
