@@ -14,7 +14,7 @@ export type ReceivedServiceRequest = {
 export type RejectionReasonPayload = { reason?: string };
 export type ReceivedServiceRequestPage = { content: ReceivedServiceRequest[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean };
 export type ResponsibleServiceRequest = {
-  id: string; status: ServiceRequestStatus;
+  id: string; status: ServiceRequestStatus; initiatedBy: 'RESPONSIBLE' | 'CAREGIVER';
   caregiver: { id: string; name: string; profilePhotoUrl?: string | null; city?: string | null; state?: string | null };
   assistedPerson: { id: string; name: string; dependencyLevel: string; mobility: string };
   careAddress: { street: string; number: string; complement?: string | null; neighborhood: string; city: string; state: string; cep?: string | null; referencePoint?: string | null };

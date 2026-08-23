@@ -20,15 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class CaregiverServiceRequestService {
   private final ServiceRequestRepository requests;
   private final UserService users;
-  private final CareContractRepository contracts;
-  private final NotificationService notifications;
   private final ResponsibleProfileRepository responsibleProfiles;
   private final StatusHistoryService history;
-  private final ContractCareTaskProvisioningService taskProvisioning;
+  private final ServiceRequestDecisionService decisions;
 
-  public CaregiverServiceRequestService(ServiceRequestRepository requests, UserService users, CareContractRepository contracts, NotificationService notifications, ResponsibleProfileRepository responsibleProfiles, StatusHistoryService history, ContractCareTaskProvisioningService taskProvisioning) {
-    this.requests = requests; this.users = users; this.contracts = contracts; this.notifications = notifications;
-    this.responsibleProfiles = responsibleProfiles; this.history = history; this.taskProvisioning = taskProvisioning;
+  public CaregiverServiceRequestService(ServiceRequestRepository requests, UserService users, ResponsibleProfileRepository responsibleProfiles, StatusHistoryService history, ServiceRequestDecisionService decisions) {
+    this.requests = requests; this.users = users;
+    this.responsibleProfiles = responsibleProfiles; this.history = history; this.decisions = decisions;
   }
 
   @Transactional
@@ -36,7 +34,9 @@ public class CaregiverServiceRequestService {
     User caregiver = requireCaregiver(userId);
     requests.findByCaregiverUserAndStatusOrderByCreatedAtDesc(caregiver, ServiceRequestStatus.PENDENTE).forEach(this::expireIfNeeded);
     PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50), Sort.by(Sort.Direction.DESC, "createdAt"));
-    Page<ServiceRequest> result = status == null ? requests.findByCaregiverUser(caregiver, pageable) : requests.findByCaregiverUserAndStatus(caregiver, status, pageable);
+    Page<ServiceRequest> result = status == null
+      ? requests.findByCaregiverUserAndInitiatedBy(caregiver, ServiceRequestInitiator.RESPONSIBLE, pageable)
+      : requests.findByCaregiverUserAndInitiatedByAndStatus(caregiver, ServiceRequestInitiator.RESPONSIBLE, status, pageable);
     List<CaregiverReceivedRequestResponse> content = result.getContent().stream().map(entity -> response(entity, hasConflict(entity))).toList();
     return new CaregiverServiceRequestPageResponse(content, result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages(), result.isLast());
   }
@@ -46,29 +46,21 @@ public class CaregiverServiceRequestService {
   @Transactional
   public CaregiverReceivedRequestResponse accept(UUID userId, UUID id) {
     ServiceRequest entity = ownedForUpdate(userId, id); requirePending(entity);
-    entity.setStatus(ServiceRequestStatus.ACEITA);
-    if (contracts.existsByServiceRequestId(entity.getId())) throw new BusinessException("Esta solicitação já foi respondida.", HttpStatus.CONFLICT);
-    history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.ACEITA.name(), entity.getCaregiverUser(), null);
-    CareContract contract = new CareContract(); contract.setServiceRequest(entity); contract.setResponsibleUser(entity.getResponsibleUser()); contract.setCaregiverUser(entity.getCaregiverUser()); contract.setAssistedPerson(entity.getAssistedPerson()); contract.setStartDate(entity.getStartDate()); contract.setEndDate(entity.getEndDate());
-    contract.setStatus(entity.getStartDate().isAfter(LocalDate.now()) ? CareContractStatus.AGENDADA : CareContractStatus.ATIVA);
-    CareContract saved = contracts.save(contract);
-    taskProvisioning.provision(saved);
-    history.record(StatusHistoryEntityType.CARE_CONTRACT, saved.getId(), null, saved.getStatus().name(), entity.getCaregiverUser(), null);
-    notifications.create(entity.getResponsibleUser(), NotificationType.SERVICE_REQUEST_ACCEPTED, "Solicitação aceita", "O cuidador aceitou sua solicitação de serviço.", entity.getId());
+    if (entity.getInitiatedBy() != ServiceRequestInitiator.RESPONSIBLE) throw new BusinessException("Você não pode aceitar a própria solicitação.", HttpStatus.FORBIDDEN);
+    decisions.accept(entity, entity.getCaregiverUser());
     return response(entity, hasConflict(entity));
   }
 
   @Transactional
   public CaregiverReceivedRequestResponse reject(UUID userId, UUID id, String reason) {
     ServiceRequest entity = ownedForUpdate(userId, id); requirePending(entity);
-    entity.setStatus(ServiceRequestStatus.REJEITADA); entity.setRejectionReason(reason == null || reason.isBlank() ? null : reason.trim());
-    history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.REJEITADA.name(), entity.getCaregiverUser(), entity.getRejectionReason());
-    notifications.create(entity.getResponsibleUser(), NotificationType.SERVICE_REQUEST_REJECTED, "Solicitação rejeitada", "O cuidador rejeitou sua solicitação de serviço.", entity.getId());
+    if (entity.getInitiatedBy() != ServiceRequestInitiator.RESPONSIBLE) throw new BusinessException("Você não pode rejeitar a própria solicitação.", HttpStatus.FORBIDDEN);
+    decisions.reject(entity, entity.getCaregiverUser(), reason);
     return response(entity, hasConflict(entity));
   }
 
-  private ServiceRequest owned(UUID userId, UUID id) { User caregiver = requireCaregiver(userId); return requests.findByIdAndCaregiverUser(id, caregiver).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); }
-  private ServiceRequest ownedForUpdate(UUID userId, UUID id) { User caregiver = requireCaregiver(userId); return requests.findForUpdateByIdAndCaregiverUser(id, caregiver).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); }
+  private ServiceRequest owned(UUID userId, UUID id) { User caregiver = requireCaregiver(userId); ServiceRequest request=requests.findByIdAndCaregiverUser(id, caregiver).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); if(request.getInitiatedBy()!=ServiceRequestInitiator.RESPONSIBLE)throw new BusinessException("Solicitação não encontrada.",HttpStatus.NOT_FOUND);return request; }
+  private ServiceRequest ownedForUpdate(UUID userId, UUID id) { User caregiver = requireCaregiver(userId); ServiceRequest request=requests.findForUpdateByIdAndCaregiverUser(id, caregiver).orElseThrow(() -> new BusinessException("Solicitação não encontrada.", HttpStatus.NOT_FOUND)); if(request.getInitiatedBy()!=ServiceRequestInitiator.RESPONSIBLE)throw new BusinessException("Solicitação não encontrada.",HttpStatus.NOT_FOUND);return request; }
   private User requireCaregiver(UUID id) { User user = users.findById(id); if (user.getUserType() != UserType.CUIDADOR && user.getUserType() != UserType.CAREGIVER) throw new BusinessException("Acesso permitido apenas para cuidadores.", HttpStatus.FORBIDDEN); return user; }
   private void requirePending(ServiceRequest entity) { expireIfNeeded(entity); if (entity.getStatus() != ServiceRequestStatus.PENDENTE) throw new BusinessException("Esta solicitação já foi respondida.", HttpStatus.CONFLICT); }
   private void expireIfNeeded(ServiceRequest entity) { if (entity.getStatus() == ServiceRequestStatus.PENDENTE && entity.getExpiresAt().isBefore(Instant.now())) { entity.setStatus(ServiceRequestStatus.EXPIRADA); history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.EXPIRADA.name(), entity.getResponsibleUser(), null); } }

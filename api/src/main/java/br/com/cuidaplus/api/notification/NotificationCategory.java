@@ -2,6 +2,8 @@ package br.com.cuidaplus.api.notification;
 
 public enum NotificationCategory {
   SOLICITACOES("Solicitações"),
+  SERVICOS_PUBLICADOS("Serviços publicados"),
+  INTERESSES("Interesses enviados"),
   CONTRATACOES("Contratações"),
   CUIDADOS("Cuidados"),
   DIARIO("Diário"),

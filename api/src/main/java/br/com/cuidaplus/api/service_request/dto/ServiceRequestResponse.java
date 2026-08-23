@@ -5,7 +5,7 @@ import br.com.cuidaplus.api.care_routine.dto.StructuredCareItemResponse;
 import java.time.*;
 import java.util.*;
 public record ServiceRequestResponse(
-  UUID id, ServiceRequestStatus status, HiringType hiringType,
+  UUID id, ServiceRequestStatus status, ServiceRequestInitiator initiatedBy, HiringType hiringType,
   UUID caregiverId, String caregiverName, String caregiverProfilePhotoUrl,
   UUID assistedPersonId, String assistedPersonName, String careAddress,
   CareRoutine careRoutine,

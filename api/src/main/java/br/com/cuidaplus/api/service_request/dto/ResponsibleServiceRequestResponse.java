@@ -6,6 +6,7 @@ import br.com.cuidaplus.api.profile.Mobilidade;
 import br.com.cuidaplus.api.profile.ServicoOferecido;
 import br.com.cuidaplus.api.service_request.HiringType;
 import br.com.cuidaplus.api.service_request.ServiceRequestStatus;
+import br.com.cuidaplus.api.service_request.ServiceRequestInitiator;
 import br.com.cuidaplus.api.care_routine.dto.StructuredCareItemResponse;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public record ResponsibleServiceRequestResponse(
   UUID id,
   ServiceRequestStatus status,
+  ServiceRequestInitiator initiatedBy,
   Caregiver caregiver,
   Assisted assistedPerson,
   CareAddress careAddress,

@@ -52,4 +52,9 @@ class NotificationCatalogTest {
     assertEquals(NotificationType.CARE_OCCURRENCE_OVERDUE, NotificationCatalog.get(NotificationType.CARE_TASK_OVERDUE).type());
     assertEquals(NotificationType.CARE_OCCURRENCE_NOT_DONE, NotificationCatalog.get(NotificationType.TASK_OCCURRENCE_NOT_COMPLETED).type());
   }
+
+  @Test
+  void acceptedOpportunityInterestPointsToContract() {
+    assertEquals(RelatedEntityType.CARE_CONTRACT, NotificationCatalog.get(NotificationType.SERVICE_OPPORTUNITY_APPLICATION_ACCEPTED).relatedEntityType());
+  }
 }

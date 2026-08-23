@@ -1,13 +1,14 @@
 import { router, useSegments, type Href } from 'expo-router';
 import * as Location from 'expo-location';
-import { ArrowRight, MapPin, Navigation, Search, SlidersHorizontal, X } from 'lucide-react-native';
+import { ArrowRight, MapPin, Navigation, Search, SlidersHorizontal } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
 import { LoadingState } from '@/components/loading-state';
+import { LocationCombobox } from '@/components/location-combobox';
 import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { searchCaregivers, getCaregiverLocations } from '@/services/caregiverSearchService';
@@ -401,97 +402,6 @@ export default function CaregiverSearchScreen() {
         }
       />
     </SafeAreaView>
-  );
-}
-
-function LocationCombobox({
-  value,
-  selectedLocation,
-  suggestions,
-  loading,
-  disabled,
-  onChangeText,
-  onSelectLocation,
-  onClear,
-}: {
-  value: string;
-  selectedLocation: LocationSuggestion | null;
-  suggestions: LocationSuggestion[];
-  loading: boolean;
-  disabled: boolean;
-  onChangeText: (value: string) => void;
-  onSelectLocation: (location: LocationSuggestion) => void;
-  onClear: () => void;
-}) {
-  const [focused, setFocused] = useState(false);
-  const showSuggestions = focused && value.trim().length > 0;
-
-  return (
-    <View style={styles.locationCombobox}>
-      <Text style={styles.inputLabel}>Localização</Text>
-      <View style={[
-        styles.locationInputShell,
-        showSuggestions && styles.locationInputShellOpen,
-        focused && styles.locationInputFocused,
-        disabled && styles.disabledShell,
-      ]}>
-        <MapPin color={focused ? colors.primary : colors.mutedForeground} size={19} strokeWidth={2.4} />
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          onFocus={() => setFocused(true)}
-          editable={!disabled}
-          placeholder="Buscar cidade, bairro ou endereço"
-          placeholderTextColor={colors.mutedForeground}
-          returnKeyType="search"
-          style={styles.locationInput}
-        />
-        {value ? (
-          <Pressable accessibilityRole="button" disabled={disabled} onPress={onClear} style={styles.locationClearButton}>
-            <X color={colors.mutedForeground} size={16} strokeWidth={2.5} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      {showSuggestions ? (
-        <View style={styles.suggestionBox}>
-          {loading ? (
-            <View style={styles.suggestionLoading}>
-              <ActivityIndicator color={colors.primary} size="small" />
-              <Text style={styles.noSuggestionText}>Buscando locais...</Text>
-            </View>
-          ) : suggestions.length > 0 ? (
-            suggestions.map((suggestion) => {
-              const selected = selectedLocation?.id === suggestion.id;
-
-              return (
-                <Pressable
-                  key={suggestion.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => {
-                    onSelectLocation(suggestion);
-                    setFocused(false);
-                  }}
-                  style={({ pressed }) => [styles.suggestionItem, selected && styles.suggestionItemSelected, pressed && styles.pressed]}
-                >
-                  <View style={styles.suggestionIcon}>
-                    <MapPin color={selected ? colors.primary : colors.mutedForeground} size={14} strokeWidth={2.4} />
-                  </View>
-                  <View style={styles.suggestionCopy}>
-                    <Text style={styles.suggestionLabel}>{suggestion.label}</Text>
-                    <Text style={styles.suggestionType}>{suggestion.type === 'CITY' ? 'Cidade' : 'Bairro'}</Text>
-                  </View>
-                </Pressable>
-              );
-            })
-          ) : (
-            <Text style={styles.noSuggestionText}>Nenhum local encontrado</Text>
-          )}
-        </View>
-      ) : null}
-      <Text style={styles.locationHint}>Busque por cidade, bairro ou endereço.</Text>
-    </View>
   );
 }
 

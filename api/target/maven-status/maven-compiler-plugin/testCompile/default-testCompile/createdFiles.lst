@@ -1,5 +1,7 @@
 br\com\cuidaplus\api\care_task\TaskOccurrenceServiceTest.class
 br\com\cuidaplus\api\care_task\TaskRecurrenceServiceTest.class
+br\com\cuidaplus\api\service_request\ServiceOpportunityServiceTest.class
+br\com\cuidaplus\api\notification\PushTokenServiceTest.class
 br\com\cuidaplus\api\contract_termination\ContractTerminationServiceTest.class
 br\com\cuidaplus\api\notification\NotificationPreferenceServiceTest.class
 br\com\cuidaplus\api\care_task\ContractCareSchedulePolicyTest.class
@@ -9,6 +11,8 @@ br\com\cuidaplus\api\auth\AuthServicePasswordResetTest.class
 br\com\cuidaplus\api\care_task\TaskOccurrenceExpirationServiceTest.class
 br\com\cuidaplus\api\care_task\TaskReminderServiceTest.class
 br\com\cuidaplus\api\notification\NotificationServicePreferenceTest.class
+br\com\cuidaplus\api\service_request\ServiceRequestDecisionServiceTest.class
+br\com\cuidaplus\api\notification\ExpoPushNotificationServiceTest.class
 br\com\cuidaplus\api\care_task\ContractCareTaskProvisioningServiceTest.class
 br\com\cuidaplus\api\notification\NotificationCatalogTest.class
 br\com\cuidaplus\api\care_task\CareDiaryServiceTest.class

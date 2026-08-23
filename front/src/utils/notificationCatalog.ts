@@ -14,6 +14,7 @@ import {
   Info,
   ShieldAlert,
   TriangleAlert,
+  UserPlus,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -31,6 +32,13 @@ const visuals: Record<string, NotificationVisual> = {
   SERVICE_REQUEST_REJECTED: visual(CircleX, '#C4423A', '#FCEAE8', 'Solicitação rejeitada', 'Solicitações'),
   SERVICE_REQUEST_CANCELED: visual(Ban, '#8C4A4A', '#F5EDED', 'Solicitação cancelada', 'Solicitações'),
   SERVICE_REQUEST_EXPIRED: visual(ClockAlert, '#B76518', '#FFF0DF', 'Solicitação expirada', 'Solicitações'),
+  SERVICE_OPPORTUNITY_APPLICATION_CREATED: visual(UserPlus, '#2477B3', '#E7F2FA', 'Novo cuidador interessado', 'Serviços publicados'),
+  SERVICE_OPPORTUNITY_APPLICATION_ACCEPTED: visual(CircleCheck, '#25875A', '#E5F5EC', 'Interesse aceito', 'Interesses enviados'),
+  SERVICE_OPPORTUNITY_APPLICATION_REJECTED: visual(CircleX, '#C4423A', '#FCEAE8', 'Interesse rejeitado', 'Interesses enviados'),
+  SERVICE_PUBLICATION_CREATED: visual(ClipboardPlus, '#25875A', '#E5F5EC', 'Serviço publicado', 'Serviços publicados'),
+  SERVICE_PUBLICATION_CANCELED: visual(Ban, '#8C4A4A', '#F5EDED', 'Serviço cancelado', 'Serviços publicados'),
+  SERVICE_PUBLICATION_EXPIRED: visual(ClockAlert, '#B76518', '#FFF0DF', 'Serviço expirado', 'Serviços publicados'),
+  SERVICE_PUBLICATION_STATUS_UPDATED: visual(Info, '#5262A8', '#EBEDFA', 'Serviço atualizado', 'Serviços publicados'),
   CONTRACT_TERMINATION_SCHEDULED: visual(CalendarClock, '#B57413', '#FFF4DC', 'Encerramento agendado', 'Contratações'),
   CONTRACT_TERMINATED: visual(Flag, '#7254A3', '#F0EBF8', 'Serviço encerrado', 'Contratações'),
   CONTRACT_CANCELED_BEFORE_START: visual(CalendarX, '#B93655', '#FBE8EE', 'Contratação cancelada', 'Contratações'),

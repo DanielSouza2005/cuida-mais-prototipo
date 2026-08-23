@@ -30,6 +30,16 @@ class NotificationServicePreferenceTest {
   }
 
   @Test
+  void doesNotPersistRf18PublicationNotificationWhenPreferenceIsDisabled() {
+    when(preferences.isEnabled(recipient, NotificationType.SERVICE_PUBLICATION_CREATED)).thenReturn(false);
+
+    service.create(recipient, NotificationType.SERVICE_PUBLICATION_CREATED, "Serviço publicado", "Mensagem", RelatedEntityType.SERVICE_REQUEST, UUID.randomUUID());
+
+    verify(repository, never()).save(org.mockito.ArgumentMatchers.any(Notification.class));
+    verify(events, never()).publishEvent(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
   void persistsNotificationWhenPreferenceIsEnabled() {
     when(preferences.isEnabled(recipient, NotificationType.SERVICE_REQUEST_CREATED)).thenReturn(true);
 

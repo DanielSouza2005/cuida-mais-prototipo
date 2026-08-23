@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import {
   Bell,
+  BriefcaseBusiness,
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
   Handshake,
   Search,
-  UserRound,
 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -30,7 +30,7 @@ const routes = {
   search: '/(tabs)/buscar' as Href,
   contracts: '/(tabs)/contratacoes' as Href,
   agenda: '/(tabs)/agenda' as Href,
-  profile: '/(tabs)/perfil' as Href,
+  opportunities: '/service-opportunities' as Href,
 } as const;
 
 export default function HomeScreen() {
@@ -77,12 +77,12 @@ export default function HomeScreen() {
   }, [loadNextCare, user]));
 
   const quickAccessItems = useMemo<QuickAccessItem[]>(() => isCaregiver ? [
+    { title: 'Buscar serviços', description: 'Encontre oportunidades de cuidado disponíveis.', icon: Search, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.opportunities) },
     { title: 'Solicitações', description: 'Avalie novos pedidos de cuidado.', icon: ClipboardList, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.requests) },
-    { title: 'Agenda', description: 'Confira seus próximos atendimentos.', icon: CalendarDays, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.agenda) },
-    { title: 'Cuidados de hoje', description: 'Visualize e registre os cuidados do dia.', icon: ClipboardCheck, iconColor: '#A9573C', iconBackground: '#FCE9E1', onPress: () => router.push(dayCareRoute) },
-    { title: 'Perfil', description: 'Acesse seus dados e preferências.', icon: UserRound, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(routes.profile) },
+    { title: 'Agenda', description: 'Confira seus próximos atendimentos.', icon: CalendarDays, iconColor: '#A9573C', iconBackground: '#FCE9E1', onPress: () => router.push(routes.agenda) },
+    { title: 'Cuidados de hoje', description: 'Visualize e registre os cuidados do dia.', icon: ClipboardCheck, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(dayCareRoute) },
   ] : [
-    { title: 'Buscar cuidadores', description: 'Encontre profissionais disponíveis.', icon: Search, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.search) },
+    { title: 'Serviços', description: 'Publique oportunidades ou encontre cuidadores.', icon: BriefcaseBusiness, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.search) },
     { title: 'Contratações', description: 'Acompanhe seus serviços contratados.', icon: Handshake, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.contracts) },
     { title: 'Agenda', description: 'Veja os atendimentos programados.', icon: CalendarDays, iconColor: '#A9573C', iconBackground: '#FCE9E1', onPress: () => router.push(routes.agenda) },
     { title: 'Cuidados do dia', description: 'Acompanhe os cuidados previstos e realizados.', icon: ClipboardCheck, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(dayCareRoute) },

@@ -28,9 +28,10 @@ function parseDate(value: string) {
 function formatAddress(address: ServiceRequestDraft['address']) { return `${address.street}, ${address.number}${address.complement ? `, ${address.complement}` : ''} • ${address.neighborhood} • ${address.city} - ${address.state}`; }
 
 export default function RequestServiceFormScreen() {
-  const { caregiverId } = useLocalSearchParams<{ caregiverId?: string }>();
+  const { caregiverId, publish } = useLocalSearchParams<{ caregiverId?: string; publish?: string }>();
+  const isPublication = publish === 'true';
   const storedDraft = getServiceRequestDraft();
-  const [draft, setDraft] = useState<ServiceRequestDraft | null>(storedDraft?.caregiver.id === caregiverId ? storedDraft : null);
+  const [draft, setDraft] = useState<ServiceRequestDraft | null>(storedDraft?.publication === isPublication && (isPublication || storedDraft?.caregiver?.id === caregiverId) ? storedDraft : null);
   const [formData, setFormData] = useState<ServiceRequestFormData | null>(null);
   const [routines, setRoutines] = useState<CareRoutine[]>([]);
   const [isLoading, setIsLoading] = useState(!draft);
@@ -39,26 +40,26 @@ export default function RequestServiceFormScreen() {
   const today = new Date();
 
   useEffect(() => {
-    if (!caregiverId || formData) return;
+    if ((!caregiverId && !isPublication) || formData) return;
     let active = true;
     setIsLoading(true);
-    getServiceRequestFormData(caregiverId).then((data) => {
+    getServiceRequestFormData(isPublication ? undefined : caregiverId).then((data) => {
       if (!active) return;
       setFormData(data);
       const person = data.assistedPersons[0];
       const address = data.careAddresses.find((item) => item.assistedPersonId === person.id);
       if (!address) throw new Error('missing-address');
-      if (!draft) setDraft({ caregiver: data.caregiver, assistedPerson: person, address, careRoutine: null, hiringType: null, specificDates: [], startDate: '', endDate: '', weekDays: [], startTime: '', endTime: '', needsDescription: '', additionalNotes: '', negotiation: '' });
+      if (!draft) setDraft({ publication: isPublication, caregiver: data.caregiver ?? null, assistedPerson: person, address, careRoutine: null, hiringType: null, specificDates: [], startDate: '', endDate: '', weekDays: [], startTime: '', endTime: '', needsDescription: '', additionalNotes: '', negotiation: '' });
     }).catch((error) => active && setFeedback(error instanceof ApiError ? error.message : 'Não foi possível carregar os dados da solicitação.')).finally(() => active && setIsLoading(false));
     return () => { active = false; };
-  }, [caregiverId, draft, formData]);
+  }, [caregiverId, draft, formData, isPublication]);
 
   useFocusEffect(useCallback(() => { let active=true; listCareRoutines({active:true}).then(data=>active&&setRoutines(data)).catch(()=>active&&setRoutines([])); return()=>{active=false}; }, []));
 
   if (isLoading) return <ScreenContainer contentStyle={styles.center}><LoadingState message="Carregando dados da solicitação..." /></ScreenContainer>;
 
   if (!draft) {
-    return <ScreenContainer contentStyle={styles.center}><Text style={styles.feedback}>{feedback ?? 'Selecione um cuidador antes de iniciar a solicitação.'}</Text><PrimaryButton label="Voltar para busca" onPress={() => router.replace('/(tabs)/buscar' as Href)} /></ScreenContainer>;
+    return <ScreenContainer contentStyle={styles.center}><Text style={styles.feedback}>{feedback ?? (isPublication ? 'Não foi possível iniciar a publicação.' : 'Selecione um cuidador antes de iniciar a solicitação.')}</Text><PrimaryButton label="Voltar" onPress={() => router.back()} /></ScreenContainer>;
   }
   const currentDraft = draft;
   const outOfScheduleTimes = currentDraft.careRoutine && currentDraft.startTime && currentDraft.endTime
@@ -103,15 +104,15 @@ export default function RequestServiceFormScreen() {
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
-      <AppHeader showBack title="Solicitar serviço" />
-      <Text style={styles.subtitle}>Preencha as informações para enviar a solicitação ao cuidador.</Text>
+      <AppHeader showBack title={isPublication ? 'Publicar serviço' : 'Solicitar serviço'} />
+      <Text style={styles.subtitle}>{isPublication ? 'Publique uma oportunidade para que cuidadores autorizados possam demonstrar interesse.' : 'Preencha as informações para enviar a solicitação ao cuidador.'}</Text>
 
-      <Section title="Cuidador selecionado">
+      {!isPublication && draft.caregiver ? <Section title="Cuidador selecionado">
         <View style={styles.caregiverRow}>
           <ProfileAvatar imageUrl={draft.caregiver.profilePhotoUrl} initials={draft.caregiver.name.slice(0, 2).toUpperCase()} size={64} />
           <View style={styles.flex}><Text style={styles.cardTitle}>{draft.caregiver.name}</Text><Text style={styles.cardText}>{[draft.caregiver.neighborhood, draft.caregiver.city, draft.caregiver.state].filter(Boolean).join(' • ')}</Text><Text style={styles.cardText}>{draft.caregiver.servicesOffered.map((item) => activityLabels[item]).join(', ')}</Text></View>
         </View>
-      </Section>
+      </Section> : null}
 
       <Section title="Pessoa assistida *"><View style={styles.choiceList}>{(formData?.assistedPersons ?? [draft.assistedPerson]).map((person) => <Pressable key={person.id} onPress={() => { const address = formData?.careAddresses.find((item) => item.assistedPersonId === person.id); if (address) setDraft({ ...draft, assistedPerson: person, address, careRoutine: draft.careRoutine?.assistedPerson && draft.careRoutine.assistedPerson.id !== person.id ? null : draft.careRoutine }); }}><InfoCard icon={UserRound} title={person.name} text={person.summary} selected={draft.assistedPerson.id === person.id} /></Pressable>)}</View></Section>
       <Section title="Endereço do cuidado *"><InfoCard icon={MapPin} title="Endereço selecionado" text={formatAddress(draft.address)} selected /></Section>
@@ -147,7 +148,7 @@ export default function RequestServiceFormScreen() {
 
       <Section title="Negociação"><AppTextInput optional label="Forma de negociação" icon={FileText} placeholder="Exemplo: combinar valor diretamente com o cuidador." value={draft.negotiation} onChangeText={(value) => update('negotiation', value)} /><Text style={styles.helper}>O valor e as condições poderão ser combinados diretamente com o cuidador.</Text></Section>
       {feedback ? <Text style={styles.feedback}>{feedback}</Text> : null}
-      <PrimaryButton label="Continuar para revisão" onPress={continueToReview} />
+      <PrimaryButton label={isPublication ? 'Revisar publicação' : 'Continuar para revisão'} onPress={continueToReview} />
     </ScreenContainer>
   );
 }
@@ -159,5 +160,5 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg, gap: spacing.lg }, center: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.lg }, subtitle: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 21, color: colors.mutedForeground },
   section: { gap: spacing.md, padding: spacing.lg, borderRadius: radii.xl, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...shadows.card }, sectionTitle: { fontFamily: fontFamily.extraBold, fontSize: 17, color: colors.foreground },
   caregiverRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, choiceList: { gap: spacing.sm }, infoCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.muted, borderWidth: 1, borderColor: colors.border }, infoCardSelected: { backgroundColor: colors.secondary, borderColor: colors.primary }, flex: { flex: 1 }, cardTitle: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.foreground }, cardText: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.mutedForeground }, selected: { fontFamily: fontFamily.semiBold, fontSize: 10, color: colors.mintForeground }, helper: { fontFamily: fontFamily.regular, fontSize: 11.5, lineHeight: 17, color: colors.mutedForeground },
-  inline: { flexDirection: 'row', gap: spacing.sm }, inlineField: { flex: 1 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }, chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.full, backgroundColor: colors.secondary }, chipText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.primary }, feedback: { fontFamily: fontFamily.semiBold, fontSize: 13, lineHeight: 19, color: colors.destructive }, routineCard:{gap:spacing.xs,padding:spacing.md,borderRadius:radii.lg,borderWidth:1,borderColor:colors.border,backgroundColor:colors.muted},noRoutine:{gap:spacing.md,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.muted},careList:{gap:spacing.sm,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.secondary}, scheduleWarning: { gap: spacing.xs, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.coral, backgroundColor: '#FFF4EE' }, scheduleWarningTitle: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.foreground }, scheduleWarningText: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.foreground },
+  inline: { flexDirection: 'row', gap: spacing.sm }, inlineField: { flex: 1 }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }, chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.full, backgroundColor: colors.secondary }, chipText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.primary }, feedback: { fontFamily: fontFamily.semiBold, fontSize: 13, lineHeight: 19, color: colors.destructive }, visibilityWarning: { gap: spacing.md, padding: spacing.lg, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.coral, backgroundColor: '#FFF4EE' }, routineCard:{gap:spacing.xs,padding:spacing.md,borderRadius:radii.lg,borderWidth:1,borderColor:colors.border,backgroundColor:colors.muted},noRoutine:{gap:spacing.md,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.muted},careList:{gap:spacing.sm,padding:spacing.md,borderRadius:radii.lg,backgroundColor:colors.secondary}, scheduleWarning: { gap: spacing.xs, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.coral, backgroundColor: '#FFF4EE' }, scheduleWarningTitle: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.foreground }, scheduleWarningText: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.foreground },
 });

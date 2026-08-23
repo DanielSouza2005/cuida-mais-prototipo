@@ -6,3 +6,5 @@ export function getReceivedServiceRequestDetails(id:string){return apiRequest<Re
 export function getResponsibleServiceRequestDetails(id:string){return apiRequest<ResponsibleServiceRequest>(`/api/responsible/service-requests/${id}`);}
 export function acceptServiceRequest(id:string){return apiRequest<ReceivedServiceRequest>(`/api/caregiver/service-requests/${id}/accept`,{method:'POST'});}
 export function rejectServiceRequest(id:string,payload:RejectionReasonPayload){return apiRequest<ReceivedServiceRequest>(`/api/caregiver/service-requests/${id}/reject`,{method:'POST',body:payload});}
+export function acceptCaregiverApplication(id:string){return apiRequest<ResponsibleServiceRequest>(`/api/responsible/service-requests/${id}/accept`,{method:'POST'});}
+export function rejectCaregiverApplication(id:string,payload:RejectionReasonPayload){return apiRequest<ResponsibleServiceRequest>(`/api/responsible/service-requests/${id}/reject`,{method:'POST',body:payload});}

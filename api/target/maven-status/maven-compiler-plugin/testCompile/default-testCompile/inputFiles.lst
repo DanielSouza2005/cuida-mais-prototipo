@@ -9,6 +9,10 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\TaskReminderServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\contract_history\ResponsibleContractHistoryServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\contract_termination\ContractTerminationServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\ExpoPushNotificationServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationCatalogTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationPreferenceServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationServicePreferenceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\PushTokenServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\service_request\ServiceOpportunityServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\service_request\ServiceRequestDecisionServiceTest.java

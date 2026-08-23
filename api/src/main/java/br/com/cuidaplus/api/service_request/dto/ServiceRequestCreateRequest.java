@@ -8,7 +8,7 @@ import java.time.*;
 import java.util.*;
 
 public record ServiceRequestCreateRequest(
-  @NotNull UUID caregiverId,
+  UUID caregiverId,
   @NotNull UUID assistedPersonId,
   @NotNull UUID careAddressId,
   @NotNull(message = "Selecione uma rotina de cuidados.") UUID careRoutineId,

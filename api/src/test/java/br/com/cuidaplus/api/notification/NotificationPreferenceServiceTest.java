@@ -44,6 +44,10 @@ class NotificationPreferenceServiceTest {
 
     assertEquals(1, countLabel(response, "Cuidados concluídos"));
     assertEquals(1, countLabel(response, "Alertas de cuidados importantes"));
+    assertEquals(1, countLabel(response, "Novos interessados em serviços"));
+    assertEquals(1, countLabel(response, "Serviço publicado"));
+    assertEquals(1, countLabel(response, "Atualizações de serviços publicados"));
+    assertEquals(0, countLabel(response, "Interesse aceito e contratação criada"));
     assertUniqueTypes(response);
   }
 
@@ -53,6 +57,9 @@ class NotificationPreferenceServiceTest {
 
     assertEquals(1, countLabel(response, "Lembretes de cuidados"));
     assertEquals(1, countLabel(response, "Cuidados atrasados"));
+    assertEquals(1, countLabel(response, "Interesse aceito e contratação criada"));
+    assertEquals(1, countLabel(response, "Interesse rejeitado"));
+    assertEquals(0, countLabel(response, "Serviço publicado"));
     assertUniqueTypes(response);
   }
 

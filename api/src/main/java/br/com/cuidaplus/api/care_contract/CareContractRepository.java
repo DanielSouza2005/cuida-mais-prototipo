@@ -12,6 +12,7 @@ public interface CareContractRepository extends JpaRepository<CareContract, UUID
   boolean existsByServiceRequestId(UUID id);
   List<CareContract> findByResponsibleUserOrderByUpdatedAtDesc(User responsible);
   List<CareContract> findByCaregiverUserOrderByUpdatedAtDesc(User caregiver);
+  Optional<CareContract> findFirstByCaregiverUserAndServiceRequestSourceOpportunityId(User caregiver, UUID sourceOpportunityId);
   Optional<CareContract> findByIdAndResponsibleUser(UUID id, User responsible);
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select contract from CareContract contract where contract.id = :id")

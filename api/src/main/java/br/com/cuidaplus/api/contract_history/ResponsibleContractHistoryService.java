@@ -51,6 +51,7 @@ public class ResponsibleContractHistoryService {
     careContracts.forEach(contractStatusProcessor::processContractIfDue);
 
     Stream<ContractHistoryItemResponse> requestItems = serviceRequests.stream()
+      .filter(entity -> entity.getCaregiverUser() != null)
       .filter(entity -> entity.getStatus() != ServiceRequestStatus.ACEITA)
       .map(entity -> toListItem(entity, responsibleView));
     Stream<ContractHistoryItemResponse> contractItems = careContracts.stream().map(entity -> toListItem(entity, responsibleView));
@@ -155,9 +156,10 @@ public class ResponsibleContractHistoryService {
   }
 
   private void expireIfNeeded(ServiceRequest entity) {
-    if (entity.getStatus() == ServiceRequestStatus.PENDENTE && entity.getExpiresAt().isBefore(Instant.now())) {
+    if ((entity.getStatus() == ServiceRequestStatus.PENDENTE || entity.getStatus() == ServiceRequestStatus.ABERTA) && entity.getExpiresAt().isBefore(Instant.now())) {
+      ServiceRequestStatus previous = entity.getStatus();
       entity.setStatus(ServiceRequestStatus.EXPIRADA);
-      history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.EXPIRADA.name(), entity.getResponsibleUser(), null);
+      history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), previous.name(), ServiceRequestStatus.EXPIRADA.name(), entity.getResponsibleUser(), null);
       requests.saveAndFlush(entity);
     }
   }
@@ -166,7 +168,7 @@ public class ResponsibleContractHistoryService {
   private User requireCaregiver(UUID id) { User user = users.findById(id); if (user.getUserType() != UserType.CUIDADOR && user.getUserType() != UserType.CAREGIVER) throw new BusinessException("Acesso permitido apenas para cuidadores.", HttpStatus.FORBIDDEN); return user; }
   private BusinessException notFound() { return new BusinessException("Contratação não encontrada.", HttpStatus.NOT_FOUND); }
   private String normalize(String value) { return value == null ? "" : Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).trim(); }
-  private ContractHistoryStatusGroup requestGroup(ServiceRequestStatus status) { return switch (status) { case PENDENTE -> ContractHistoryStatusGroup.PENDENTES; case REJEITADA -> ContractHistoryStatusGroup.REJEITADAS; case CANCELADA -> ContractHistoryStatusGroup.CANCELADAS; case EXPIRADA -> ContractHistoryStatusGroup.EXPIRADAS; case ACEITA -> throw new IllegalArgumentException("Solicitação aceita é exibida como contratação."); }; }
+  private ContractHistoryStatusGroup requestGroup(ServiceRequestStatus status) { return switch (status) { case ABERTA, PENDENTE -> ContractHistoryStatusGroup.PENDENTES; case REJEITADA -> ContractHistoryStatusGroup.REJEITADAS; case CANCELADA -> ContractHistoryStatusGroup.CANCELADAS; case EXPIRADA -> ContractHistoryStatusGroup.EXPIRADAS; case ACEITA -> throw new IllegalArgumentException("Solicitação aceita é exibida como contratação."); }; }
   private boolean matchesStatusGroup(ContractHistoryItemResponse item, ContractHistoryStatusGroup group) {
     if (group == ContractHistoryStatusGroup.TODAS) return true;
     if (group == ContractHistoryStatusGroup.ATIVAS) return item.itemType() == ContractHistoryItemType.CARE_CONTRACT && CareContractStatus.ATIVA.name().equals(item.status());

@@ -13,7 +13,7 @@ import {
 } from '@/services/pushNotificationService';
 import { deleteSessionItem, getSessionItem, setSessionItem } from '@/services/sessionStorage';
 import type { ApiUserType } from '@/types/auth';
-import { getNotificationHref, type NotificationNavigationData } from '@/utils/notificationNavigation';
+import { resolveNotificationHref, type NotificationNavigationData } from '@/utils/notificationNavigation';
 
 function payloadFrom(response: Notifications.NotificationResponse): NotificationNavigationData | null {
   const data = response.notification.request.content.data;
@@ -36,7 +36,7 @@ async function openNotification(data: NotificationNavigationData, userType: ApiU
       return;
     }
   }
-  const href = getNotificationHref(data, userType);
+  const href = await resolveNotificationHref(data, userType);
   if (!href) {
     Alert.alert('Notificação', 'Não foi possível abrir esta notificação.');
     return;

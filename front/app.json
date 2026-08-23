@@ -36,6 +36,12 @@
       ],
       "expo-secure-store",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permita que o Cuidar+ use sua localização para calcular a distância até cuidadores e serviços disponíveis."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "color": "#2F8FC4",

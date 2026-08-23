@@ -13,7 +13,10 @@ import java.util.*;
 public class ServiceRequest {
   @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "responsible_user_id") private User responsibleUser;
-  @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "caregiver_user_id") private User caregiverUser;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "caregiver_user_id") private User caregiverUser;
+  @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private ServiceRequestInitiator initiatedBy;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "requester_user_id") private User requesterUser;
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "source_opportunity_id") private ServiceRequest sourceOpportunity;
   @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "assisted_person_id") private AssistedPerson assistedPerson;
   @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "care_routine_id") private CareRoutine careRoutine;
   @Column(name = "care_routine_name_snapshot", length = 140) private String careRoutineNameSnapshot;
@@ -36,10 +39,13 @@ public class ServiceRequest {
   @Column(nullable = false) private Instant updatedAt;
   @Column(nullable = false) private Instant expiresAt;
   private Instant canceledAt;
-  @PrePersist void create() { Instant now = Instant.now(); createdAt = now; updatedAt = now; expiresAt = now.plus(Duration.ofDays(15)); status = ServiceRequestStatus.PENDENTE; }
+  @PrePersist void create() { Instant now = Instant.now(); createdAt = now; updatedAt = now; expiresAt = now.plus(Duration.ofDays(15)); if (status == null) status = ServiceRequestStatus.PENDENTE; if (initiatedBy == null) initiatedBy = ServiceRequestInitiator.RESPONSIBLE; }
   @PreUpdate void update() { updatedAt = Instant.now(); }
   public UUID getId() { return id; } public User getResponsibleUser() { return responsibleUser; } public void setResponsibleUser(User v) { responsibleUser=v; }
   public User getCaregiverUser() { return caregiverUser; } public void setCaregiverUser(User v) { caregiverUser=v; }
+  public ServiceRequestInitiator getInitiatedBy() { return initiatedBy; } public void setInitiatedBy(ServiceRequestInitiator v) { initiatedBy=v; }
+  public User getRequesterUser() { return requesterUser; } public void setRequesterUser(User v) { requesterUser=v; }
+  public ServiceRequest getSourceOpportunity() { return sourceOpportunity; } public void setSourceOpportunity(ServiceRequest v) { sourceOpportunity=v; }
   public AssistedPerson getAssistedPerson() { return assistedPerson; } public void setAssistedPerson(AssistedPerson v) { assistedPerson=v; }
   public CareRoutine getCareRoutine() { return careRoutine; } public void setCareRoutine(CareRoutine v) { careRoutine=v; }
   public String getCareRoutineNameSnapshot() { return careRoutineNameSnapshot; } public void setCareRoutineNameSnapshot(String v) { careRoutineNameSnapshot=v; }

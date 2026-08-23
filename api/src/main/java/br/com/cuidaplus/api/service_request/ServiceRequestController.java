@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 public class ServiceRequestController {
   private final ServiceRequestService service;
   public ServiceRequestController(ServiceRequestService service) { this.service=service; }
-  @GetMapping("/form-data") public ServiceRequestFormDataResponse formData(@RequestParam UUID caregiverId) { return service.formData(AuthenticatedUser.id(), caregiverId); }
+  @GetMapping("/form-data") public ServiceRequestFormDataResponse formData(@RequestParam(required = false) UUID caregiverId) { return service.formData(AuthenticatedUser.id(), caregiverId); }
   @PostMapping public ServiceRequestResponse create(@Valid @RequestBody ServiceRequestCreateRequest request) { return service.create(AuthenticatedUser.id(), request); }
   @GetMapping("/{id}") public ServiceRequestResponse find(@PathVariable UUID id) { return service.find(AuthenticatedUser.id(), id); }
   @GetMapping("/my") public List<ServiceRequestResponse> my() { return service.my(AuthenticatedUser.id()); }

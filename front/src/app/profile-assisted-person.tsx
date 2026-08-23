@@ -230,6 +230,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     ...shadows.card,
   },
+  visibilityBox: { gap: spacing.sm, padding: spacing.md, borderRadius: radii.lg, backgroundColor: colors.secondary },
+  visibilityHelp: { fontFamily: fontFamily.regular, fontSize: 12, lineHeight: 18, color: colors.mutedForeground },
   feedback: {
     fontFamily: fontFamily.medium,
     fontSize: 12,

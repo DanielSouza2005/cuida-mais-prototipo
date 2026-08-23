@@ -27,7 +27,7 @@ export default function RequestServiceReviewScreen() {
     setIsSubmitting(true);
     const days = draft.hiringType === 'PONTUAL' ? draft.specificDates : draft.weekDays;
     const payload: ServiceRequestPayload = {
-      caregiverId: draft.caregiver.id, assistedPersonId: draft.assistedPerson.id, careAddressId: draft.address.id, careRoutineId: draft.careRoutine!.id, hiringType: draft.hiringType,
+      caregiverId: draft.caregiver?.id ?? null, assistedPersonId: draft.assistedPerson.id, careAddressId: draft.address.id, careRoutineId: draft.careRoutine!.id, hiringType: draft.hiringType,
       startDate: draft.hiringType === 'PONTUAL' ? null : toIso(draft.startDate), endDate: draft.hiringType === 'PERIODO_DETERMINADO' ? toIso(draft.endDate) : null,
       specificDates: draft.specificDates.map((date) => toIso(date)!), scheduleDays: days.map((weekday) => ({ weekday: draft.hiringType === 'PONTUAL' ? weekdayForDate(weekday) : weekday, startTime: draft.startTime, endTime: draft.endTime })),
       needsDescription: draft.needsDescription, additionalNotes: draft.additionalNotes || null, negotiationNotes: draft.negotiation || null,
@@ -39,17 +39,17 @@ export default function RequestServiceReviewScreen() {
 
   return (
     <ScreenContainer contentStyle={styles.content}>
-      <AppHeader showBack title="Revisar solicitação" />
-      <Text style={styles.subtitle}>Confira as informações antes de enviar ao cuidador.</Text>
-      <Card title="Cuidador"><View style={styles.personRow}><ProfileAvatar imageUrl={draft.caregiver.profilePhotoUrl} initials={draft.caregiver.name.slice(0, 2).toUpperCase()} size={58} /><View style={styles.flex}><Strong>{draft.caregiver.name}</Strong><Text style={styles.text}>{[draft.caregiver.neighborhood, draft.caregiver.city, draft.caregiver.state].filter(Boolean).join(' • ')}</Text></View></View></Card>
+      <AppHeader showBack title={draft.publication ? 'Revisar publicação' : 'Revisar solicitação'} />
+      <Text style={styles.subtitle}>{draft.publication ? 'Confira as informações que ficarão disponíveis aos cuidadores.' : 'Confira as informações antes de enviar ao cuidador.'}</Text>
+      {!draft.publication && draft.caregiver ? <Card title="Cuidador"><View style={styles.personRow}><ProfileAvatar imageUrl={draft.caregiver.profilePhotoUrl} initials={draft.caregiver.name.slice(0, 2).toUpperCase()} size={58} /><View style={styles.flex}><Strong>{draft.caregiver.name}</Strong><Text style={styles.text}>{[draft.caregiver.neighborhood, draft.caregiver.city, draft.caregiver.state].filter(Boolean).join(' • ')}</Text></View></View></Card> : null}
       <Card title="Pessoa assistida"><Strong>{draft.assistedPerson.name}</Strong><Text style={styles.text}>{draft.assistedPerson.summary}</Text></Card>
       <Card title="Endereço do cuidado"><Text style={styles.text}>{formatAddress(draft.address)}</Text>{draft.address.referencePoint ? <Text style={styles.text}>{draft.address.referencePoint}</Text> : null}</Card>
       {draft.careRoutine ? <Card title="Rotina de cuidados selecionada"><Strong>{draft.careRoutine.name}</Strong><Text style={styles.rowLabel}>Cuidados combinados</Text>{draft.careRoutine.items.map((item,index)=><CareRoutineItemDetails key={item.id??`${index}`} item={item} index={index}/>)}</Card> : null}
       <Card title="Contratação"><Row label="Tipo" value={hiringLabels[draft.hiringType]} /><Row label="Datas" value={draft.hiringType === 'PONTUAL' ? draft.specificDates.join(', ') : [draft.startDate, draft.endDate].filter(Boolean).join(' até ')} />{draft.hiringType !== 'PONTUAL' && draft.weekDays.length ? <Row label="Dias" value={draft.weekDays.map((day) => weekdayLabels[day] ?? day).join(', ')} /> : null}<Row label="Horário" value={`${draft.startTime} às ${draft.endTime}`} /></Card>
       <Card title="Necessidades da pessoa assistida"><Text style={styles.text}>{draft.needsDescription}</Text>{draft.additionalNotes ? <Row label="Observações adicionais" value={draft.additionalNotes} /> : null}{draft.negotiation ? <Row label="Negociação" value={draft.negotiation} /> : null}</Card>
-      <Card title="Status inicial"><View style={styles.status}><Text style={styles.statusText}>Pendente</Text></View><Text style={styles.text}>A solicitação ficará pendente até ser aceita, rejeitada, cancelada ou expirada.</Text><Text style={styles.notice}>Solicitações pendentes expiram automaticamente após 15 dias.</Text></Card>
+      <Card title="Status inicial"><View style={styles.status}><Text style={styles.statusText}>{draft.publication ? 'Disponível' : 'Pendente'}</Text></View><Text style={styles.text}>{draft.publication ? 'O serviço ficará disponível apenas quando a pessoa assistida autorizar ser encontrada por cuidadores.' : 'A solicitação ficará pendente até ser aceita, rejeitada, cancelada ou expirada.'}</Text><Text style={styles.notice}>O registro expira automaticamente após 15 dias.</Text></Card>
       {feedback ? <Text style={styles.error}>{feedback}</Text> : null}
-      <View style={styles.actions}><PrimaryButton label="Voltar e editar" variant="secondary" onPress={() => router.back()} disabled={isSubmitting} /><PrimaryButton label={isSubmitting ? 'Enviando solicitação...' : 'Confirmar solicitação'} onPress={confirm} loading={isSubmitting} /></View>
+      <View style={styles.actions}><PrimaryButton label="Voltar e editar" variant="secondary" onPress={() => router.back()} disabled={isSubmitting} /><PrimaryButton label={isSubmitting ? (draft.publication ? 'Publicando serviço...' : 'Enviando solicitação...') : (draft.publication ? 'Publicar serviço' : 'Confirmar solicitação')} onPress={confirm} loading={isSubmitting} /></View>
     </ScreenContainer>
   );
 }

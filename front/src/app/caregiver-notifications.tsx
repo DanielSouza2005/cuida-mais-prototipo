@@ -13,7 +13,7 @@ import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 import type { NotificationItem } from '@/types/notification';
 import { formatDateTimeLocal } from '@/utils/dateTime';
 import { getNotificationVisualConfig } from '@/utils/notificationCatalog';
-import { getNotificationHref } from '@/utils/notificationNavigation';
+import { resolveNotificationHref } from '@/utils/notificationNavigation';
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export default function NotificationsScreen() {
       await readNotification(item.id);
       setItems((current) => current.map((value) => value.id === item.id ? { ...value, readAt: new Date().toISOString() } : value));
       emitNotificationsChanged();
-      const href = getNotificationHref(item, user?.userType);
+      const href = await resolveNotificationHref(item, user?.userType);
       if (!href) throw new Error('Rota de notificação indisponível.');
       router.push(href);
     } catch {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { CalendarDays, ClipboardCheck, Handshake, Home, MessageCircle, Search, User } from 'lucide-react-native';
+import { BriefcaseBusiness, CalendarDays, ClipboardCheck, Handshake, Home, MessageCircle, User } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { LoadingState } from '@/components/loading-state';
@@ -54,9 +54,9 @@ export default function MainTabNavigator() {
       <Tabs.Screen
         name="buscar"
         options={{
-          title: 'Buscar',
+          title: 'Serviços',
           href: isCaregiver ? null : undefined,
-          tabBarIcon: ({ color }) => <Search color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+          tabBarIcon: ({ color }) => <BriefcaseBusiness color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen
@@ -65,6 +65,14 @@ export default function MainTabNavigator() {
           title: 'Contratações',
           href: isCaregiver ? null : undefined,
           tabBarIcon: ({ color }) => <Handshake color={color} size={tabBarIconSize} strokeWidth={2.4} />,
+        }}
+      />
+      <Tabs.Screen
+        name="servicos"
+        options={{
+          title: 'Serviços',
+          href: isCaregiver ? undefined : null,
+          tabBarIcon: ({ color }) => <BriefcaseBusiness color={color} size={tabBarIconSize} strokeWidth={2.4} />,
         }}
       />
       <Tabs.Screen

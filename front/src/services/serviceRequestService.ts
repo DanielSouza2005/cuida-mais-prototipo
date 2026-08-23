@@ -4,8 +4,8 @@ import type { ServiceRequestDraft, ServiceRequestFormData, ServiceRequestPayload
 let currentDraft: ServiceRequestDraft | null = null;
 let lastRequest: ServiceRequestResponse | null = null;
 
-export function getServiceRequestFormData(caregiverId: string) {
-  return apiRequest<ServiceRequestFormData>(`/api/service-requests/form-data?caregiverId=${encodeURIComponent(caregiverId)}`);
+export function getServiceRequestFormData(caregiverId?: string) {
+  return apiRequest<ServiceRequestFormData>(`/api/service-requests/form-data${caregiverId ? `?caregiverId=${encodeURIComponent(caregiverId)}` : ''}`);
 }
 export function createServiceRequest(payload: ServiceRequestPayload) {
   return apiRequest<ServiceRequestResponse>('/api/service-requests', { method: 'POST', body: payload }).then((response) => { lastRequest = response; return response; });
