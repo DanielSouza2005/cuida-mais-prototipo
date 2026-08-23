@@ -14,7 +14,6 @@ Aplicativo Expo com Expo Router integrado a API Spring Boot do projeto.
 
    ```env
    EXPO_PUBLIC_API_URL=http://localhost:8080
-   EXPO_PUBLIC_EAS_PROJECT_ID=seu-project-id-do-eas
    ```
 
    O app resolve esse valor em runtime para funcionar melhor no mobile:
@@ -36,17 +35,6 @@ Aplicativo Expo com Expo Router integrado a API Spring Boot do projeto.
    ```bash
    npx expo start
    ```
-
-## Notificações push
-
-O `EXPO_PUBLIC_EAS_PROJECT_ID` deve ser o identificador do projeto configurado no EAS. Notificações remotas exigem um development build ou um build nativo; no Android, elas não funcionam no Expo Go. A central interna continua disponível quando a permissão ou o token push não estiverem disponíveis.
-
-No backend, o envio pode ser controlado por ambiente:
-
-```env
-PUSH_NOTIFICATIONS_ENABLED=true
-EXPO_PUSH_URL=https://exp.host/--/api/v2/push/send
-```
 
 ## Recuperacao de senha por deep link
 

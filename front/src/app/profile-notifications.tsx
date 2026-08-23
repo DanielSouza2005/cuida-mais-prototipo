@@ -1,13 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { LoadingState } from '@/components/loading-state';
 import { ScreenContainer } from '@/components/screen-container';
 import { ApiError } from '@/services/api';
 import { getNotificationPreferences, updateNotificationPreference } from '@/services/notificationService';
-import { getNotificationPermissionState, type PushRegistrationResult } from '@/services/pushNotificationService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { NotificationPreferenceGroup } from '@/types/notification';
 import { getNotificationVisualConfig } from '@/utils/notificationCatalog';
@@ -18,7 +17,6 @@ export default function ProfileNotificationsScreen() {
   const [savingTypes, setSavingTypes] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
-  const [permissionState, setPermissionState] = useState<PushRegistrationResult>('unavailable');
   const savingAny = savingTypes.size > 0;
 
   useFocusEffect(useCallback(() => {
@@ -30,12 +28,6 @@ export default function ProfileNotificationsScreen() {
       .then((response) => { if (active) setGroups(response.groups); })
       .catch(() => { if (active) { setIsError(true); setMessage('Não foi possível carregar as preferências de notificação.'); } })
       .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []));
-
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    getNotificationPermissionState().then((state) => { if (active) setPermissionState(state); });
     return () => { active = false; };
   }, []));
 
@@ -63,14 +55,6 @@ export default function ProfileNotificationsScreen() {
   return (
     <ScreenContainer contentStyle={styles.content}>
       <AppHeader showBack title="Notificações" subtitle="Escolha quais avisos deseja receber no aplicativo." />
-      {permissionState === 'denied' ? (
-        <View style={styles.permissionCard}>
-          <Text style={styles.permissionText}>As notificações estão desativadas. Alguns avisos podem não aparecer no dispositivo.</Text>
-          <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}>
-            <Text style={styles.permissionAction}>Abrir configurações</Text>
-          </Pressable>
-        </View>
-      ) : null}
       {groups.map((group) => (
         <View key={group.category} style={styles.section}>
           <Text style={styles.sectionTitle}>{group.categoryLabel}</Text>
@@ -121,7 +105,4 @@ const styles = StyleSheet.create({
   required: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs, borderRadius: radii.full, backgroundColor: colors.muted, fontFamily: fontFamily.bold, fontSize: 9, color: colors.secondaryForeground },
   feedback: { textAlign: 'center', fontFamily: fontFamily.medium, fontSize: 12, color: colors.mutedForeground },
   error: { color: colors.destructive },
-  permissionCard: { gap: spacing.sm, padding: spacing.lg, borderRadius: radii.lg, borderWidth: 1, borderColor: '#E8C77A', backgroundColor: '#FFF8E7' },
-  permissionText: { fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 18, color: colors.foreground },
-  permissionAction: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.primary },
 });

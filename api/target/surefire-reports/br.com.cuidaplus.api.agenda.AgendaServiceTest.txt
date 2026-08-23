@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: br.com.cuidaplus.api.agenda.AgendaServiceTest
 -------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.285 s -- in br.com.cuidaplus.api.agenda.AgendaServiceTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.995 s -- in br.com.cuidaplus.api.agenda.AgendaServiceTest

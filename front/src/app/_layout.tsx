@@ -7,7 +7,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PushNotificationManager } from '@/components/push-notification-manager';
 import { AuthProvider } from '@/context/AuthContext';
 import { colors } from '@/theme/tokens';
 
@@ -21,5 +20,5 @@ export default function RootLayout() {
   });
   useEffect(() => { if (fontsLoaded || fontError) SplashScreen.hideAsync(); }, [fontsLoaded, fontError]);
   if (!fontsLoaded && !fontError) return null;
-  return <SafeAreaProvider><AuthProvider><PushNotificationManager/><StatusBar style="dark"/><Stack screenOptions={{headerShown:false,contentStyle:{backgroundColor:colors.background},animation:'slide_from_right'}}/></AuthProvider></SafeAreaProvider>;
+  return <SafeAreaProvider><AuthProvider><StatusBar style="dark"/><Stack screenOptions={{headerShown:false,contentStyle:{backgroundColor:colors.background},animation:'slide_from_right'}}/></AuthProvider></SafeAreaProvider>;
 }
