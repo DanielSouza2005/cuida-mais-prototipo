@@ -7,6 +7,7 @@ import br.com.cuidaplus.api.contract_history.ResponsibleContractHistoryService;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.profile.*;
 import br.com.cuidaplus.api.service_request.*;
+import br.com.cuidaplus.api.service_attendance.ServiceAttendanceService;
 import br.com.cuidaplus.api.user.*;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -30,17 +31,20 @@ public class AgendaService {
   private final UserService users;
   private final ContractStatusProcessorService statusProcessor;
   private final ResponsibleContractHistoryService contractHistory;
+  private final ServiceAttendanceService attendance;
 
   public AgendaService(
     CareContractRepository contracts,
     UserService users,
     ContractStatusProcessorService statusProcessor,
-    ResponsibleContractHistoryService contractHistory
+    ResponsibleContractHistoryService contractHistory,
+    ServiceAttendanceService attendance
   ) {
     this.contracts = contracts;
     this.users = users;
     this.statusProcessor = statusProcessor;
     this.contractHistory = contractHistory;
+    this.attendance = attendance;
   }
 
   @Transactional
@@ -76,7 +80,7 @@ public class AgendaService {
       .filter(candidate -> candidate.contractId().equals(contractId))
       .findFirst()
       .orElseThrow(() -> new BusinessException("Este contrato não possui um serviço agendado nessa data.", HttpStatus.NOT_FOUND));
-    return new AgendaEventDetailsResponse(event, contractHistory.contractDetails(userId, contractId));
+    return new AgendaEventDetailsResponse(event, contractHistory.contractDetails(userId, contractId), attendance.details(userId, contractId, eventDate));
   }
 
   private List<AgendaEventResponse> eventsForContract(
@@ -143,6 +147,8 @@ public class AgendaService {
     String startTime = schedule.getStartTime().toString();
     String endTime = schedule.getEndTime().toString();
     String id = contract.getId() + ":" + date + ":" + startTime + ":" + endTime;
+    UUID viewerId = responsibleView ? contract.getResponsibleUser().getId() : contract.getCaregiverUser().getId();
+    var attendanceSummary = attendance.details(viewerId, contract.getId(), date);
     return new AgendaEventResponse(
       id,
       contract.getId(),
@@ -159,7 +165,9 @@ public class AgendaService {
       addressSummary(contract.getAssistedPerson().getEnderecoCuidado()),
       AgendaSourceType.CARE_CONTRACT,
       contract.getStatus() == CareContractStatus.ENCERRAMENTO_AGENDADO,
-      contract.getEffectiveEndDate()
+      contract.getEffectiveEndDate(),
+      attendanceSummary.status(),
+      attendanceSummary.statusLabel()
     );
   }
 

@@ -14,6 +14,7 @@ import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.profile.DiaSemana;
 import br.com.cuidaplus.api.service_request.HiringType;
+import br.com.cuidaplus.api.service_attendance.ServiceAttendanceService;
 import br.com.cuidaplus.api.user.User;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -42,11 +43,12 @@ public class CareDiaryService {
   private final TaskOccurrenceService occurrences;
   private final TaskDateTimeService dateTimes;
   private final ContractStatusProcessorService statusProcessor;
+  private final ServiceAttendanceService attendance;
 
   public CareDiaryService(CareActivityRecordRepository records, CareContractRepository contracts,
     CareOccurrencePhotoRepository photoRepository, CareOccurrencePhotoService photoService,
     TaskAuthorizationService authorization, TaskOccurrenceService occurrences, TaskDateTimeService dateTimes,
-    ContractStatusProcessorService statusProcessor) {
+    ContractStatusProcessorService statusProcessor, ServiceAttendanceService attendance) {
     this.records = records;
     this.contracts = contracts;
     this.photoRepository = photoRepository;
@@ -55,6 +57,7 @@ public class CareDiaryService {
     this.occurrences = occurrences;
     this.dateTimes = dateTimes;
     this.statusProcessor = statusProcessor;
+    this.attendance = attendance;
   }
 
   @Transactional
@@ -86,6 +89,7 @@ public class CareDiaryService {
     if (!isEligibleForDate(contract, request.getEntryDate())) {
       throw new BusinessException("A contratação não possui atendimento válido nessa data.", HttpStatus.CONFLICT);
     }
+    attendance.requireActiveAttendance(contract, request.getEntryDate());
     dateTimes.requireZone(request.getTimezone());
 
     CareActivityRecord record = new CareActivityRecord();

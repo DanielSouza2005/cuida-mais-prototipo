@@ -9,6 +9,7 @@ import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.notification.NotificationService;
 import br.com.cuidaplus.api.notification.NotificationType;
 import br.com.cuidaplus.api.notification.RelatedEntityType;
+import br.com.cuidaplus.api.service_attendance.ServiceAttendanceService;
 import br.com.cuidaplus.api.user.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,12 +36,13 @@ public class TaskOccurrenceService {
     private final ContractCareTaskProvisioningService provisioning;
     private final TaskOccurrenceExpirationService expiration;
     private final CareOccurrencePhotoService photoService;
+    private final ServiceAttendanceService attendance;
 
     public TaskOccurrenceService(CareTaskRepository tasks, TaskOccurrenceRepository occurrences, TaskAuthorizationService authorization,
                                  TaskRecurrenceService recurrence, TaskResponseMapper mapper, TaskAuditService audit, CareActivityIntegrationService activities,
                                  ContractStatusProcessorService contractStatusProcessor, NotificationService notifications, TaskDateTimeService dateTimes,
                                  TaskReminderService reminders, ContractCareTaskProvisioningService provisioning, TaskOccurrenceExpirationService expiration,
-                                 CareOccurrencePhotoService photoService) {
+                                 CareOccurrencePhotoService photoService, ServiceAttendanceService attendance) {
         this.tasks = tasks;
         this.occurrences = occurrences;
         this.authorization = authorization;
@@ -55,6 +57,7 @@ public class TaskOccurrenceService {
         this.provisioning = provisioning;
         this.expiration = expiration;
         this.photoService = photoService;
+        this.attendance = attendance;
     }
 
     @Transactional
@@ -210,6 +213,7 @@ public class TaskOccurrenceService {
         if (occurrence.getTask().getStatus() != TaskSeriesStatus.ATIVA)
             throw new BusinessException("Este cuidado não está ativo.", HttpStatus.CONFLICT);
         authorization.requireContractActive(contractStatusProcessor.processContractIfDue(occurrence.getContract()));
+        attendance.requireActiveAttendance(occurrence.getContract(), occurrence.getScheduledDate());
     }
 
     private TaskOccurrence owned(UUID id, User caregiver) {

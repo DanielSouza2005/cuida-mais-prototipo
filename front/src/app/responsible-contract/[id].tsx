@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { CalendarCheck2, Clock3, Info as InfoIcon, MapPin } from 'lucide-react-native';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { CareRoutineItemDetails } from '@/components/care-routine-item-details';
@@ -12,10 +12,13 @@ import { PrimaryButton } from '@/components/primary-button';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/api';
 import { getResponsibleContractDetails } from '@/services/responsibleContractsService';
+import { getContractAttendance } from '@/services/serviceAttendanceService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { ContractHistoryItem, ContractHistoryItemType, ContractHistoryStatus } from '@/types/contractsHistory';
+import type { AttendanceSummary } from '@/types/serviceAttendance';
 import { contractHiringLabels, contractWeekdayLabels, formatCep, formatContractDate, formatContractDateTime } from '@/utils/contractsHistoryLabels';
-import { formatScheduleTime } from '@/utils/dateTime';
+import { formatDateTimeLocal, formatScheduleTime } from '@/utils/dateTime';
+import { todayDateOnly } from '@/utils/agendaDate';
 
 const statusMessages: Record<ContractHistoryStatus, string> = {
   PENDENTE: 'A solicitação ainda está aguardando resposta do cuidador.',
@@ -38,13 +41,20 @@ export default function ResponsibleContractDetailsScreen() {
   const [item, setItem] = useState<ContractHistoryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
 
   useFocusEffect(useCallback(() => {
     let active = true;
     if (!id || (itemType !== 'SERVICE_REQUEST' && itemType !== 'CARE_CONTRACT')) { setLoading(false); return; }
     setLoading(true);
     getResponsibleContractDetails(itemType, id)
-      .then((result) => { if (active) { setItem(result); setError(null); } })
+      .then(async (result) => {
+        if (active) { setItem(result); setError(null); }
+        if (itemType === 'CARE_CONTRACT') {
+          try { const current = await getContractAttendance(id, todayDateOnly()); if (active) setAttendance(current); }
+          catch { if (active) setAttendance(null); }
+        }
+      })
       .catch((reason) => { if (active) setError(reason instanceof ApiError ? reason.message : 'Não foi possível carregar os detalhes. Tente novamente.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -129,6 +139,13 @@ export default function ResponsibleContractDetailsScreen() {
         <Info label="CEP" value={formatCep(item.careAddress.cep)} />
         {item.careAddress.referencePoint ? <Info label="Ponto de referência" value={item.careAddress.referencePoint} /> : null}
       </Section>
+
+      {isContract && attendance ? <Section title="Atendimento de hoje">
+        <Info label="Situação" value={attendance.statusLabel} />
+        <Info label="Horário previsto" value={`${formatScheduleTime(attendance.scheduledStartTime)} às ${formatScheduleTime(attendance.scheduledEndTime)}`} />
+        {attendance.startRecord ? <><Info label="Registro de início" value={formatDateTimeLocal(attendance.startRecord.recordedAt)} /><PrimaryButton label="Ver localização de início" variant="secondary" onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${attendance.startRecord!.latitude},${attendance.startRecord!.longitude}`)} /></> : null}
+        {attendance.endRecord ? <><Info label="Registro de encerramento" value={formatDateTimeLocal(attendance.endRecord.recordedAt)} /><PrimaryButton label="Ver localização de encerramento" variant="secondary" onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${attendance.endRecord!.latitude},${attendance.endRecord!.longitude}`)} /></> : null}
+      </Section> : null}
 
       {item.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados selecionada" value={item.careRoutine.name} />{item.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}
 

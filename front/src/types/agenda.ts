@@ -3,6 +3,7 @@ import type {
   ContractHistoryStatus,
   ContractHiringType,
 } from '@/types/contractsHistory';
+import type { AttendanceStatus, AttendanceSummary } from '@/types/serviceAttendance';
 
 export type AgendaViewMode = 'DAY' | 'WEEK' | 'MONTH';
 
@@ -23,6 +24,8 @@ export type AgendaEvent = {
   sourceType: 'CARE_CONTRACT';
   hasScheduledTermination: boolean;
   effectiveEndDate?: string | null;
+  attendanceStatus: AttendanceStatus;
+  attendanceStatusLabel: string;
 };
 
 export type AgendaEventsResponse = { content: AgendaEvent[] };
@@ -30,4 +33,5 @@ export type AgendaEventsResponse = { content: AgendaEvent[] };
 export type AgendaEventDetails = {
   event: AgendaEvent;
   contract: ContractHistoryItem;
+  attendance: AttendanceSummary;
 };

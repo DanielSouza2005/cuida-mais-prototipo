@@ -19,19 +19,24 @@ br\com\cuidaplus\api\notification\NotificationType.class
 br\com\cuidaplus\api\service_request\ServiceOpportunityService$1.class
 br\com\cuidaplus\api\service_request\HiringType.class
 br\com\cuidaplus\api\care_task\CareOccurrencePhotoStorageService$StoredPhoto.class
+br\com\cuidaplus\api\service_attendance\ServiceAttendanceService.class
 br\com\cuidaplus\api\service_request\dto\ResponsibleServicePublicationResponse$Schedule.class
 br\com\cuidaplus\api\status_history\StatusHistoryEntityType.class
+br\com\cuidaplus\api\service_attendance\ServiceAttendanceController.class
 br\com\cuidaplus\api\service_request\dto\ServiceRequestResponse.class
 br\com\cuidaplus\api\auth\AuthController.class
 br\com\cuidaplus\api\care_task\TaskAuditEntryRepository.class
 br\com\cuidaplus\api\service_request\dto\ResponsibleServiceRequestResponse$Schedule.class
 br\com\cuidaplus\api\care_task\CareOccurrencePhotoController.class
+br\com\cuidaplus\api\service_attendance\dto\AttendanceActionRequest.class
 br\com\cuidaplus\api\service_request\dto\ServiceOpportunityResponse.class
 br\com\cuidaplus\api\agenda\dto\AgendaEventResponse.class
 br\com\cuidaplus\api\contract_termination\ContractParticipantRole.class
 br\com\cuidaplus\api\service_request\ServiceRequestRepository.class
 br\com\cuidaplus\api\profile\Alergia.class
+br\com\cuidaplus\api\service_attendance\dto\AttendanceRecordResponse.class
 br\com\cuidaplus\api\auth\dto\RegisterCaregiverRequest.class
+br\com\cuidaplus\api\service_attendance\ServiceAttendanceRecord.class
 br\com\cuidaplus\api\service_request\dto\ServiceRequestFormDataResponse.class
 br\com\cuidaplus\api\service_request\dto\ServiceRequestFormDataResponse$CareAddress.class
 br\com\cuidaplus\api\storage\ProfilePhotoController.class
@@ -67,6 +72,7 @@ br\com\cuidaplus\api\profile\dto\EmergencyContactUpdateRequest.class
 br\com\cuidaplus\api\profile\AssistedPersonRepository.class
 br\com\cuidaplus\api\care_routine\dto\CareRoutineResponse.class
 br\com\cuidaplus\api\auth\PasswordResetToken.class
+br\com\cuidaplus\api\service_attendance\AttendanceScheduleService$1.class
 br\com\cuidaplus\api\care_routine\CareRoutineRepository.class
 br\com\cuidaplus\api\caregiver\dto\CaregiverSearchItemResponse.class
 br\com\cuidaplus\api\CuidaPlusApiApplication.class
@@ -85,6 +91,7 @@ br\com\cuidaplus\api\profile\ResponsibleProfileRepository.class
 br\com\cuidaplus\api\care_task\CareActivityRecord.class
 br\com\cuidaplus\api\notification\Notification.class
 br\com\cuidaplus\api\profile\AddressFields.class
+br\com\cuidaplus\api\service_attendance\AttendanceStatus.class
 br\com\cuidaplus\api\care_contract\CareContract.class
 br\com\cuidaplus\api\care_task\CareTask.class
 br\com\cuidaplus\api\care_task\MedicationDetails.class
@@ -111,6 +118,7 @@ br\com\cuidaplus\api\care_task\TaskResponseMapper$1.class
 br\com\cuidaplus\api\profile\dto\ProfilePhotoResponse.class
 br\com\cuidaplus\api\service_request\dto\ResponsibleServiceRequestResponse$Caregiver.class
 br\com\cuidaplus\api\auth\AuthService.class
+br\com\cuidaplus\api\service_attendance\ServiceAttendanceRepository.class
 br\com\cuidaplus\api\service_request\dto\ServiceOpportunityResponse$CareRoutine.class
 br\com\cuidaplus\api\care_task\dto\CreateManualCareRequest.class
 br\com\cuidaplus\api\service_request\dto\CaregiverServiceRequestPageResponse.class
@@ -152,6 +160,7 @@ br\com\cuidaplus\api\care_task\CareActivityRecordRepository.class
 br\com\cuidaplus\api\service_request\dto\ServiceRequestCreateRequest.class
 br\com\cuidaplus\api\care_task\dto\NotCompletedOccurrenceRequest.class
 br\com\cuidaplus\api\care_task\TaskDateTimeService.class
+br\com\cuidaplus\api\service_attendance\AttendanceScheduleService.class
 br\com\cuidaplus\api\care_task\dto\CareOccurrencePhotoResponse.class
 br\com\cuidaplus\api\profile\ResponsibleProfile.class
 br\com\cuidaplus\api\service_request\dto\CaregiverReceivedRequestResponse$Assisted.class
@@ -191,6 +200,7 @@ br\com\cuidaplus\api\user\UserType.class
 br\com\cuidaplus\api\care_contract\ContractTerminationType.class
 br\com\cuidaplus\api\care_routine\dto\CareRoutineRequest$Item.class
 br\com\cuidaplus\api\contract_history\dto\ContractHistoryPageResponse.class
+br\com\cuidaplus\api\service_attendance\AttendanceSchedule.class
 br\com\cuidaplus\api\notification\NotificationAudience.class
 br\com\cuidaplus\api\care_routine\CareRoutineService.class
 br\com\cuidaplus\api\profile\Parentesco.class
@@ -250,12 +260,14 @@ br\com\cuidaplus\api\care_task\dto\MedicationResponse.class
 br\com\cuidaplus\api\care_task\TaskOccurrenceStatus.class
 br\com\cuidaplus\api\contract_termination\ContractTerminationService.class
 br\com\cuidaplus\api\service_request\dto\ServiceOpportunityResponse$Schedule.class
+br\com\cuidaplus\api\service_attendance\AttendanceTimeConfig.class
 br\com\cuidaplus\api\care_routine\CareRoutineController.class
 br\com\cuidaplus\api\care_task\CareTaskRepository.class
 br\com\cuidaplus\api\profile\GrauDependencia.class
 br\com\cuidaplus\api\contract_history\dto\ContractHistoryDetailsResponse$Schedule.class
 br\com\cuidaplus\api\profile\dto\CaregiverAvailabilityUpdateRequest.class
 br\com\cuidaplus\api\service_request\ServiceRequestInitiator.class
+br\com\cuidaplus\api\service_attendance\AttendanceRecordType.class
 br\com\cuidaplus\api\auth\dto\AddressRequest.class
 br\com\cuidaplus\api\agenda\dto\AgendaEventDetailsResponse.class
 br\com\cuidaplus\api\caregiver\CaregiverSearchService$CaregiverSearchFilters.class
@@ -282,6 +294,7 @@ br\com\cuidaplus\api\contract_history\ResponsibleContractHistoryService$1.class
 br\com\cuidaplus\api\profile\ProfileController.class
 br\com\cuidaplus\api\care_routine\dto\CareRoutineResponse$AssistedPerson.class
 br\com\cuidaplus\api\notification\NotificationCategory.class
+br\com\cuidaplus\api\service_attendance\ServiceAttendanceService$1.class
 br\com\cuidaplus\api\service_request\dto\ResponsibleServiceRequestResponse$CareAddress.class
 br\com\cuidaplus\api\care_task\TaskOccurrenceRepository.class
 br\com\cuidaplus\api\care_routine\StructuredCareItemMapper.class
@@ -289,6 +302,8 @@ br\com\cuidaplus\api\security\TokenService.class
 br\com\cuidaplus\api\user\UserController.class
 br\com\cuidaplus\api\service_request\dto\ServiceRequestResponse$Schedule.class
 br\com\cuidaplus\api\care_routine\dto\CareRoutineFormDataResponse$AssistedPerson.class
+br\com\cuidaplus\api\service_attendance\dto\TodayAttendanceResponse.class
 br\com\cuidaplus\api\care_task\dto\TaskFormDataResponse$ContractOption.class
+br\com\cuidaplus\api\service_attendance\dto\AttendanceSummaryResponse.class
 br\com\cuidaplus\api\profile\CaregiverAvailability.class
 br\com\cuidaplus\api\care_task\dto\TaskOccurrenceResponse.class

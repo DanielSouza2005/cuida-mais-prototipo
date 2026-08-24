@@ -34,6 +34,8 @@ class NotificationCatalogTest {
     assertFalse(caregiver.stream().anyMatch(item -> item.type() == NotificationType.SERVICE_REQUEST_ACCEPTED));
     assertTrue(responsible.stream().anyMatch(item -> item.type() == NotificationType.SERVICE_REQUEST_ACCEPTED));
     assertFalse(responsible.stream().anyMatch(item -> item.type() == NotificationType.SERVICE_REQUEST_CREATED));
+    assertTrue(responsible.stream().anyMatch(item -> item.type() == NotificationType.SERVICE_ATTENDANCE_STARTED));
+    assertFalse(caregiver.stream().anyMatch(item -> item.type() == NotificationType.SERVICE_ATTENDANCE_STARTED));
     assertFalse(caregiver.stream().anyMatch(item -> item.type() == NotificationType.CARE_TASK_REMINDER));
     assertFalse(responsible.stream().anyMatch(item -> item.type() == NotificationType.TASK_OCCURRENCE_COMPLETED));
     assertEquals(caregiver.size(), new HashSet<>(caregiver.stream().map(NotificationDefinition::type).toList()).size());

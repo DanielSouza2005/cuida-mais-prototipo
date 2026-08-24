@@ -6,6 +6,9 @@ import static org.mockito.Mockito.*;
 import br.com.cuidaplus.api.care_contract.*;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.contract_history.ResponsibleContractHistoryService;
+import br.com.cuidaplus.api.service_attendance.ServiceAttendanceService;
+import br.com.cuidaplus.api.service_attendance.AttendanceStatus;
+import br.com.cuidaplus.api.service_attendance.dto.AttendanceSummaryResponse;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.profile.*;
 import br.com.cuidaplus.api.service_request.*;
@@ -23,6 +26,8 @@ class AgendaServiceTest {
   @Mock UserService users;
   @Mock ContractStatusProcessorService statusProcessor;
   @Mock ResponsibleContractHistoryService contractHistory;
+  @Mock ServiceAttendanceService attendance;
+  @Mock AttendanceSummaryResponse attendanceSummary;
   @Mock CareContract contract;
   @Mock ServiceRequest request;
   @Mock User responsible;
@@ -33,7 +38,7 @@ class AgendaServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new AgendaService(contracts, users, statusProcessor, contractHistory);
+    service = new AgendaService(contracts, users, statusProcessor, contractHistory, attendance);
     responsibleId = UUID.randomUUID();
     lenient().when(users.findById(responsibleId)).thenReturn(responsible);
     lenient().when(responsible.getUserType()).thenReturn(UserType.RESPONSAVEL);
@@ -46,6 +51,8 @@ class AgendaServiceTest {
     lenient().when(contract.getServiceRequest()).thenReturn(request);
     lenient().when(contract.getResponsibleUser()).thenReturn(responsible);
     lenient().when(contract.getCaregiverUser()).thenReturn(caregiver);
+    lenient().when(responsible.getId()).thenReturn(UUID.randomUUID());
+    lenient().when(caregiver.getId()).thenReturn(UUID.randomUUID());
     lenient().when(contract.getAssistedPerson()).thenReturn(assisted);
     lenient().when(caregiver.getFullName()).thenReturn("Ana Paula");
     lenient().when(caregiver.getProfilePhotoUrl()).thenReturn("/uploads/ana.jpg");
@@ -53,6 +60,9 @@ class AgendaServiceTest {
     lenient().when(assisted.getNome()).thenReturn("Maria Aparecida");
     lenient().when(assisted.getEnderecoCuidado()).thenReturn(address());
     lenient().when(request.getHiringType()).thenReturn(HiringType.PERIODO_DETERMINADO);
+    lenient().when(attendance.details(any(), any(), any())).thenReturn(attendanceSummary);
+    lenient().when(attendanceSummary.status()).thenReturn(AttendanceStatus.NOT_STARTED);
+    lenient().when(attendanceSummary.statusLabel()).thenReturn("Não iniciado");
     lenient().when(request.getSpecificDates()).thenReturn(new LinkedHashSet<>());
     lenient().when(request.getScheduleDays()).thenReturn(Set.of(
       schedule(DiaSemana.SEGUNDA, 8, 12),

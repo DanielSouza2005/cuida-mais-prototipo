@@ -35,7 +35,7 @@ class TaskOccurrenceServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new TaskOccurrenceService(tasks, occurrences, authorization, recurrence, mapper, audit, activities, contractProcessor, notifications, dateTimes, reminders, provisioning, expiration, photoService);
+    service = new TaskOccurrenceService(tasks, occurrences, authorization, recurrence, mapper, audit, activities, contractProcessor, notifications, dateTimes, reminders, provisioning, expiration, photoService, mock(br.com.cuidaplus.api.service_attendance.ServiceAttendanceService.class));
     caregiverId = UUID.randomUUID(); occurrenceId = UUID.randomUUID();
     task = new CareTask(); task.setStatus(TaskSeriesStatus.ATIVA); task.setResponsibleCreator(responsible); task.setTitle("Administrar medicamento");
     occurrence = mock(TaskOccurrence.class);

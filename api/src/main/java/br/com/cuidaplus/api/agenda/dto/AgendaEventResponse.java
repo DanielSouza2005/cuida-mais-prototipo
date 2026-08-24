@@ -3,6 +3,7 @@ package br.com.cuidaplus.api.agenda.dto;
 import br.com.cuidaplus.api.agenda.AgendaSourceType;
 import br.com.cuidaplus.api.care_contract.CareContractStatus;
 import br.com.cuidaplus.api.service_request.HiringType;
+import br.com.cuidaplus.api.service_attendance.AttendanceStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -23,5 +24,7 @@ public record AgendaEventResponse(
   String careAddressSummary,
   AgendaSourceType sourceType,
   boolean hasScheduledTermination,
-  LocalDate effectiveEndDate
+  LocalDate effectiveEndDate,
+  AttendanceStatus attendanceStatus,
+  String attendanceStatusLabel
 ) {}

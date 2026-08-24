@@ -9,8 +9,8 @@ export async function getAgendaEvents(startDate: string, endDate: string, viewMo
 
 export async function getAgendaEventDetails(contractId: string, eventDate: string): Promise<AgendaEventDetails> {
   const query = new URLSearchParams({ contractId, eventDate });
-  const response = await apiRequest<{ event: AgendaEventDetails['event']; contract: ApiContractDetails }>(
+  const response = await apiRequest<{ event: AgendaEventDetails['event']; contract: ApiContractDetails; attendance: AgendaEventDetails['attendance'] }>(
     `/api/agenda/events/detail?${query.toString()}`,
   );
-  return { event: response.event, contract: mapContractDetails(response.contract) };
+  return { event: response.event, contract: mapContractDetails(response.contract), attendance: response.attendance };
 }

@@ -10,6 +10,8 @@ import { DatePickerField } from '@/components/date-picker-field';
 import { OptionGroup } from '@/components/option-group';
 import { ScreenContainer } from '@/components/screen-container';
 import { getCaregiverDiary } from '@/services/careTaskService';
+import { ApiError } from '@/services/api';
+import { getTodayAttendance } from '@/services/serviceAttendanceService';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 import type { CareDiaryItem, TaskOccurrenceStatus } from '@/types/careTasks';
 import { addDays, todayDateOnly } from '@/utils/agendaDate';
@@ -31,6 +33,7 @@ export default function CaregiverTasksScreen() {
   const [items, setItems] = useState<CareDiaryItem[] | null>(null);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [attendanceState, setAttendanceState] = useState<'loading' | 'active' | 'blocked' | 'error'>('loading');
   const requestSequence = useRef(0);
   const insets = useSafeAreaInsets();
 
@@ -46,6 +49,16 @@ export default function CaregiverTasksScreen() {
       if (requestId !== requestSequence.current) return;
       setItems(content.filter((item) => matchesStatus(item, status)));
       setPeople((current) => [...new Map([...current, ...content.map((item) => ({ value: item.assistedPersonId, label: item.assistedPersonName }))].map((item) => [item.value, item])).values()]);
+      if (displayDateToIso(date) === todayDateOnly()) {
+        setAttendanceState('loading');
+        try {
+          const todayAttendance = await getTodayAttendance();
+          setAttendanceState(todayAttendance.content.some((entry) => (!contractId || entry.contractId === contractId) && (entry.status === 'IN_PROGRESS' || entry.status === 'CAN_END')) ? 'active' : 'blocked');
+        } catch (cause) {
+          setAttendanceState('error');
+          if (__DEV__) console.warn('[service-attendance] Falha ao validar os cuidados do dia.', cause instanceof ApiError ? { status: cause.status } : { type: 'mapping-or-unexpected' });
+        }
+      } else setAttendanceState('blocked');
     } catch {
       if (requestId === requestSequence.current) setError(true);
     } finally {
@@ -72,14 +85,20 @@ export default function CaregiverTasksScreen() {
     <Pressable onPress={() => setDate(isoDateToDisplay(todayDateOnly()))} style={styles.todayButton}><Text style={styles.retry}>Hoje</Text></Pressable>
     <View style={styles.filters}>{filters.map((item) => <Pressable key={item ?? 'TODAS'} onPress={() => setStatus(item)} style={[styles.chip, status === item && styles.active]}><Text style={[styles.chipText, status === item && styles.activeText]}>{item ? taskOccurrenceStatusLabels[item] : 'Todos'}</Text></Pressable>)}</View>
     {people.length > 1 ? <View style={styles.advanced}><OptionGroup label="Pessoa assistida" options={[{ value: 'TODAS', label: 'Todas' }, ...people]} value={assistedPersonId} onChange={(value) => setAssistedPersonId(value as string)} /></View> : null}
+    {attendanceState !== 'active' && displayDateToIso(date) === todayDateOnly() ? <View style={styles.attendanceNotice}><Text style={styles.attendanceNoticeText}>{attendanceState === 'error'
+      ? 'Não foi possível verificar o atendimento. Atualize a tela antes de registrar cuidados.'
+      : attendanceState === 'loading' ? 'Verificando a situação do atendimento...'
+        : 'Inicie o atendimento para registrar cuidados. Após o encerramento, novos apontamentos ficam bloqueados.'}</Text></View> : null}
     {items === null && !error ? <State text="Carregando cuidados..." /> : error ? <State text="Não foi possível carregar os cuidados." icon={<RefreshCw color={colors.destructive} />} action={() => void load()} /> : items?.length === 0 ? <State text="Nenhum cuidado ou anotação neste dia." icon={<ClipboardCheck color={colors.primary} />} /> : <View style={styles.list}>{items?.map((item) => <CareDiaryItemCard key={`${item.sourceType}-${item.id}`} item={item} onPress={() => router.push((item.sourceType === 'MANUAL' ? `/care-diary-entry/${item.id}` : `/task-occurrence/${item.id}`) as Href)} />)}</View>}
   </ScreenContainer>
     <Pressable
       accessibilityLabel="Adicionar cuidado avulso"
       accessibilityRole="button"
+      accessibilityState={{ disabled: attendanceState !== 'active' }}
+      disabled={attendanceState !== 'active'}
       hitSlop={8}
       onPress={openManualForm}
-      style={({ pressed }) => [styles.fab, { bottom: Math.max(insets.bottom, spacing.lg) + spacing.lg }, pressed && styles.fabPressed]}
+      style={({ pressed }) => [styles.fab, { bottom: Math.max(insets.bottom, spacing.lg) + spacing.lg }, attendanceState !== 'active' && styles.fabDisabled, pressed && styles.fabPressed]}
     >
       <Plus color={colors.primaryForeground} size={30} strokeWidth={2.6} />
     </Pressable>
@@ -97,6 +116,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.xl, paddingBottom: 112, gap: spacing.lg },
   fab: { position: 'absolute', right: spacing.xl, width: 58, height: 58, alignItems: 'center', justifyContent: 'center', borderRadius: radii.full, backgroundColor: colors.primary, elevation: 6, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
   fabPressed: { opacity: 0.82, transform: [{ scale: 0.97 }] },
+  fabDisabled: { opacity: 0.42 }, attendanceNotice: { padding: spacing.md, borderRadius: radii.lg, backgroundColor: '#FFF9E5' }, attendanceNoticeText: { fontFamily: fontFamily.semiBold, fontSize: 12, lineHeight: 18, color: '#755B00' },
   dateNavigation: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }, dateField: { flex: 1 }, dayButton: { width: 48, height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   todayButton: { alignSelf: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, borderRadius: radii.full, backgroundColor: colors.secondary }, filters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { minHeight: 38, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radii.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }, active: { borderColor: colors.primary, backgroundColor: colors.secondary }, chipText: { fontFamily: fontFamily.semiBold, fontSize: 11, color: colors.mutedForeground }, activeText: { color: colors.primary },

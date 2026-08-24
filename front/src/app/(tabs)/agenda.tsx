@@ -156,6 +156,7 @@ function EventCard({ event }: { event: AgendaEvent }) {
         <ContractStatusBadge status={event.status} />
       </View>
       <Text style={styles.eventTitle}>{event.title}</Text>
+      <View style={styles.attendancePill}><Text style={styles.attendanceText}>{event.attendanceStatusLabel}</Text></View>
       <Text style={styles.participant}>Com {event.participantName}</Text>
       <Text style={styles.hiringType}>{contractHiringLabels[event.hiringType]}</Text>
       {event.careAddressSummary ? <View style={styles.location}><MapPin color={colors.mutedForeground} size={14} /><Text style={styles.locationText}>{event.careAddressSummary}</Text></View> : null}
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
   timePill: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   time: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.primary },
   eventTitle: { fontFamily: fontFamily.extraBold, fontSize: 16, color: colors.foreground },
+  attendancePill: { alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radii.full, backgroundColor: colors.secondary }, attendanceText: { fontFamily: fontFamily.bold, fontSize: 10, color: colors.primary },
   participant: { fontFamily: fontFamily.medium, fontSize: 13, color: colors.secondaryForeground },
   hiringType: { fontFamily: fontFamily.semiBold, fontSize: 11, color: colors.mutedForeground },
   location: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },

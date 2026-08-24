@@ -57,7 +57,7 @@ class CareDiaryServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new CareDiaryService(records, contracts, photos, photoService, authorization, occurrences, dateTimes, statusProcessor);
+    service = new CareDiaryService(records, contracts, photos, photoService, authorization, occurrences, dateTimes, statusProcessor, mock(br.com.cuidaplus.api.service_attendance.ServiceAttendanceService.class));
     userId = UUID.randomUUID(); caregiverId = UUID.randomUUID(); assistedId = UUID.randomUUID(); contractId = UUID.randomUUID();
     date = LocalDate.of(2026, 7, 29);
     lenient().when(authorization.requireCaregiver(userId)).thenReturn(caregiver);

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { CalendarCheck2, Clock3, MapPin } from 'lucide-react-native';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { CareRoutineItemDetails } from '@/components/care-routine-item-details';
@@ -10,11 +10,15 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { ScreenContainer } from '@/components/screen-container';
 import { getAgendaEventDetails } from '@/services/agendaService';
+import { ApiError } from '@/services/api';
+import { captureCurrentLocation, DeviceLocationError } from '@/services/deviceLocationService';
+import { endAttendance, startAttendance } from '@/services/serviceAttendanceService';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { AgendaEventDetails } from '@/types/agenda';
 import { contractHiringLabels, contractWeekdayLabels, formatCep } from '@/utils/contractsHistoryLabels';
-import { formatDateBR, formatScheduleTime } from '@/utils/dateTime';
+import { formatDateBR, formatDateTimeLocal, formatScheduleTime } from '@/utils/dateTime';
+import { deviceTimezone } from '@/utils/careTaskLabels';
 
 export default function AgendaEventDetailsScreen() {
   const { user } = useAuth();
@@ -23,6 +27,7 @@ export default function AgendaEventDetailsScreen() {
   const eventDate = Array.isArray(params.eventDate) ? params.eventDate[0] : params.eventDate;
   const [details, setDetails] = useState<AgendaEventDetails | null>(null);
   const [error, setError] = useState(false);
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!contractId || !eventDate) { setError(true); return; }
@@ -53,6 +58,32 @@ export default function AgendaEventDetailsScreen() {
   const startTime = formatScheduleTime(event.startDateTime.slice(11));
   const endTime = formatScheduleTime(event.endDateTime.slice(11));
   const caregiverInitials = contract.participant.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const attendance = details.attendance;
+
+  async function recordAttendance() {
+    if (!attendance.canStart && !attendance.canEnd) return;
+    const wasStarting = attendance.canStart;
+    setAttendanceBusy(true);
+    try {
+      const location = await captureCurrentLocation();
+      const payload = { ...location, attendanceDate: attendance.attendanceDate, deviceTimezone: deviceTimezone() };
+      const updated = wasStarting ? await startAttendance(contractId, payload) : await endAttendance(contractId, payload);
+      setDetails((current) => current ? { ...current, attendance: updated } : current);
+      Alert.alert(wasStarting ? 'Atendimento iniciado' : 'Atendimento encerrado', wasStarting ? 'O início e a localização foram registrados.' : 'O encerramento e a localização foram registrados.');
+    } catch (cause) {
+      if (cause instanceof DeviceLocationError) {
+        const message = cause.reason === 'permission' ? 'Para registrar o atendimento, permita o acesso à localização.'
+          : cause.reason === 'mocked' ? 'Não é possível registrar o atendimento com uma localização simulada.'
+            : cause.reason === 'stale' ? 'Não foi possível obter uma localização recente. Tente novamente em alguns instantes.'
+              : 'Não foi possível obter sua localização. Tente novamente.';
+        Alert.alert(cause.reason === 'permission' ? 'Permissão de localização necessária' : 'Localização indisponível', message);
+      } else Alert.alert('Não foi possível registrar o atendimento', cause instanceof ApiError ? cause.message : 'Tente novamente.');
+    } finally { setAttendanceBusy(false); }
+  }
+
+  function openLocation(latitude: number, longitude: number) {
+    void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
+  }
 
   return (
     <ScreenContainer contentStyle={styles.content}>
@@ -96,6 +127,28 @@ export default function AgendaEventDetailsScreen() {
         <Info label="Cidade e estado" value={`${contract.careAddress.city} - ${contract.careAddress.state}`} />
         <Info label="CEP" value={formatCep(contract.careAddress.cep)} />
         {contract.careAddress.referencePoint ? <Info label="Ponto de referência" value={contract.careAddress.referencePoint} /> : null}
+      </Section>
+
+      <Section title="Atendimento do dia">
+        <Info label="Situação" value={attendance.statusLabel} />
+        <Info label="Horário previsto" value={`${formatScheduleTime(attendance.scheduledStartTime)} às ${formatScheduleTime(attendance.scheduledEndTime)}`} />
+        <Text style={styles.diaryText}>{attendance.actionMessage}</Text>
+        {attendance.startRecord ? <>
+          <Info label="Registro de início" value={formatDateTimeLocal(attendance.startRecord.recordedAt)} />
+          <Info label="Precisão da localização" value={`Aproximadamente ${Math.round(attendance.startRecord.accuracy)} metros`} />
+          <PrimaryButton label="Ver localização de início" variant="secondary" onPress={() => openLocation(attendance.startRecord!.latitude, attendance.startRecord!.longitude)} />
+        </> : null}
+        {attendance.endRecord ? <>
+          <Info label="Registro de encerramento" value={formatDateTimeLocal(attendance.endRecord.recordedAt)} />
+          <Info label="Precisão da localização" value={`Aproximadamente ${Math.round(attendance.endRecord.accuracy)} metros`} />
+          <PrimaryButton label="Ver localização de encerramento" variant="secondary" onPress={() => openLocation(attendance.endRecord!.latitude, attendance.endRecord!.longitude)} />
+        </> : null}
+        {user?.userType === 'caregiver' && (attendance.canStart || attendance.canEnd) ? <PrimaryButton
+          label={attendance.canStart ? 'Iniciar atendimento' : 'Encerrar atendimento'}
+          loading={attendanceBusy}
+          disabled={attendanceBusy}
+          onPress={() => void recordAttendance()}
+        /> : null}
       </Section>
 
       {contract.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados" value={contract.careRoutine.name} />{contract.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}

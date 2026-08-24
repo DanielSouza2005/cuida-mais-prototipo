@@ -9,8 +9,9 @@ import {
   Handshake,
   Search,
 } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AttendanceCard } from '@/components/home/attendance-card';
 import { NextCareCard } from '@/components/home/next-care-card';
 import { QuickAccessGrid, type QuickAccessItem } from '@/components/home/quick-access-grid';
 import { WellnessTipCard } from '@/components/home/wellness-tip-card';
@@ -19,8 +20,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { getCaregiverDayTasks, getResponsibleDayCareOccurrences } from '@/services/careTaskService';
 import { getUnreadNotificationCount } from '@/services/notificationService';
 import { subscribeNotificationsChanged } from '@/services/notificationEvents';
+import { ApiError } from '@/services/api';
+import { captureCurrentLocation, DeviceLocationError } from '@/services/deviceLocationService';
+import { AttendanceResponseError, endAttendance, getTodayAttendance, startAttendance } from '@/services/serviceAttendanceService';
 import { colors, fontFamily, shadows, spacing } from '@/theme/tokens';
 import type { TaskOccurrence } from '@/types/careTasks';
+import type { AttendanceSummary } from '@/types/serviceAttendance';
 import { todayDateOnly } from '@/utils/agendaDate';
 import { deviceTimezone } from '@/utils/careTaskLabels';
 import { getWellnessTip } from '@/utils/wellnessTips';
@@ -41,6 +46,10 @@ export default function HomeScreen() {
   const [nextCare, setNextCare] = useState<TaskOccurrence | null>(null);
   const [careLoading, setCareLoading] = useState(true);
   const [careError, setCareError] = useState(false);
+  const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(isCaregiver);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+  const [attendanceActionLoading, setAttendanceActionLoading] = useState(false);
   const today = todayDateOnly();
   const dayCareRoute = (isCaregiver ? `/caregiver-tasks?date=${today}` : `/responsible-care-occurrences?date=${today}`) as Href;
 
@@ -67,20 +76,41 @@ export default function HomeScreen() {
     getUnreadNotificationCount().then((result) => setUnreadCount(result.count)).catch(() => setUnreadCount(0));
   }, [user]);
 
+  const loadAttendance = useCallback(async () => {
+    if (!isCaregiver) return;
+    setAttendanceLoading(true);
+    setAttendanceError(null);
+    try {
+      const response = await getTodayAttendance();
+      setAttendance(selectAttendance(response.content));
+    } catch (cause) {
+      setAttendance(null);
+      setAttendanceError(attendanceLoadMessage(cause));
+      if (__DEV__) {
+        console.warn('[service-attendance] Falha ao carregar o resumo.', cause instanceof ApiError
+          ? { type: 'api', status: cause.status }
+          : { type: cause instanceof AttendanceResponseError ? 'mapping' : 'unexpected' });
+      }
+    } finally {
+      setAttendanceLoading(false);
+    }
+  }, [isCaregiver]);
+
   useEffect(() => subscribeNotificationsChanged(loadUnreadCount), [loadUnreadCount]);
 
   useFocusEffect(useCallback(() => {
     let active = true;
     void loadNextCare();
+    void loadAttendance();
     if (user) getUnreadNotificationCount().then((result) => { if (active) setUnreadCount(result.count); }).catch(() => { if (active) setUnreadCount(0); });
     return () => { active = false; };
-  }, [loadNextCare, user]));
+  }, [loadAttendance, loadNextCare, user]));
 
   const quickAccessItems = useMemo<QuickAccessItem[]>(() => isCaregiver ? [
     { title: 'Buscar serviços', description: 'Encontre oportunidades de cuidado disponíveis.', icon: Search, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.opportunities) },
     { title: 'Solicitações', description: 'Avalie novos pedidos de cuidado.', icon: ClipboardList, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.requests) },
     { title: 'Agenda', description: 'Confira seus próximos atendimentos.', icon: CalendarDays, iconColor: '#A9573C', iconBackground: '#FCE9E1', onPress: () => router.push(routes.agenda) },
-    { title: 'Cuidados de hoje', description: 'Visualize e registre os cuidados do dia.', icon: ClipboardCheck, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(dayCareRoute) },
+    { title: 'Cuidados do dia', description: 'Visualize os cuidados e registre quando o atendimento estiver em andamento.', icon: ClipboardCheck, iconColor: '#76611B', iconBackground: '#FAF1C9', onPress: () => router.push(dayCareRoute) },
   ] : [
     { title: 'Serviços', description: 'Publique oportunidades ou encontre cuidadores.', icon: BriefcaseBusiness, iconColor: '#236FA0', iconBackground: '#DCEFFA', onPress: () => router.push(routes.search) },
     { title: 'Contratações', description: 'Acompanhe seus serviços contratados.', icon: Handshake, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.contracts) },
@@ -90,6 +120,38 @@ export default function HomeScreen() {
 
   function openCare() {
     router.push(nextCare ? (`/task-occurrence/${nextCare.id}` as Href) : dayCareRoute);
+  }
+
+  async function recordAttendance() {
+    if (!attendance || (!attendance.canStart && !attendance.canEnd)) return;
+    const wasStarting = attendance.canStart;
+    setAttendanceActionLoading(true);
+    try {
+      const location = await captureCurrentLocation();
+      const payload = { ...location, attendanceDate: attendance.attendanceDate, deviceTimezone: deviceTimezone() };
+      const updated = wasStarting
+        ? await startAttendance(attendance.contractId, payload)
+        : await endAttendance(attendance.contractId, payload);
+      setAttendance(updated.status === 'ENDED' ? null : updated);
+      Alert.alert(wasStarting ? 'Atendimento iniciado' : 'Atendimento encerrado', wasStarting ? 'O início e a localização foram registrados.' : 'O encerramento e a localização foram registrados.');
+      void loadNextCare();
+      if (!wasStarting) void loadAttendance();
+    } catch (cause) {
+      if (cause instanceof DeviceLocationError) {
+        const message = cause.reason === 'permission'
+          ? 'Para registrar o atendimento, permita o acesso à localização.'
+          : cause.reason === 'mocked'
+            ? 'Não é possível registrar o atendimento com uma localização simulada.'
+            : cause.reason === 'stale'
+              ? 'Não foi possível obter uma localização recente. Tente novamente em alguns instantes.'
+              : 'Não foi possível obter sua localização. Tente novamente.';
+        Alert.alert(cause.reason === 'permission' ? 'Permissão de localização necessária' : 'Localização indisponível', message);
+      } else {
+        Alert.alert('Não foi possível registrar o atendimento', cause instanceof ApiError ? cause.message : 'Tente novamente.');
+      }
+    } finally {
+      setAttendanceActionLoading(false);
+    }
   }
 
   return (
@@ -107,7 +169,20 @@ export default function HomeScreen() {
         ) : null}
       </View>
 
-      <NextCareCard care={nextCare} error={careError} isCaregiver={isCaregiver} loading={careLoading} onPress={openCare} onRetry={() => void loadNextCare()} />
+      {isCaregiver ? <AttendanceCard
+        attendance={attendance}
+        loading={attendanceLoading}
+        error={attendanceError}
+        actionLoading={attendanceActionLoading}
+        nextCare={nextCare}
+        careLoading={careLoading}
+        careError={careError}
+        onAction={() => void recordAttendance()}
+        onCarePress={openCare}
+        onCareRetry={() => void loadNextCare()}
+        onDetails={() => attendance && router.push(`/agenda-event/${attendance.contractId}?eventDate=${attendance.attendanceDate}` as Href)}
+        onRetry={() => void loadAttendance()}
+      /> : <NextCareCard care={nextCare} error={careError} isCaregiver={false} loading={careLoading} onPress={openCare} onRetry={() => void loadNextCare()} />}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acesso rápido</Text>
@@ -120,6 +195,22 @@ export default function HomeScreen() {
       </View>
     </ScreenContainer>
   );
+}
+
+function selectAttendance(items: AttendanceSummary[]) {
+  const rank: Record<AttendanceSummary['status'], number> = { CAN_END: 0, IN_PROGRESS: 1, CAN_START: 2, NOT_STARTED: 3, OUTSIDE_WINDOW: 4, MISSED: 5, ENDED: 6 };
+  return items.filter((item) => item.status !== 'ENDED').sort((first, second) => rank[first.status] - rank[second.status] || first.scheduledStartTime.localeCompare(second.scheduledStartTime))[0] ?? null;
+}
+
+function attendanceLoadMessage(cause: unknown) {
+  if (cause instanceof AttendanceResponseError) return 'Os dados do atendimento vieram em um formato inesperado. Tente novamente.';
+  if (!(cause instanceof ApiError)) return 'Não foi possível carregar o atendimento. Tente novamente.';
+  if (cause.status === 0) return 'Não foi possível conectar ao servidor para carregar o atendimento.';
+  if (cause.status === 401) return 'Sua sessão expirou. Entre novamente para carregar o atendimento.';
+  if (cause.status === 403) return 'Você não tem permissão para visualizar este atendimento.';
+  if (cause.status === 404) return 'O atendimento solicitado não foi encontrado.';
+  if (cause.status >= 500) return 'O servidor não conseguiu carregar o atendimento agora. Tente novamente em instantes.';
+  return cause.message || 'Não foi possível carregar o atendimento. Tente novamente.';
 }
 
 function selectNextCare(items: TaskOccurrence[]) {

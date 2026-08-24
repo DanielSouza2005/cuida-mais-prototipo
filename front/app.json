@@ -38,7 +38,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Permita que o Cuidar+ use sua localização para calcular a distância até cuidadores e serviços disponíveis."
+          "locationWhenInUsePermission": "Permita que o Cuidar+ use sua localização para calcular distâncias e registrar o início ou encerramento de atendimentos."
         }
       ],
       [
