@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: br.com.cuidaplus.api.care_task.TaskOccurrenceServiceTest
 -------------------------------------------------------------------------------
-Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.386 s -- in br.com.cuidaplus.api.care_task.TaskOccurrenceServiceTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.482 s -- in br.com.cuidaplus.api.care_task.TaskOccurrenceServiceTest

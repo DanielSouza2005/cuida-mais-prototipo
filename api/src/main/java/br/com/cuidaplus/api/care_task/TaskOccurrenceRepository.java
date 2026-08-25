@@ -1,6 +1,7 @@
 package br.com.cuidaplus.api.care_task;
 
 import br.com.cuidaplus.api.user.User;
+import br.com.cuidaplus.api.care_contract.CareContract;
 import java.time.*;
 import java.util.*;
 import org.springframework.data.jpa.repository.Modifying;
@@ -32,6 +33,7 @@ public interface TaskOccurrenceRepository extends JpaRepository<TaskOccurrence, 
     @Param("timezone") String timezone, @Param("createdAt") Instant createdAt);
   List<TaskOccurrence> findByTaskAndScheduledDateBetweenOrderByScheduledInstantUtcAsc(CareTask task, LocalDate start, LocalDate end);
   List<TaskOccurrence> findByCaregiverAndScheduledDateBetweenOrderByScheduledInstantUtcAsc(User caregiver, LocalDate start, LocalDate end);
+  List<TaskOccurrence> findByContractAndScheduledDateOrderByScheduledInstantUtcAsc(CareContract contract, LocalDate date);
   Optional<TaskOccurrence> findByIdAndCaregiver(UUID id, User caregiver);
   List<TaskOccurrence> findByTaskOrderByScheduledInstantUtcDesc(CareTask task);
   List<TaskOccurrence> findByStatusIn(Collection<TaskOccurrenceStatus> statuses);

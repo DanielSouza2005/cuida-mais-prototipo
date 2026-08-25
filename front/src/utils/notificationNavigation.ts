@@ -25,6 +25,9 @@ export function getNotificationHref(data: NotificationNavigationData, userType?:
   if (data.relatedEntityType === 'CARE_CONTRACT') {
     return `/responsible-contract/${data.relatedEntityId}?itemType=CARE_CONTRACT` as Href;
   }
+  if (data.relatedEntityType === 'ATTENDANCE_REPORT') {
+    return `/attendance-report/${data.relatedEntityId}` as Href;
+  }
   if (data.relatedEntityType === 'SERVICE_REQUEST') {
     if (notificationType === 'SERVICE_PUBLICATION_CREATED' || notificationType === 'SERVICE_PUBLICATION_CANCELED' || notificationType === 'SERVICE_PUBLICATION_EXPIRED' || notificationType === 'SERVICE_PUBLICATION_STATUS_UPDATED') return `/responsible-service-publication/${data.relatedEntityId}` as Href;
     if (notificationType === 'SERVICE_OPPORTUNITY_APPLICATION_ACCEPTED') return '/service-opportunities?mode=SENT&notice=contract-unavailable' as Href;

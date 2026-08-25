@@ -5,6 +5,18 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\agenda\dto\AgendaEventDetailsResponse.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\agenda\dto\AgendaEventResponse.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\agenda\dto\AgendaEventsResponse.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReport.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportController.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportEmailEventListener.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportEmailRequested.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportEmailRetryScheduler.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportEmailStatus.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportEmailWorker.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportRepository.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportService.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\AttendanceReportStatus.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\dto\AttendanceReportResponse.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\attendance_report\dto\UpdateAttendanceReportRequest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\auth\AuthController.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\auth\AuthService.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\auth\dto\AddressRequest.java
@@ -131,6 +143,7 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\contract_termination\dto\ContractTerminationResponse.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\contract_termination\dto\TerminateContractRequest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\CuidaPlusApiApplication.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\email\AttendanceReportEmailMessage.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\email\EmailService.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\email\NoopEmailService.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\email\SmtpEmailService.java

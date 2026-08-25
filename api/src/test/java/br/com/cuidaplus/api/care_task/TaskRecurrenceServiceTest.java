@@ -7,6 +7,9 @@ import static org.mockito.Mockito.*;
 import br.com.cuidaplus.api.care_contract.*;
 import br.com.cuidaplus.api.profile.AssistedPerson;
 import br.com.cuidaplus.api.profile.DiaSemana;
+import br.com.cuidaplus.api.service_request.HiringType;
+import br.com.cuidaplus.api.service_request.ServiceRequest;
+import br.com.cuidaplus.api.service_request.ServiceRequestScheduleDay;
 import br.com.cuidaplus.api.user.User;
 import java.time.*;
 import java.util.*;
@@ -84,6 +87,31 @@ class TaskRecurrenceServiceTest {
       .thenReturn(Optional.of(new TaskOccurrence()));
     service.generate(task, task.getStartDate(), task.getStartDate());
     verify(occurrences, never()).insertIfAbsent(any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any());
+  }
+
+  @Test
+  void oneOffContractGeneratesOnlyCareInsideItsAttendanceWindow() {
+    LocalDate serviceDate = LocalDate.of(2026, 8, 24);
+    ServiceRequestScheduleDay schedule = new ServiceRequestScheduleDay();
+    schedule.setWeekday(DiaSemana.SEGUNDA);
+    schedule.setStartTime(LocalTime.of(20, 0));
+    schedule.setEndTime(LocalTime.of(23, 0));
+    ServiceRequest request = new ServiceRequest();
+    request.setHiringType(HiringType.PONTUAL);
+    request.setSpecificDates(new LinkedHashSet<>(Set.of(serviceDate)));
+    request.setScheduleDays(new LinkedHashSet<>(Set.of(schedule)));
+    contract.setServiceRequest(request);
+    task.setRecurrenceType(TaskRecurrenceType.UNICA);
+    task.setStartDate(serviceDate);
+
+    task.setScheduledTime(LocalTime.of(8, 0));
+    service.generate(task, serviceDate, serviceDate);
+    task.setScheduledTime(LocalTime.of(11, 30));
+    service.generate(task, serviceDate, serviceDate);
+    task.setScheduledTime(LocalTime.of(22, 40));
+    service.generate(task, serviceDate, serviceDate);
+
+    verify(occurrences, times(1)).insertIfAbsent(any(), any(), any(), any(), any(), eq(serviceDate), eq(LocalTime.of(22, 40)), any(), anyString(), any());
   }
 
   @Test

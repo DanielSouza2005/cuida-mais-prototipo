@@ -33,8 +33,9 @@ const careTypes: { value: ManualCareType; label: string }[] = [
 ];
 
 export default function AddManualCareScreen() {
-  const params = useLocalSearchParams<{ date?: string }>();
+  const params = useLocalSearchParams<{ contractId?: string; date?: string }>();
   const initialEntryDate = typeof params.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : todayDateOnly();
+  const contextualContractId = typeof params.contractId === 'string' ? params.contractId : '';
   const [entryDate, setEntryDate] = useState(initialEntryDate);
   const [contracts, setContracts] = useState<ManualCareContractOption[] | null>(null);
   const [contractId, setContractId] = useState('');
@@ -58,10 +59,13 @@ export default function AddManualCareScreen() {
     getManualCareFormData(entryDate).then((result) => {
       if (!active) return;
       setContracts(result.contracts);
-      if (result.contracts.length === 1) setContractId(result.contracts[0].contractId);
+      const contextualContract = result.contracts.find((item) => item.contractId === contextualContractId);
+      if (contextualContract) setContractId(contextualContract.contractId);
+      else if (result.contracts.length === 1) setContractId(result.contracts[0].contractId);
+      else setContractId((current) => result.contracts.some((item) => item.contractId === current) ? current : '');
     }).catch(() => { if (active) setLoadError(true); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [entryDate]);
+  }, [contextualContractId, entryDate]);
 
   const selectedContract = useMemo(() => contracts?.find((item) => item.contractId === contractId), [contractId, contracts]);
   const attendanceActive = attendance?.status === 'IN_PROGRESS' || attendance?.status === 'CAN_END';
@@ -123,10 +127,10 @@ export default function AddManualCareScreen() {
   return <ScreenContainer keyboardAvoiding contentStyle={styles.content}>
     <AppHeader showBack backDisabled={saving} title="Adicionar cuidado avulso" subtitle="Registre um cuidado que não estava previsto para este dia." />
     {loading ? <Text style={styles.state}>Carregando contratações...</Text> : loadError ? <Text style={styles.error}>Não foi possível carregar as contratações disponíveis.</Text> : contracts?.length === 0 ? <Text style={styles.state}>Não há contratação válida para registrar cuidados nesta data.</Text> : <>
-      <OptionGroup required disabled={saving} label="Contratação/atendimento" options={(contracts ?? []).map((item) => ({ value: item.contractId, label: item.contractLabel }))} value={contractId || null} onChange={(value) => setContractId(value as string)} />
+      <OptionGroup required disabled={saving || Boolean(contextualContractId && selectedContract)} label="Contratação/atendimento" options={(contracts ?? []).map((item) => ({ value: item.contractId, label: item.contractLabel }))} value={contractId || null} onChange={(value) => setContractId(value as string)} />
       <AppTextInput required label="Pessoa assistida" value={selectedContract?.assistedPersonName ?? ''} editable={false} placeholder="Selecione a contratação" />
       {selectedContract ? <View style={attendanceActive ? styles.attendanceActive : styles.attendanceBlocked}><Text style={attendanceActive ? styles.attendanceActiveText : styles.attendanceBlockedText}>{attendanceLoading ? 'Verificando atendimento...' : attendanceActive ? 'Atendimento iniciado. O registro de cuidados está liberado.' : attendance?.status === 'ENDED' ? 'Este atendimento já foi encerrado.' : 'Inicie o atendimento antes de registrar um cuidado avulso.'}</Text></View> : null}
-      <DatePickerField required disabled={saving} label="Data do cuidado" value={isoDateToDisplay(entryDate)} onChange={(value) => setEntryDate(displayDateToIso(value))} maximumDate={new Date()} />
+      <DatePickerField required disabled={saving || Boolean(contextualContractId)} label="Data do cuidado" value={isoDateToDisplay(entryDate)} onChange={(value) => setEntryDate(displayDateToIso(value))} maximumDate={new Date()} />
       <TimePickerField required disabled={saving} label="Horário em que ocorreu" value={occurredTime} onChange={setOccurredTime} />
       <OptionGroup required disabled={saving} label="Tipo de cuidado" options={careTypes} value={careType} onChange={(value) => setCareType(value as ManualCareType)} />
       <AppTextInput required disabled={saving} label="Título do cuidado" value={title} onChangeText={setTitle} maxLength={180} />

@@ -102,7 +102,6 @@ public class ServiceAttendanceService {
       .filter(this::isActionableContract)
       .filter(contract -> schedules.hasSchedule(contract, today))
       .map(contract -> summary(contract, today, clock.instant()))
-      .filter(attendance -> attendance.status() != AttendanceStatus.ENDED)
       .sorted(Comparator.comparing(AttendanceSummaryResponse::scheduledStartTime))
                 .toList();
         return new TodayAttendanceResponse(content);

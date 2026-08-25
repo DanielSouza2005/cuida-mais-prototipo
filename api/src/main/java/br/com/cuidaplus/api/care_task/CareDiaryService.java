@@ -116,8 +116,7 @@ public class CareDiaryService {
   @Transactional
   public CareDiaryResponse caregiverDiary(UUID userId, LocalDate date, String timezone, UUID assistedPersonId, UUID contractId) {
     User caregiver = authorization.requireCaregiver(userId);
-    List<CareDiaryItemResponse> items = new ArrayList<>(occurrences.day(userId, date, timezone, null, null, assistedPersonId, 0, 50).content().stream()
-      .filter(item -> contractId == null || item.contractId().equals(contractId))
+    List<CareDiaryItemResponse> items = new ArrayList<>(occurrences.day(userId, date, timezone, null, null, assistedPersonId, contractId, 0, 50).content().stream()
       .map(this::plannedItem).toList());
     records.findByCaregiverAndEntryDateAndSourceTypeOrderByOccurredAtAsc(caregiver, date, CareRecordSourceType.MANUAL).stream()
       .filter(item -> assistedPersonId == null || item.getAssistedPerson().getId().equals(assistedPersonId))
@@ -129,9 +128,8 @@ public class CareDiaryService {
   @Transactional
   public CareDiaryResponse responsibleDiary(UUID userId, LocalDate date, String timezone, UUID assistedPersonId, UUID contractId) {
     User responsible = authorization.requireResponsible(userId);
-    List<CareDiaryItemResponse> items = new ArrayList<>(occurrences.listForResponsible(userId, date, timezone, null, 0, 50).content().stream()
+    List<CareDiaryItemResponse> items = new ArrayList<>(occurrences.listForResponsible(userId, date, timezone, null, contractId, 0, 50).content().stream()
       .filter(item -> assistedPersonId == null || item.assistedPersonId().equals(assistedPersonId))
-      .filter(item -> contractId == null || item.contractId().equals(contractId))
       .map(this::plannedItem).toList());
     records.findByResponsibleAndEntryDateAndSourceTypeOrderByOccurredAtAsc(responsible, date, CareRecordSourceType.MANUAL).stream()
       .filter(item -> assistedPersonId == null || item.getAssistedPerson().getId().equals(assistedPersonId))

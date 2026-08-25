@@ -23,15 +23,16 @@ public class CaregiverCareTaskController {
     @RequestParam(required=false) TaskCategory category,
     @RequestParam(required=false) TaskOccurrenceStatus status,
     @RequestParam(required=false) UUID assistedPersonId,
+    @RequestParam(required=false) UUID contractId,
     @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size) {
-    return service.day(AuthenticatedUser.id(), date, timezone, category, status, assistedPersonId, page, size);
+    return service.day(AuthenticatedUser.id(), date, timezone, category, status, assistedPersonId, contractId, page, size);
   }
 
   @GetMapping("/day") public TaskOccurrencePageResponse day(
     @RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date, @RequestParam String timezone,
     @RequestParam(required=false) TaskCategory category, @RequestParam(required=false) TaskOccurrenceStatus status,
-    @RequestParam(required=false) UUID assistedPersonId) {
-    return service.day(AuthenticatedUser.id(), date, timezone, category, status, assistedPersonId);
+    @RequestParam(required=false) UUID assistedPersonId, @RequestParam(required=false) UUID contractId) {
+    return service.day(AuthenticatedUser.id(), date, timezone, category, status, assistedPersonId, contractId, 0, 50);
   }
   @GetMapping("/occurrences") public TaskOccurrencePageResponse list(
     @RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate startDate,

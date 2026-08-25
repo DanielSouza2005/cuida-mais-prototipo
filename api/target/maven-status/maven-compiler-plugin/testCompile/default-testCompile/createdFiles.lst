@@ -1,10 +1,13 @@
 br\com\cuidaplus\api\care_task\TaskOccurrenceServiceTest.class
 br\com\cuidaplus\api\care_task\TaskRecurrenceServiceTest.class
 br\com\cuidaplus\api\service_request\ServiceOpportunityServiceTest.class
+br\com\cuidaplus\api\service_attendance\ServiceAttendanceServiceTest.class
+br\com\cuidaplus\api\attendance_report\AttendanceReportServiceTest.class
 br\com\cuidaplus\api\contract_termination\ContractTerminationServiceTest.class
 br\com\cuidaplus\api\notification\NotificationPreferenceServiceTest.class
 br\com\cuidaplus\api\care_task\ContractCareSchedulePolicyTest.class
 br\com\cuidaplus\api\contract_history\ResponsibleContractHistoryServiceTest.class
+br\com\cuidaplus\api\attendance_report\AttendanceReportEmailWorkerTest.class
 br\com\cuidaplus\api\agenda\AgendaServiceTest.class
 br\com\cuidaplus\api\auth\AuthServicePasswordResetTest.class
 br\com\cuidaplus\api\care_task\TaskOccurrenceExpirationServiceTest.class

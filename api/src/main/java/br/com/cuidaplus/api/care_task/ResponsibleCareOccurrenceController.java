@@ -14,6 +14,6 @@ public class ResponsibleCareOccurrenceController {
   public ResponsibleCareOccurrenceController(TaskOccurrenceService service){this.service=service;}
   @GetMapping public TaskOccurrencePageResponse list(@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date,
     @RequestParam(defaultValue="America/Sao_Paulo") String timezone,@RequestParam(required=false) TaskOccurrenceStatus status,
-    @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return service.listForResponsible(AuthenticatedUser.id(),date,timezone,status,page,size);}
+    @RequestParam(required=false) UUID contractId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return service.listForResponsible(AuthenticatedUser.id(),date,timezone,status,contractId,page,size);}
   @GetMapping("/{occurrenceId}") public TaskOccurrenceResponse details(@PathVariable UUID occurrenceId){return service.responsibleDetails(AuthenticatedUser.id(),occurrenceId);}
 }

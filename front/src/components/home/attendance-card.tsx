@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, ChevronRight, Clock3, MapPin, PlayCircle, Square, UserRound } from 'lucide-react-native';
+import { AlertCircle, CheckCircle2, ChevronRight, Clock3, HeartPlus, MapPin, PlayCircle, Square, UserRound } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
@@ -18,10 +18,11 @@ type Props = {
   onCarePress: () => void;
   onCareRetry: () => void;
   onDetails: () => void;
+  onManualCare: () => void;
   onRetry: () => void;
 };
 
-export function AttendanceCard({ attendance, loading, error, actionLoading, nextCare, careLoading, careError, onAction, onCarePress, onCareRetry, onDetails, onRetry }: Props) {
+export function AttendanceCard({ attendance, loading, error, actionLoading, nextCare, careLoading, careError, onAction, onCarePress, onCareRetry, onDetails, onManualCare, onRetry }: Props) {
   const active = attendance?.status === 'IN_PROGRESS' || attendance?.status === 'CAN_END';
 
   return (
@@ -53,8 +54,23 @@ export function AttendanceCard({ attendance, loading, error, actionLoading, next
               ? 'O atendimento foi encerrado. Os registros do dia continuam disponíveis nos detalhes.'
               : 'Inicie o atendimento para visualizar e registrar os cuidados de hoje.'}</Text>}
         </>}
+      {!loading && !error && active ? <ManualCareWidget onPress={onManualCare} /> : null}
     </View>
   );
+}
+
+function ManualCareWidget({ onPress }: { onPress: () => void }) {
+  const description = 'Registrar observação do atendimento';
+  return <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={`Cuidado avulso. ${description}`}
+    onPress={onPress}
+    style={({ pressed }) => [styles.manualCare, styles.manualCareActive, pressed && styles.pressed]}
+  >
+    <View style={[styles.manualCareIcon, styles.manualCareIconActive]}><HeartPlus color="#FFFFFF" size={22} /></View>
+    <View style={styles.flex}><Text style={styles.manualCareTitle}>Cuidado avulso</Text><Text style={styles.manualCareText}>{description}</Text></View>
+    <ChevronRight color={colors.primary} size={21} />
+  </Pressable>;
 }
 
 function CareSummary({ care, loading, error, onPress, onRetry }: { care: TaskOccurrence | null; loading: boolean; error: boolean; onPress: () => void; onRetry: () => void }) {
@@ -82,4 +98,5 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: radii.lg, backgroundColor: colors.primary }, primaryText: { fontFamily: fontFamily.bold, fontSize: 14, color: colors.primaryForeground },
   detailsButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs }, detailsText: { fontFamily: fontFamily.bold, fontSize: 12, color: colors.primary }, smallButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm }, pressed: { opacity: 0.84 }, disabled: { opacity: 0.65 },
   divider: { height: 1, backgroundColor: colors.border }, lockedCare: { fontFamily: fontFamily.medium, fontSize: 12, lineHeight: 19, color: colors.mutedForeground }, careState: { minHeight: 68, alignItems: 'flex-start', gap: spacing.sm }, careContent: { gap: spacing.sm }, careEyebrow: { fontFamily: fontFamily.bold, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: colors.coral }, careTitle: { fontFamily: fontFamily.extraBold, fontSize: 17, lineHeight: 23, color: colors.foreground }, careMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, careMetaText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.mutedForeground }, dot: { width: 4, height: 4, borderRadius: radii.full, backgroundColor: colors.mutedForeground }, careButton: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.xs, borderRadius: radii.lg, backgroundColor: colors.primary }, careButtonText: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.primaryForeground },
+  manualCare: { minHeight: 92, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.xl, borderWidth: 1, borderColor: '#B9DDE3', backgroundColor: '#F1FAFB' }, manualCareActive: { borderColor: colors.primary, backgroundColor: colors.secondary }, manualCareIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radii.full, backgroundColor: '#D9F1F4' }, manualCareIconActive: { backgroundColor: colors.primary }, manualCareTitle: { fontFamily: fontFamily.extraBold, fontSize: 14, color: colors.foreground }, manualCareText: { fontFamily: fontFamily.medium, fontSize: 11, lineHeight: 17, color: colors.mutedForeground },
 });

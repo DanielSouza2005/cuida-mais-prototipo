@@ -145,6 +145,7 @@ export default function ResponsibleContractDetailsScreen() {
         <Info label="Horário previsto" value={`${formatScheduleTime(attendance.scheduledStartTime)} às ${formatScheduleTime(attendance.scheduledEndTime)}`} />
         {attendance.startRecord ? <><Info label="Registro de início" value={formatDateTimeLocal(attendance.startRecord.recordedAt)} /><PrimaryButton label="Ver localização de início" variant="secondary" onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${attendance.startRecord!.latitude},${attendance.startRecord!.longitude}`)} /></> : null}
         {attendance.endRecord ? <><Info label="Registro de encerramento" value={formatDateTimeLocal(attendance.endRecord.recordedAt)} /><PrimaryButton label="Ver localização de encerramento" variant="secondary" onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${attendance.endRecord!.latitude},${attendance.endRecord!.longitude}`)} /></> : null}
+        {attendance.status === 'ENDED' ? <PrimaryButton label="Ver relatório de atendimento" variant="secondary" onPress={() => router.push(`/attendance-report/retry?contractId=${item.id}&date=${attendance.attendanceDate}` as Href)} /> : null}
       </Section> : null}
 
       {item.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados selecionada" value={item.careRoutine.name} />{item.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}

@@ -17,4 +17,10 @@ public class NoopEmailService implements EmailService {
   public void sendPasswordResetEmail(String to, String resetLink, String fallbackWebLink, long expirationMinutes) {
     LOGGER.info("Envio de e-mail desabilitado. Configure app.mail.enabled=true para enviar recuperação de senha.");
   }
+
+  @Override
+  public boolean sendAttendanceReportEmail(String to, AttendanceReportEmailMessage report) {
+    LOGGER.info("Envio de e-mail desabilitado. O relatório permanece disponível no aplicativo.");
+    return false;
+  }
 }

@@ -39,18 +39,32 @@ class ContractCareSchedulePolicyTest {
 
   @Test
   void oneOffContractAlsoRequiresTheExactServiceDate() {
-    CareContract contract = contract(HiringType.PONTUAL, Set.of(MONDAY));
+    CareContract contract = contract(HiringType.PONTUAL, Set.of(MONDAY), LocalTime.of(20, 0), LocalTime.of(23, 0));
 
-    assertTrue(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(15, 0)));
-    assertFalse(ContractCareSchedulePolicy.allows(contract, MONDAY.plusWeeks(1), LocalTime.of(15, 0)));
-    assertFalse(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(23, 0)));
+    assertFalse(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(8, 0)));
+    assertFalse(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(11, 30)));
+    assertTrue(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(20, 0)));
+    assertTrue(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(22, 40)));
+    assertTrue(ContractCareSchedulePolicy.allows(contract, MONDAY, LocalTime.of(23, 0)));
+    assertFalse(ContractCareSchedulePolicy.allows(contract, MONDAY.plusWeeks(1), LocalTime.of(22, 40)));
+  }
+
+  @Test
+  void intervalAcrossMidnightIsEvaluatedWithoutLeakingDaytimeCare() {
+    assertTrue(ContractCareSchedulePolicy.contains(LocalTime.of(20, 0), LocalTime.of(6, 0), LocalTime.of(22, 40)));
+    assertTrue(ContractCareSchedulePolicy.contains(LocalTime.of(20, 0), LocalTime.of(6, 0), LocalTime.of(2, 0)));
+    assertFalse(ContractCareSchedulePolicy.contains(LocalTime.of(20, 0), LocalTime.of(6, 0), LocalTime.NOON));
   }
 
   private CareContract contract(HiringType hiringType, Set<LocalDate> dates) {
+    return contract(hiringType, dates, LocalTime.of(14, 0), LocalTime.of(22, 0));
+  }
+
+  private CareContract contract(HiringType hiringType, Set<LocalDate> dates, LocalTime start, LocalTime end) {
     ServiceRequestScheduleDay schedule = new ServiceRequestScheduleDay();
     schedule.setWeekday(DiaSemana.SEGUNDA);
-    schedule.setStartTime(LocalTime.of(14, 0));
-    schedule.setEndTime(LocalTime.of(22, 0));
+    schedule.setStartTime(start);
+    schedule.setEndTime(end);
     ServiceRequest request = new ServiceRequest();
     request.setHiringType(hiringType);
     request.setSpecificDates(new LinkedHashSet<>(dates));

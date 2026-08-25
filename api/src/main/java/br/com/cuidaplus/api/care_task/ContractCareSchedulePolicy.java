@@ -9,10 +9,10 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-final class ContractCareSchedulePolicy {
+public final class ContractCareSchedulePolicy {
   private ContractCareSchedulePolicy() {}
 
-  static boolean allows(CareContract contract, LocalDate date, LocalTime careTime) {
+  public static boolean allows(CareContract contract, LocalDate date, LocalTime careTime) {
     if (contract == null || date == null || careTime == null) return false;
     ServiceRequest request = contract.getServiceRequest();
     if (request == null) return true;
@@ -24,10 +24,16 @@ final class ContractCareSchedulePolicy {
       .anyMatch(day -> contains(day, careTime));
   }
 
-  private static boolean contains(ServiceRequestScheduleDay schedule, LocalTime careTime) {
+  public static boolean contains(ServiceRequestScheduleDay schedule, LocalTime careTime) {
     LocalTime start = schedule.getStartTime();
     LocalTime end = schedule.getEndTime();
-    return start != null && end != null && !careTime.isBefore(start) && !careTime.isAfter(end);
+    return contains(start, end, careTime);
+  }
+
+  public static boolean contains(LocalTime start, LocalTime end, LocalTime careTime) {
+    if (start == null || end == null || careTime == null) return false;
+    if (!end.isBefore(start)) return !careTime.isBefore(start) && !careTime.isAfter(end);
+    return !careTime.isBefore(start) || !careTime.isAfter(end);
   }
 
   private static DiaSemana toWeekday(DayOfWeek value) {

@@ -63,6 +63,12 @@ public class TaskOccurrenceService {
     @Transactional
     public TaskOccurrencePageResponse list(UUID userId, LocalDate start, LocalDate end, TaskCategory category, TaskOccurrenceStatus status,
                                            UUID assistedPersonId, int page, int size) {
+        return list(userId, start, end, category, status, assistedPersonId, null, page, size);
+    }
+
+    @Transactional
+    public TaskOccurrencePageResponse list(UUID userId, LocalDate start, LocalDate end, TaskCategory category, TaskOccurrenceStatus status,
+                                           UUID assistedPersonId, UUID contractId, int page, int size) {
         User caregiver = authorization.requireCaregiver(userId);
         provisioning.provisionForCaregiver(caregiver);
         recurrence.validateRange(start, end);
@@ -75,6 +81,7 @@ public class TaskOccurrenceService {
                 .filter(item -> item.getTask().getStatus() == TaskSeriesStatus.ATIVA || item.getStatus() != TaskOccurrenceStatus.PENDENTE)
                 .filter(item -> activeContract(item) || item.getStatus() != TaskOccurrenceStatus.PENDENTE)
                 .filter(recurrence::isWithinContractSchedule)
+                .filter(item -> contractId == null || item.getContract().getId().equals(contractId))
                 .filter(item -> category == null || item.getTask().getCategory() == category)
                 .filter(item -> assistedPersonId == null || item.getAssistedPerson().getId().equals(assistedPersonId))
                 .toList());
@@ -85,6 +92,11 @@ public class TaskOccurrenceService {
 
     @Transactional
     public TaskOccurrencePageResponse listForResponsible(UUID userId, LocalDate date, String timezone, TaskOccurrenceStatus status, int page, int size) {
+        return listForResponsible(userId, date, timezone, status, null, page, size);
+    }
+
+    @Transactional
+    public TaskOccurrencePageResponse listForResponsible(UUID userId, LocalDate date, String timezone, TaskOccurrenceStatus status, UUID contractId, int page, int size) {
         dateTimes.requireZone(timezone);
         User responsible = authorization.requireResponsible(userId);
         provisioning.provisionForResponsible(responsible);
@@ -95,6 +107,7 @@ public class TaskOccurrenceService {
         expiration.processExpiredPendingCareOccurrences();
         List<TaskOccurrenceResponse> content = uniqueOccurrences(occurrences.findByResponsibleAndScheduledDateBetween(responsible, date, date)).stream()
                 .filter(recurrence::isWithinContractSchedule)
+                .filter(item -> contractId == null || item.getContract().getId().equals(contractId))
                 .filter(item -> status == null || recurrence.effectiveStatus(item) == status)
                 .sorted(Comparator.comparing(TaskOccurrence::getScheduledInstantUtc).thenComparingInt(this::statusRank)).map(mapper::occurrence).toList();
         return page(content, page, size);
@@ -102,11 +115,16 @@ public class TaskOccurrenceService {
 
     @Transactional
     public TaskOccurrencePageResponse day(UUID userId, LocalDate date, String timezone, TaskCategory category, TaskOccurrenceStatus status, UUID assistedPersonId) {
-        return day(userId, date, timezone, category, status, assistedPersonId, 0, 50);
+        return day(userId, date, timezone, category, status, assistedPersonId, null, 0, 50);
     }
 
     @Transactional
     public TaskOccurrencePageResponse day(UUID userId, LocalDate date, String timezone, TaskCategory category, TaskOccurrenceStatus status, UUID assistedPersonId, int page, int size) {
+        return day(userId, date, timezone, category, status, assistedPersonId, null, page, size);
+    }
+
+    @Transactional
+    public TaskOccurrencePageResponse day(UUID userId, LocalDate date, String timezone, TaskCategory category, TaskOccurrenceStatus status, UUID assistedPersonId, UUID contractId, int page, int size) {
         dateTimes.requireZone(timezone);
         User caregiver = authorization.requireCaregiver(userId);
         provisioning.provisionForCaregiver(caregiver);
@@ -120,7 +138,7 @@ public class TaskOccurrenceService {
                         reminders.reschedule(item);
                     });
         });
-        return list(userId, date, date, category, status, assistedPersonId, page, size);
+        return list(userId, date, date, category, status, assistedPersonId, contractId, page, size);
     }
 
     @Transactional

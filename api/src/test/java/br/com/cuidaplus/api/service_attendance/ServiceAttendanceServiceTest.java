@@ -150,14 +150,15 @@ class ServiceAttendanceServiceTest {
   }
 
   @Test
-  void omitsEndedAttendanceFromTodayActionSummary() {
+  void keepsEndedAttendanceAvailableAsDayContext() {
     when(contracts.findByCaregiverUserOrderByUpdatedAtDesc(caregiver)).thenReturn(List.of(contract));
     stored.add(record(AttendanceRecordType.START));
     stored.add(record(AttendanceRecordType.END));
 
     var response = serviceAt(Instant.parse("2026-08-25T00:45:00Z")).today(caregiverId);
 
-    assertTrue(response.content().isEmpty());
+    assertEquals(1, response.content().size());
+    assertEquals(AttendanceStatus.ENDED, response.content().getFirst().status());
   }
 
   private ServiceAttendanceService serviceAt(Instant now) {

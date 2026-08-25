@@ -13,6 +13,7 @@ import { getAgendaEventDetails } from '@/services/agendaService';
 import { ApiError } from '@/services/api';
 import { captureCurrentLocation, DeviceLocationError } from '@/services/deviceLocationService';
 import { endAttendance, startAttendance } from '@/services/serviceAttendanceService';
+import { generateAttendanceReport } from '@/services/attendanceReportService';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { AgendaEventDetails } from '@/types/agenda';
@@ -69,7 +70,15 @@ export default function AgendaEventDetailsScreen() {
       const payload = { ...location, attendanceDate: attendance.attendanceDate, deviceTimezone: deviceTimezone() };
       const updated = wasStarting ? await startAttendance(contractId, payload) : await endAttendance(contractId, payload);
       setDetails((current) => current ? { ...current, attendance: updated } : current);
-      Alert.alert(wasStarting ? 'Atendimento iniciado' : 'Atendimento encerrado', wasStarting ? 'O início e a localização foram registrados.' : 'O encerramento e a localização foram registrados.');
+      if (wasStarting) Alert.alert('Atendimento iniciado', 'O início e a localização foram registrados.');
+      else {
+        try {
+          const report = await generateAttendanceReport(contractId, attendance.attendanceDate);
+          router.push(`/attendance-report/${report.id}` as Href);
+        } catch {
+          router.push(`/attendance-report/retry?contractId=${contractId}&date=${attendance.attendanceDate}` as Href);
+        }
+      }
     } catch (cause) {
       if (cause instanceof DeviceLocationError) {
         const message = cause.reason === 'permission' ? 'Para registrar o atendimento, permita o acesso à localização.'
@@ -149,6 +158,7 @@ export default function AgendaEventDetailsScreen() {
           disabled={attendanceBusy}
           onPress={() => void recordAttendance()}
         /> : null}
+        {attendance.status === 'ENDED' ? <PrimaryButton label="Ver relatório de atendimento" variant="secondary" onPress={() => router.push(`/attendance-report/retry?contractId=${contractId}&date=${attendance.attendanceDate}` as Href)} /> : null}
       </Section>
 
       {contract.careRoutine ? <Section title="Cuidados combinados"><Info label="Rotina de cuidados" value={contract.careRoutine.name} />{contract.careRoutine.items.map((care,index)=><CareRoutineItemDetails key={care.id??`${index}`} item={care} index={index}/>)}</Section> : null}

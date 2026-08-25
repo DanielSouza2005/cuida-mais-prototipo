@@ -141,9 +141,37 @@ class TaskOccurrenceServiceTest {
     assertEquals(2,service.uniqueOccurrences(List.of(first,second)).size());
   }
 
+  @Test
+  void caregiverDayQueryDoesNotMixOccurrencesFromAnotherContractOnTheSameDate() {
+    LocalDate date = LocalDate.of(2026, 8, 24);
+    UUID oneOffId = UUID.randomUUID();
+    CareContract recurring = mock(CareContract.class), oneOff = mock(CareContract.class);
+    when(recurring.getId()).thenReturn(UUID.randomUUID());
+    when(oneOff.getId()).thenReturn(oneOffId);
+    when(recurring.getStatus()).thenReturn(CareContractStatus.ATIVA);
+    when(oneOff.getStatus()).thenReturn(CareContractStatus.ATIVA);
+    CareTask morningTask = mock(CareTask.class), nightTask = mock(CareTask.class);
+    when(nightTask.getId()).thenReturn(UUID.randomUUID());
+    when(morningTask.getStatus()).thenReturn(TaskSeriesStatus.ATIVA);
+    when(nightTask.getStatus()).thenReturn(TaskSeriesStatus.ATIVA);
+    TaskOccurrence morning = occurrence(morningTask, recurring, TaskOccurrenceStatus.ATRASADA, Instant.parse("2026-08-24T11:00:00Z"));
+    TaskOccurrence night = occurrence(nightTask, oneOff, TaskOccurrenceStatus.PENDENTE, Instant.parse("2026-08-25T01:40:00Z"));
+    when(night.getScheduledDate()).thenReturn(date);
+    when(night.getScheduledTime()).thenReturn(LocalTime.of(22, 40));
+    when(occurrences.findByCaregiverAndScheduledDateBetweenOrderByScheduledInstantUtcAsc(caregiver, date, date))
+      .thenReturn(List.of(morning, night));
+    TaskOccurrenceResponse mapped = mock(TaskOccurrenceResponse.class);
+    when(mapper.occurrence(night)).thenReturn(mapped);
+
+    TaskOccurrencePageResponse result = service.list(caregiverId, date, date, null, null, null, oneOffId, 0, 50);
+
+    assertEquals(List.of(mapped), result.content());
+    verify(mapper, never()).occurrence(morning);
+  }
+
   private TaskOccurrence occurrence(CareTask value,CareContract valueContract,TaskOccurrenceStatus status,Instant createdAt){
     TaskOccurrence item=mock(TaskOccurrence.class);when(item.getTask()).thenReturn(value);when(item.getContract()).thenReturn(valueContract);
-    when(item.getScheduledDate()).thenReturn(LocalDate.of(2026,7,27));when(item.getScheduledTime()).thenReturn(LocalTime.of(8,0));
+    lenient().when(item.getScheduledDate()).thenReturn(LocalDate.of(2026,7,27));lenient().when(item.getScheduledTime()).thenReturn(LocalTime.of(8,0));
     lenient().when(item.getStatus()).thenReturn(status);lenient().when(item.getCreatedAt()).thenReturn(createdAt);return item;
   }
 }

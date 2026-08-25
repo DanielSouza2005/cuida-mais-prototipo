@@ -23,6 +23,7 @@ import { subscribeNotificationsChanged } from '@/services/notificationEvents';
 import { ApiError } from '@/services/api';
 import { captureCurrentLocation, DeviceLocationError } from '@/services/deviceLocationService';
 import { AttendanceResponseError, endAttendance, getTodayAttendance, startAttendance } from '@/services/serviceAttendanceService';
+import { generateAttendanceReport } from '@/services/attendanceReportService';
 import { colors, fontFamily, shadows, spacing } from '@/theme/tokens';
 import type { TaskOccurrence } from '@/types/careTasks';
 import type { AttendanceSummary } from '@/types/serviceAttendance';
@@ -47,13 +48,16 @@ export default function HomeScreen() {
   const [careLoading, setCareLoading] = useState(true);
   const [careError, setCareError] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceSummary | null>(null);
+  const [careContractId, setCareContractId] = useState<string | undefined>();
   const [attendanceLoading, setAttendanceLoading] = useState(isCaregiver);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
   const [attendanceActionLoading, setAttendanceActionLoading] = useState(false);
   const today = todayDateOnly();
-  const dayCareRoute = (isCaregiver ? `/caregiver-tasks?date=${today}` : `/responsible-care-occurrences?date=${today}`) as Href;
+  const dayCareRoute = (isCaregiver
+    ? `/caregiver-tasks?date=${today}${careContractId ? `&contractId=${careContractId}` : ''}`
+    : `/responsible-care-occurrences?date=${today}`) as Href;
 
-  const loadNextCare = useCallback(async () => {
+  const loadNextCare = useCallback(async (contractId?: string) => {
     if (!user) return;
     setCareLoading(true);
     setCareError(false);
@@ -61,7 +65,7 @@ export default function HomeScreen() {
       const date = todayDateOnly();
       const timezone = deviceTimezone();
       const result = isCaregiver
-        ? await getCaregiverDayTasks(date, timezone)
+        ? await getCaregiverDayTasks(date, timezone, { contractId })
         : await getResponsibleDayCareOccurrences(date, timezone);
       setNextCare(selectNextCare(result.content));
     } catch {
@@ -82,9 +86,22 @@ export default function HomeScreen() {
     setAttendanceError(null);
     try {
       const response = await getTodayAttendance();
-      setAttendance(selectAttendance(response.content));
+      const selected = selectAttendance(response.content);
+      const careContext = selectCareAttendance(response.content);
+      setAttendance(selected);
+      setCareContractId(careContext?.contractId);
+      if (careContext) void loadNextCare(careContext.contractId);
+      else {
+        setNextCare(null);
+        setCareError(false);
+        setCareLoading(false);
+      }
     } catch (cause) {
       setAttendance(null);
+      setCareContractId(undefined);
+      setNextCare(null);
+      setCareError(true);
+      setCareLoading(false);
       setAttendanceError(attendanceLoadMessage(cause));
       if (__DEV__) {
         console.warn('[service-attendance] Falha ao carregar o resumo.', cause instanceof ApiError
@@ -94,17 +111,17 @@ export default function HomeScreen() {
     } finally {
       setAttendanceLoading(false);
     }
-  }, [isCaregiver]);
+  }, [isCaregiver, loadNextCare]);
 
   useEffect(() => subscribeNotificationsChanged(loadUnreadCount), [loadUnreadCount]);
 
   useFocusEffect(useCallback(() => {
     let active = true;
-    void loadNextCare();
-    void loadAttendance();
+    if (isCaregiver) void loadAttendance();
+    else void loadNextCare();
     if (user) getUnreadNotificationCount().then((result) => { if (active) setUnreadCount(result.count); }).catch(() => { if (active) setUnreadCount(0); });
     return () => { active = false; };
-  }, [loadAttendance, loadNextCare, user]));
+  }, [isCaregiver, loadAttendance, loadNextCare, user]));
 
   const quickAccessItems = useMemo<QuickAccessItem[]>(() => isCaregiver ? [
     { title: 'Buscar serviços', description: 'Encontre oportunidades de cuidado disponíveis.', icon: Search, iconColor: '#287A4B', iconBackground: '#E1F4EC', onPress: () => router.push(routes.opportunities) },
@@ -133,8 +150,17 @@ export default function HomeScreen() {
         ? await startAttendance(attendance.contractId, payload)
         : await endAttendance(attendance.contractId, payload);
       setAttendance(updated.status === 'ENDED' ? null : updated);
-      Alert.alert(wasStarting ? 'Atendimento iniciado' : 'Atendimento encerrado', wasStarting ? 'O início e a localização foram registrados.' : 'O encerramento e a localização foram registrados.');
-      void loadNextCare();
+      setCareContractId(attendance.contractId);
+      if (wasStarting) Alert.alert('Atendimento iniciado', 'O início e a localização foram registrados.');
+      else {
+        try {
+          const report = await generateAttendanceReport(attendance.contractId, attendance.attendanceDate);
+          router.push(`/attendance-report/${report.id}` as Href);
+        } catch {
+          router.push(`/attendance-report/retry?contractId=${attendance.contractId}&date=${attendance.attendanceDate}` as Href);
+        }
+      }
+      if (wasStarting) void loadNextCare(attendance.contractId);
       if (!wasStarting) void loadAttendance();
     } catch (cause) {
       if (cause instanceof DeviceLocationError) {
@@ -181,6 +207,10 @@ export default function HomeScreen() {
         onCarePress={openCare}
         onCareRetry={() => void loadNextCare()}
         onDetails={() => attendance && router.push(`/agenda-event/${attendance.contractId}?eventDate=${attendance.attendanceDate}` as Href)}
+        onManualCare={() => attendance && router.push({
+          pathname: '/add-manual-care',
+          params: { contractId: attendance.contractId, date: attendance.attendanceDate },
+        })}
         onRetry={() => void loadAttendance()}
       /> : <NextCareCard care={nextCare} error={careError} isCaregiver={false} loading={careLoading} onPress={openCare} onRetry={() => void loadNextCare()} />}
 
@@ -200,6 +230,13 @@ export default function HomeScreen() {
 function selectAttendance(items: AttendanceSummary[]) {
   const rank: Record<AttendanceSummary['status'], number> = { CAN_END: 0, IN_PROGRESS: 1, CAN_START: 2, NOT_STARTED: 3, OUTSIDE_WINDOW: 4, MISSED: 5, ENDED: 6 };
   return items.filter((item) => item.status !== 'ENDED').sort((first, second) => rank[first.status] - rank[second.status] || first.scheduledStartTime.localeCompare(second.scheduledStartTime))[0] ?? null;
+}
+
+function selectCareAttendance(items: AttendanceSummary[]) {
+  const rank: Record<AttendanceSummary['status'], number> = { CAN_END: 0, IN_PROGRESS: 1, CAN_START: 2, NOT_STARTED: 3, ENDED: 4, OUTSIDE_WINDOW: 5, MISSED: 6 };
+  return [...items].sort((first, second) => rank[first.status] - rank[second.status]
+    || (second.endRecord?.recordedAt ?? '').localeCompare(first.endRecord?.recordedAt ?? '')
+    || first.scheduledStartTime.localeCompare(second.scheduledStartTime))[0] ?? null;
 }
 
 function attendanceLoadMessage(cause: unknown) {

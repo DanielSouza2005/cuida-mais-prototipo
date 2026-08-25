@@ -54,6 +54,34 @@ public class SmtpEmailService implements EmailService {
     }
   }
 
+  @Override
+  public boolean sendAttendanceReportEmail(String to, AttendanceReportEmailMessage report) {
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+      helper.setFrom(from);
+      helper.setReplyTo(from);
+      helper.setTo(to);
+      helper.setSubject("Relatório de atendimento disponível — Cuidar+");
+      helper.setText(buildAttendanceReportText(report));
+      mailSender.send(message);
+      return true;
+    } catch (Exception exception) {
+      LOGGER.error("Não foi possível enviar o e-mail do relatório de atendimento. Verifique as configurações SMTP.", exception);
+      return false;
+    }
+  }
+
+  private String buildAttendanceReportText(AttendanceReportEmailMessage report) {
+    return "Olá, " + report.responsibleName() + ".\n\n" +
+      "O relatório de atendimento de " + report.assistedPersonName() + ", realizado em " + report.attendanceDate() +
+      ", foi finalizado pelo cuidador " + report.caregiverName() + ".\n\n" +
+      "Início registrado: " + report.startedAt() + "\nEncerramento registrado: " + report.endedAt() + "\n\n" +
+      "Resumo do atendimento:\n" + report.finalText() + "\n\n" +
+      "Anotações de enfermagem:\n" + report.nursingNotes() + "\n\n" +
+      "Para consultar o relatório completo, o histórico, os anexos e os detalhes do atendimento, acesse o aplicativo Cuidar+.";
+  }
+
   private String buildPasswordResetText(long expirationMinutes) {
     return "Recebemos uma solicitação para redefinir a senha da sua conta no Cuidar+.\n\n" +
       "Use o botão Redefinir senha no e-mail em HTML para criar uma nova senha.\n\n" +
