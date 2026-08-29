@@ -124,6 +124,7 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\common\BusinessException.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\common\GlobalExceptionHandler.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\common\MessageResponse.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\config\PortuguesePhysicalNamingStrategy.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\contract_history\CaregiverContractHistoryController.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\contract_history\ContractDetailsController.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\contract_history\ContractHistoryItemType.java

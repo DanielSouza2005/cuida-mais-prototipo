@@ -4,6 +4,7 @@ br\com\cuidaplus\api\notification\NotificationController.class
 br\com\cuidaplus\api\care_task\TaskReminderStatus.class
 br\com\cuidaplus\api\notification\UserNotificationPreference.class
 br\com\cuidaplus\api\care_task\TaskReminder.class
+br\com\cuidaplus\api\config\PortuguesePhysicalNamingStrategy.class
 br\com\cuidaplus\api\profile\EmergencyContact.class
 br\com\cuidaplus\api\service_request\ServiceRequestService.class
 br\com\cuidaplus\api\contract_history\ContractHistoryItemType.class

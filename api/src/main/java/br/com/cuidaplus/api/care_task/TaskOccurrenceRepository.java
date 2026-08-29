@@ -15,16 +15,16 @@ public interface TaskOccurrenceRepository extends JpaRepository<TaskOccurrence, 
     br.com.cuidaplus.api.care_contract.CareContract contract, CareTask task, LocalDate date, LocalTime time);
   @Modifying(flushAutomatically = true)
   @Query(value = """
-    INSERT INTO task_occurrences (
-      id, task_id, contract_id, assisted_person_id, caregiver_user_id,
-      scheduled_date, scheduled_time, scheduled_instant_utc, timezone, status,
-      exception, auto_marked_not_done, created_at, updated_at, version
+    INSERT INTO ocorrencias_cuidado (
+      id, tarefa_id, contratacao_id, pessoa_assistida_id, usuario_cuidador_id,
+      data_prevista, horario_previsto, instante_previsto_utc, fuso_horario, status,
+      excecao, marcada_nao_realizada_automaticamente, criado_em, atualizado_em, versao
     ) VALUES (
       :id, :taskId, :contractId, :assistedPersonId, :caregiverId,
       :scheduledDate, :scheduledTime, :scheduledInstantUtc, :timezone, 'PENDENTE',
       FALSE, FALSE, :createdAt, :createdAt, 0
     )
-    ON CONFLICT (task_id, scheduled_date, scheduled_time) DO NOTHING
+    ON CONFLICT (tarefa_id, data_prevista, horario_previsto) DO NOTHING
     """, nativeQuery = true)
   int insertIfAbsent(@Param("id") UUID id, @Param("taskId") UUID taskId,
     @Param("contractId") UUID contractId, @Param("assistedPersonId") UUID assistedPersonId,
