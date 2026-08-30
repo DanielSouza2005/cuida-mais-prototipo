@@ -1,6 +1,6 @@
 # Dicionário de nomenclatura relacional das tabelas
 
-Este mapa foi produzido a partir do catálogo do PostgreSQL na versão 038, antes da migration de padronização relacional. O padrão adotado é português, `snake_case`, sem acentos, com tabelas filhas iniciando pelo nome do domínio principal. `flyway_schema_history` é infraestrutura externa e permanece inalterada.
+Este mapa registra o catálogo histórico do PostgreSQL na versão 038, antes da migration de padronização relacional. O padrão adotado é português, `snake_case`, sem acentos, com tabelas filhas iniciando pelo nome do domínio principal. `flyway_schema_history` é infraestrutura externa e permanece inalterada. As cinco tabelas marcadas como legadas foram removidas posteriormente pela V040 e não integram o schema vigente. A V041 substitui nas colunas físicas restantes `nome_rotina_snapshot`, `item_snapshot_id` e `item_snapshot_origem_id` por `nome_rotina_copia`, `item_copia_id` e `item_copia_origem_id`.
 
 ## Inventário técnico anterior à V039
 
@@ -101,7 +101,7 @@ Este mapa foi produzido a partir do catálogo do PostgreSQL na versão 038, ante
 - As coleções JPA (`@CollectionTable`) cobrem alergias, restrições, disponibilidade, formação, modalidade, serviço, datas, agenda, atividades e dias de recorrência.
 - As entidades JPA cobrem usuários, perfis, pessoas assistidas, solicitações, contratações, histórico, rotinas, tarefas, ocorrências, diário, fotos, lembretes, notificações, preferências, registros e relatórios.
 - Existe uma query nativa em `TaskOccurrenceRepository`; ela deve acompanhar o novo nome de `ocorrencias_cuidado`.
-- As cinco tabelas de grupos/itens legadas estão vazias, mas são preservadas porque ainda participam de FKs do schema histórico.
+- As cinco tabelas de grupos/itens legadas estavam vazias na V038; foram preservadas pela V039 e removidas com suas FKs pela V040.
 - `solicitacoes_servico` representa tanto pedidos diretos quanto oportunidades/publicações; não há uma segunda tabela física `publicacoes_servico`.
 
 ## Entidades, repositories e SQL ativo
@@ -122,4 +122,4 @@ Este mapa foi produzido a partir do catálogo do PostgreSQL na versão 038, ante
 | `registros_atendimento` | `ServiceAttendanceRecord` | `ServiceAttendanceRepository` |
 | `relatorios_atendimento` | `AttendanceReport` | `AttendanceReportRepository` |
 
-A única query SQL nativa ativa está em `TaskOccurrenceRepository` e foi atualizada para `ocorrencias_cuidado`. Não existem seeds SQL ativos fora das migrations. As migrations V001–V038 permanecem como etapas históricas; nomes anteriores dentro delas são intencionais e a V039 aplica o estado final.
+A única query SQL nativa ativa está em `TaskOccurrenceRepository` e foi atualizada para `ocorrencias_cuidado`. Não existem seeds SQL ativos fora das migrations. As migrations V001–V039 permanecem como etapas históricas; nomes anteriores dentro delas são intencionais, a V040 remove as estruturas legadas e a V041 conclui a tradução das colunas físicas de domínio.

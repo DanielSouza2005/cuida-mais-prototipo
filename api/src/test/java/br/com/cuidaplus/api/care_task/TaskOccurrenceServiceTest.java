@@ -115,7 +115,7 @@ class TaskOccurrenceServiceTest {
   }
 
   @Test
-  void dayResponseUsesContractCareItemKeyAndPrefersCanonicalPendingOccurrence() {
+  void dayResponseUsesContractAndSnapshotKeyAndPrefersCanonicalPendingOccurrence() {
     UUID contractId=UUID.randomUUID(),sourceId=UUID.randomUUID();
     CareContract sameContract=mock(CareContract.class);when(sameContract.getId()).thenReturn(contractId);
     ServiceRequestCareItemSnapshot source=mock(ServiceRequestCareItemSnapshot.class);when(source.getId()).thenReturn(sourceId);

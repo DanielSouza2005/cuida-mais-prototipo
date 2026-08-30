@@ -1,307 +1,1060 @@
-# Modelagem do banco de dados — Cuidar+
+# Modelagem do Banco de Dados — Cuidar+
 
-## Visão geral
+## 1. Visão geral
 
-O banco PostgreSQL organiza autenticação e perfis, solicitações e contratações, rotinas e execução dos cuidados, atendimento geolocalizado, relatórios e notificações. O modelo físico utiliza nomes em português do Brasil, `snake_case` e sem acentos. O modelo lógico exibido no texto acadêmico usa acentuação normal.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório e notificações. Este documento descreve o schema `public` após a V041 e foi conferido no catálogo do banco, migrations V001–V041, entidades JPA, enums, repositories e serviços.
 
-Todas as chaves primárias são UUID. Na relação abaixo, **Sim** significa `NOT NULL`; **Não** significa que a coluna aceita `NULL`. `timestamptz` representa `timestamp with time zone`.
+O modelo vigente possui 35 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
-O mapa relacional completo, incluindo tabelas mantidas, está em [dicionario-nomenclatura-relacional.md](dicionario-nomenclatura-relacional.md). O histórico da primeira tradução está em [dicionario-renomeacao-banco.md](dicionario-renomeacao-banco.md).
+## 2. Padrão de nomenclatura
 
-## Padrão de nomenclatura
+O modelo usa predominantemente português, plural e `snake_case`, sem acentos. Tabelas filhas começam pelo agregado: `rotinas_cuidado_itens`, `ocorrencias_cuidado_fotos` e `notificacoes_preferencias`. A `PortuguesePhysicalNamingStrategy` traduz os nomes históricos das entidades Java para o modelo físico. `flyway_schema_history` mantém o nome do Flyway; códigos de enum podem permanecer em inglês por serem valores de integração.
 
-Tabelas principais têm nomes diretos no plural. Tabelas filhas, coleções, históricos, anexos e preferências começam pelo nome da entidade principal, formando grupos previsíveis em ordem alfabética. Tabelas associativas identificam as entidades relacionadas. O schema físico não usa acentos, cedilha, espaços ou hífens.
+## 3. Organização por domínios
 
-Exemplos de agrupamento:
+- **Usuários e perfis:** `usuarios`, `usuarios_tokens_redefinicao_senha`, `responsaveis`, `cuidadores` e suas cinco coleções.
+- **Pessoas assistidas:** `pessoas_assistidas`, alergias, restrições alimentares e contato de emergência.
+- **Solicitações e contratações:** `solicitacoes_servico`, suas seis tabelas filhas, `contratacoes` e histórico de status.
+- **Planejamento e cuidado:** rotinas, tarefas, ocorrências, fotos, lembretes, auditoria e diário.
+- **Atendimento e comunicação:** registros de atendimento, relatórios, notificações e preferências.
+- **Infraestrutura:** `flyway_schema_history`.
 
-- `rotinas_cuidado`, `rotinas_cuidado_itens`, `rotinas_cuidado_itens_dias_semana`;
-- `ocorrencias_cuidado`, `ocorrencias_cuidado_fotos`, `ocorrencias_cuidado_lembretes`;
-- `notificacoes`, `notificacoes_preferencias`;
-- `solicitacoes_servico`, `solicitacoes_servico_agenda_dias`, `solicitacoes_servico_atividades`, `solicitacoes_servico_datas`;
-- `cuidadores`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos`, `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`.
+## 4. Dicionário de tabelas
 
-## Tabelas finais agrupadas por domínio
+## 4.1 `usuarios`
 
-- Identidade: `usuarios`, `usuarios_tokens_redefinicao_senha`, `responsaveis`, `cuidadores`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos`, `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`.
-- Pessoas assistidas: `pessoas_assistidas`, `pessoas_assistidas_alergias`, `pessoas_assistidas_contatos_emergencia`, `pessoas_assistidas_restricoes_alimentares`.
-- Solicitações e publicações: `solicitacoes_servico`, `solicitacoes_servico_agenda_dias`, `solicitacoes_servico_atividades`, `solicitacoes_servico_datas`, `solicitacoes_servico_itens_cuidado_copias`, `solicitacoes_servico_itens_cuidado_copias_dias_semana`, `solicitacoes_servico_contratacoes_historico_status`.
-- Contratações: `contratacoes`, `contratacoes_itens_cuidado`, `contratacoes_itens_cuidado_historico`.
-- Rotinas e grupos: `rotinas_cuidado`, `rotinas_cuidado_itens`, `rotinas_cuidado_itens_dias_semana`, `grupos_cuidado`, `grupos_cuidado_itens`, `solicitacoes_servico_grupos_cuidado_itens_copias`. As tabelas de grupos são compatibilidade histórica e podem não existir em instalações iniciadas sem as antigas V012/V013.
-- Planejamento e execução do cuidado: `tarefas_cuidado`, `tarefas_cuidado_dias_semana`, `tarefas_cuidado_auditoria`, `ocorrencias_cuidado`, `ocorrencias_cuidado_fotos`, `ocorrencias_cuidado_lembretes`, `registros_diario_cuidado`.
-- Atendimento e relatório: `registros_atendimento`, `relatorios_atendimento`.
-- Notificações: `notificacoes`, `notificacoes_preferencias`.
-- Infraestrutura: `flyway_schema_history`, mantida com o nome oficial do Flyway.
+**Nome lógico:** Usuários. **Finalidade:** identidade e autenticação. **Entidade:** `User`. **Requisitos relacionados:** RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17 e RF18.
 
-## Usuários e perfis
+**Papel nos requisitos:** principal em cadastro, autenticação e perfis; apoio na recuperação de senha e nos fluxos que identificam participantes.
 
-### `usuarios` — Usuários
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do usuário. |
+| `data_nascimento` | date | Sim | — | Data de nascimento. |
+| `cpf` | varchar(11) | Sim | Unique | CPF normalizado e único. |
+| `criado_em` | timestamptz | Sim | — | Criação da conta. |
+| `email` | varchar(180) | Sim | Unique | E-mail de acesso e comunicação. |
+| `nome_completo` | varchar(140) | Sim | — | Nome completo. |
+| `senha_hash` | varchar(255) | Sim | — | Hash da senha; o valor original não é salvo. |
+| `atualizado_em` | timestamptz | Sim | — | Última atualização. |
+| `tipo_usuario` | varchar(20) | Sim | Check/Enum | Papel do usuário. |
+| `telefone` | varchar(20) | Não | — | Telefone de contato. |
+| `status` | varchar(30) | Sim | — | Estado cadastral; padrão `ACTIVE`. |
+| `url_foto_perfil` | varchar(500) | Não | — | Local da foto de perfil. |
 
-Dados comuns de autenticação e identificação de responsáveis, cuidadores e administradores.
+**Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem. Cada conta pode ter no máximo um perfil de cada tipo. O check aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. `status` não possui check de valores.
 
-| Coluna | Tipo | Obrigatória | Regra |
-|---|---|---:|---|
-| `id` | uuid | Sim | PK. |
-| `nome_completo` | varchar(140) | Sim | Nome completo. |
-| `cpf` | varchar(11) | Sim | Único. |
-| `email` | varchar(180) | Sim | Único. |
-| `senha_hash` | varchar(255) | Sim | Hash da senha. |
-| `data_nascimento` | date | Sim | Data de nascimento. |
-| `telefone` | varchar(20) | Não | Telefone de contato. |
-| `url_foto_perfil` | varchar(500) | Não | Foto do perfil. |
-| `tipo_usuario` | varchar(20) | Sim | Enum de papel do usuário. |
-| `status` | varchar(30) | Sim | Estado cadastral. |
-| `criado_em` | timestamptz | Sim | Criação. |
-| `atualizado_em` | timestamptz | Sim | Última alteração. |
+## 4.2 `usuarios_tokens_redefinicao_senha`
 
-### `usuarios_tokens_redefinicao_senha` — Tokens de redefinição de senha
+**Nome lógico:** Tokens de redefinição. **Finalidade:** recuperação de senha. **Entidade:** `PasswordResetToken`. **Requisitos relacionados:** RF03.
 
-| Coluna | Tipo | Obrigatória | Regra |
-|---|---|---:|---|
-| `id` | uuid | Sim | PK. |
-| `usuario_id` | uuid | Sim | FK → `usuarios.id`. |
-| `hash_token` | varchar(64) | Sim | Único. |
-| `expira_em` | timestamptz | Sim | Validade. |
-| `usado_em` | timestamptz | Não | Uso efetivo. |
-| `criado_em` | timestamptz | Sim | Criação. |
+**Papel nos requisitos:** principal; controla validade e uso único do token de recuperação.
 
-### `responsaveis` — Responsáveis
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do token. |
+| `criado_em` | timestamptz | Sim | — | Emissão. |
+| `expira_em` | timestamptz | Sim | — | Validade máxima. |
+| `hash_token` | varchar(64) | Sim | Unique | Hash do token. |
+| `usado_em` | timestamptz | Não | — | Momento do consumo. |
+| `usuario_id` | uuid | Sim | FK | Dono do token. |
 
-| Coluna | Tipo | Obrigatória | Regra |
-|---|---|---:|---|
-| `id` | uuid | Sim | PK. |
-| `usuario_id` | uuid | Sim | FK única → `usuarios.id`. |
-| `parentesco` | varchar(40) | Sim | Enum de parentesco. |
-| `parentesco_outro` | varchar(120) | Não | Complemento livre. |
-| `preferencia_contato` | varchar(30) | Sim | Canal preferido. |
-| `criado_em` | timestamptz | Sim | Criação. |
-| `atualizado_em` | timestamptz | Sim | Alteração. |
+**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; token expirado ou já usado é recusado.
 
-### `cuidadores` — Cuidadores
+## 4.3 `responsaveis`
 
-| Colunas | Tipo/obrigatoriedade |
+**Nome lógico:** Responsáveis. **Finalidade:** dados específicos de quem organiza o cuidado. **Entidade:** `ResponsibleProfile`. **Requisitos relacionados:** RF01 e RF04.
+
+**Papel nos requisitos:** principal no cadastro e gerenciamento do perfil do responsável.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do perfil. |
+| `usuario_id` | uuid | Sim | FK, Unique | Conta vinculada. |
+| `parentesco` | varchar(40) | Sim | Enum | Relação com a pessoa assistida. |
+| `parentesco_outro` | varchar(120) | Não | — | Complemento para `OUTRO`. |
+| `preferencia_contato` | varchar(30) | Sim | Enum | Canal preferencial. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+
+**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; a unique implementa relação um para um. Pessoas assistidas referenciam a conta em `usuarios`, não este `id`.
+
+## 4.4 `cuidadores`
+
+**Nome lógico:** Cuidadores. **Finalidade:** qualificação, apresentação, endereço e disponibilidade. **Entidade:** `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+
+**Papel nos requisitos:** principal no perfil profissional, busca e visualização; apoio ao cadastro geral.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do perfil. |
+| `usuario_id` | uuid | Sim | FK, Unique | Conta vinculada. |
+| `formacao` | varchar(40) | Não | Enum | Formação principal legada. |
+| `formacao_outro` | varchar(180) | Não | — | Formação livre. |
+| `experiencia` | varchar(500) | Não | — | Experiência profissional. |
+| `biografia` | varchar(500) | Não | — | Apresentação pública. |
+| `cep` | varchar(9) | Não | — | CEP. |
+| `rua` | varchar(180) | Não | — | Logradouro. |
+| `numero` | varchar(30) | Não | — | Número. |
+| `complemento` | varchar(120) | Não | — | Complemento. |
+| `bairro` | varchar(120) | Não | — | Bairro. |
+| `cidade` | varchar(120) | Não | — | Cidade. |
+| `estado` | varchar(2) | Não | — | UF. |
+| `ponto_referencia` | varchar(180) | Não | — | Referência de localização. |
+| `horario_inicio` | time | Não | — | Início personalizado. |
+| `horario_fim` | time | Não | — | Fim personalizado. |
+| `observacao` | varchar(500) | Não | — | Observação de disponibilidade. |
+| `modalidade_outro` | varchar(180) | Não | — | Modalidade livre. |
+| `servico_outro` | varchar(180) | Não | — | Serviço livre. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `tempo_experiencia` | varchar(30) | Não | Enum | Faixa de experiência. |
+| `latitude` | numeric(10,7) | Não | — | Latitude para busca. |
+| `longitude` | numeric(10,7) | Não | — | Longitude para busca. |
+
+**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `formacao` coexiste com `cuidadores_formacoes` por compatibilidade.
+
+## 4.5 `cuidadores_disponibilidade_dias`
+
+**Finalidade:** dias disponíveis. **Entidade:** coleção de `CaregiverAvailability`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+
+**Papel nos requisitos:** apoio; detalha a disponibilidade semanal do cuidador.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `perfil_cuidador_id` | uuid | Sim | FK | Cuidador proprietário. |
+| `dia_semana` | varchar(20) | Sim | Enum | Dia disponível. |
+
+**Relacionamentos e regras:** FK → `cuidadores.id`. Não há PK/unique física; a coleção `Set` reduz duplicidade na aplicação.
+
+## 4.6 `cuidadores_disponibilidade_periodos`
+
+**Finalidade:** períodos disponíveis. **Entidade:** coleção de `CaregiverAvailability`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+
+**Papel nos requisitos:** apoio; complementa a disponibilidade por período do dia.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `perfil_cuidador_id` | uuid | Sim | FK | Cuidador proprietário. |
+| `periodo` | varchar(30) | Sim | Enum | Manhã, tarde, noite ou outro período. |
+
+**Relacionamentos e regras:** FK → `cuidadores.id`; `HORARIO_PERSONALIZADO` usa os horários da tabela pai. Sem PK/unique física.
+
+## 4.7 `cuidadores_formacoes`
+
+**Finalidade:** múltiplas qualificações. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+
+**Papel nos requisitos:** apoio; qualifica o perfil profissional exibido e pesquisado.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `perfil_cuidador_id` | uuid | Sim | FK, Unique composto | Cuidador. |
+| `formacao` | varchar(40) | Sim | Enum, Unique composto | Qualificação. |
+
+**Relacionamentos e regras:** FK → `cuidadores.id`; o par cuidador/formação é único.
+
+## 4.8 `cuidadores_modalidades`
+
+**Finalidade:** modalidades aceitas pelo cuidador. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+
+**Papel nos requisitos:** apoio; informa as modalidades de atendimento do perfil.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `perfil_cuidador_id` | uuid | Sim | FK | Cuidador. |
+| `modalidade` | varchar(40) | Sim | Enum | Forma de atendimento. |
+
+**Relacionamentos e regras:** FK → `cuidadores.id`; `OUTRO` é detalhado no pai. Sem PK/unique física.
+
+## 4.9 `cuidadores_servicos`
+
+**Finalidade:** serviços oferecidos. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+
+**Papel nos requisitos:** apoio; informa os serviços usados na apresentação e pesquisa do cuidador.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `perfil_cuidador_id` | uuid | Sim | FK | Cuidador. |
+| `servico` | varchar(50) | Sim | Enum | Serviço oferecido. |
+
+**Relacionamentos e regras:** FK → `cuidadores.id`; `OUTRO` é detalhado no pai. Sem PK/unique física.
+
+## 4.10 `pessoas_assistidas`
+
+**Nome lógico:** Pessoas assistidas. **Finalidade:** dados pessoais, necessidades e endereço de cuidado. **Entidade:** `AssistedPerson`. **Requisitos relacionados:** RF01, RF04, RF08, RF10, RF17 e RF18.
+
+**Papel nos requisitos:** principal no cadastro/gerenciamento; apoio na solicitação, histórico, busca de serviço e atendimento.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `usuario_responsavel_id` | uuid | Sim | FK | Responsável proprietário. |
+| `nome` | varchar(140) | Sim | — | Nome completo. |
+| `cpf` | varchar(11) | Não | — | CPF opcional, sem unique. |
+| `data_nascimento` | date | Sim | — | Nascimento. |
+| `grau_dependencia` | varchar(30) | Sim | Enum | Nível de dependência. |
+| `mobilidade` | varchar(30) | Sim | Enum | Condição de mobilidade. |
+| `mobilidade_outro` | varchar(120) | Não | — | Mobilidade livre. |
+| `alergias_outro` | varchar(180) | Não | — | Alergia livre. |
+| `alergias_detalhes` | varchar(500) | Não | — | Detalhes de alergias. |
+| `restricoes_alimentares_outro` | varchar(180) | Não | — | Restrição livre. |
+| `restricoes_alimentares_detalhes` | varchar(500) | Não | — | Detalhes alimentares. |
+| `medicamentos` | varchar(500) | Não | — | Resumo de medicamentos. |
+| `observacoes` | varchar(500) | Não | — | Observações de cuidado. |
+| `cep` | varchar(9) | Não | — | CEP do cuidado. |
+| `rua` | varchar(180) | Não | — | Logradouro. |
+| `numero` | varchar(30) | Não | — | Número. |
+| `complemento` | varchar(120) | Não | — | Complemento. |
+| `bairro` | varchar(120) | Não | — | Bairro. |
+| `cidade` | varchar(120) | Não | — | Cidade. |
+| `estado` | varchar(2) | Não | — | UF. |
+| `ponto_referencia` | varchar(180) | Não | — | Referência. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `latitude` | numeric(10,7) | Não | — | Latitude do cuidado. |
+| `longitude` | numeric(10,7) | Não | — | Longitude do cuidado. |
+
+**Relacionamentos e regras:** `usuario_responsavel_id` → `usuarios.id`; é referenciada pelos fluxos de serviço e cuidado. A solicitação exige que pertença ao responsável e tenha endereço. Dados de saúde e localização são sensíveis.
+
+## 4.11 `pessoas_assistidas_alergias`
+
+**Finalidade:** categorias de alergia. **Entidade:** coleção de `AssistedPerson`. **Requisitos relacionados:** RF01 e RF04.
+
+**Papel nos requisitos:** apoio; complementa o cadastro clínico da pessoa assistida.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa assistida. |
+| `alergia` | varchar(40) | Sim | Enum | Categoria de alergia. |
+
+**Relacionamentos e regras:** FK → `pessoas_assistidas.id`; sem PK/unique física.
+
+## 4.12 `pessoas_assistidas_contatos_emergencia`
+
+**Finalidade:** contato de emergência. **Entidade:** `EmergencyContact`. **Requisitos relacionados:** RF01 e RF04.
+
+**Papel nos requisitos:** apoio; complementa o cadastro da pessoa assistida.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `pessoa_assistida_id` | uuid | Sim | FK, Unique | Pessoa vinculada. |
+| `nome` | varchar(140) | Sim | — | Nome do contato. |
+| `telefone` | varchar(20) | Sim | — | Telefone. |
+| `vinculo` | varchar(120) | Sim | — | Relação com a pessoa. |
+| `contato_responsavel` | boolean | Sim | — | Indica se é o responsável. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+
+**Relacionamentos e regras:** FK → `pessoas_assistidas.id`; a unique limita a um contato por pessoa.
+
+## 4.13 `pessoas_assistidas_restricoes_alimentares`
+
+**Finalidade:** categorias de restrição alimentar. **Entidade:** coleção de `AssistedPerson`. **Requisitos relacionados:** RF01 e RF04.
+
+**Papel nos requisitos:** apoio; complementa o cadastro clínico da pessoa assistida.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa assistida. |
+| `restricao` | varchar(40) | Sim | Enum | Restrição alimentar. |
+
+**Relacionamentos e regras:** FK → `pessoas_assistidas.id`; sem PK/unique física.
+
+## 4.14 `solicitacoes_servico`
+
+**Nome lógico:** Solicitações e publicações de serviço. **Finalidade:** representa convite direto, publicação aberta e candidatura de cuidador. **Entidade:** `ServiceRequest`. **Requisitos relacionados:** RF08, RF09, RF10 e RF17.
+
+**Papel nos requisitos:** principal para solicitar, responder, publicar e demonstrar interesse; apoio ao histórico.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `usuario_responsavel_id` | uuid | Sim | FK | Responsável pelo serviço. |
+| `usuario_cuidador_id` | uuid | Não | FK | Cuidador convidado ou interessado. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa que receberá cuidado. |
+| `tipo_contratacao` | varchar(40) | Sim | Enum | Modalidade temporal da contratação. |
+| `status` | varchar(30) | Sim | Enum | Situação da solicitação/publicação. |
+| `data_inicio` | date | Não | — | Início previsto. |
+| `data_fim` | date | Não | — | Fim previsto. |
+| `descricao_necessidades` | varchar(2000) | Sim | — | Necessidades do atendimento. |
+| `outra_atividade` | varchar(500) | Não | — | Atividade não padronizada. |
+| `observacoes_adicionais` | varchar(2000) | Não | — | Informações complementares. |
+| `observacoes_negociacao` | varchar(1000) | Não | — | Observações negociadas. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `expira_em` | timestamptz | Sim | — | Prazo para resposta. |
+| `cancelado_em` | timestamptz | Não | — | Cancelamento. |
+| `motivo_rejeicao` | varchar(1000) | Não | — | Justificativa de rejeição. |
+| `motivo_cancelamento` | varchar(1000) | Não | — | Justificativa de cancelamento. |
+| `rotina_cuidado_id` | uuid | Não | FK | Rotina moderna escolhida. |
+| `nome_rotina_copia` | varchar(140) | Não | — | Nome congelado da rotina. |
+| `iniciado_por` | varchar(20) | Sim | Enum | Origem: responsável ou cuidador. |
+| `usuario_solicitante_id` | uuid | Sim | FK | Usuário que iniciou o registro. |
+| `oportunidade_origem_id` | uuid | Não | FK, Unique parcial | Publicação da qual nasceu a candidatura. |
+
+**Relacionamentos e regras:** FKs para `usuarios`, `pessoas_assistidas`, `rotinas_cuidado` e autorreferência. Uma candidatura por publicação/cuidador é garantida por índice unique parcial. Solicitação direta inicia `PENDENTE`; publicação sem cuidador inicia `ABERTA`; vencidas tornam-se `EXPIRADA`. Datas e horários variam conforme `tipo_contratacao`, e o fim não pode anteceder o início. Não existe tabela física `publicacoes_servico`.
+
+## 4.15 `solicitacoes_servico_agenda_dias`
+
+**Finalidade:** grade semanal do serviço. **Entidade:** coleção de `ServiceRequest`. **Requisitos relacionados:** RF08 e RF12.
+
+**Papel nos requisitos:** principal; define horários da solicitação e alimenta a agenda.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `solicitacao_servico_id` | uuid | Sim | PK/FK | Solicitação. |
+| `dia_semana` | varchar(20) | Sim | PK/Enum | Dia agendado. |
+| `horario_inicio` | time | Sim | — | Início diário. |
+| `horario_fim` | time | Sim | — | Fim diário. |
+
+**Relacionamentos e regras:** FK → `solicitacoes_servico.id`, com exclusão em cascata. O fim deve ser posterior ao início; PK composta impede dia repetido.
+
+## 4.16 `solicitacoes_servico_atividades`
+
+**Finalidade:** atividades solicitadas. **Entidade:** coleção de `ServiceRequest`. **Requisitos relacionados:** RF08.
+
+**Papel nos requisitos:** principal; especifica o escopo do serviço solicitado.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `solicitacao_servico_id` | uuid | Sim | PK/FK | Solicitação. |
+| `atividade` | varchar(50) | Sim | PK/Enum | Serviço necessário. |
+
+**Relacionamentos e regras:** FK → `solicitacoes_servico.id`, `ON DELETE CASCADE`; PK composta evita repetição.
+
+## 4.17 `solicitacoes_servico_datas`
+
+**Finalidade:** datas específicas de serviço pontual. **Entidade:** coleção de `ServiceRequest`. **Requisitos relacionados:** RF08 e RF12.
+
+**Papel nos requisitos:** principal; define datas pontuais da solicitação e da agenda.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `solicitacao_servico_id` | uuid | Sim | PK/FK | Solicitação. |
+| `data_servico` | date | Sim | PK | Data solicitada. |
+
+**Relacionamentos e regras:** FK → `solicitacoes_servico.id`, `ON DELETE CASCADE`; contratação pontual exige ao menos uma data.
+
+## 4.18 `solicitacoes_servico_contratacoes_historico_status`
+
+**Nome lógico:** Histórico de status. **Finalidade:** registra transições de solicitações e contratações. **Entidade:** `StatusHistory`. **Requisitos relacionados:** RF09, RF10 e RF11.
+
+**Papel nos requisitos:** principal; preserva aceite/rejeição e histórico de mudanças e encerramentos.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `tipo_entidade` | varchar(40) | Sim | Enum | Domínio do registro. |
+| `entidade_id` | uuid | Sim | Referência lógica | UUID da solicitação ou contratação. |
+| `status_anterior` | varchar(30) | Não | — | Situação anterior. |
+| `novo_status` | varchar(30) | Sim | — | Situação resultante. |
+| `usuario_alteracao_id` | uuid | Não | FK | Autor; nulo em automação. |
+| `motivo` | varchar(1000) | Não | — | Justificativa. |
+| `criado_em` | timestamptz | Sim | — | Momento da transição. |
+
+**Relacionamentos e regras:** somente `usuario_alteracao_id` possui FK → `usuarios.id`; `entidade_id` é polimórfico e não tem FK física. Índice por tipo, entidade e data apoia a linha do tempo.
+
+## 4.19 `solicitacoes_servico_itens_cuidado_copias`
+
+**Nome lógico:** Cópias dos itens de rotina. **Finalidade:** congela o cuidado aceito, preservando-o contra edições futuras. **Entidade:** `ServiceRequestCareItemSnapshot`. **Requisitos relacionados:** RF08 e RF13.
+
+**Papel nos requisitos:** apoio; preserva os itens solicitados e origina tarefas após a contratação.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador da cópia. |
+| `solicitacao_servico_id` | uuid | Sim | FK | Solicitação proprietária. |
+| `rotina_cuidado_original_id` | uuid | Sim | FK | Rotina de origem. |
+| `item_rotina_cuidado_original_id` | uuid | Não | FK | Item original; vira nulo se removido. |
+| `titulo` | varchar(140) | Sim | — | Título congelado. |
+| `descricao` | varchar(1000) | Não | — | Descrição congelada. |
+| `ordem_exibicao` | integer | Sim | — | Ordem na rotina. |
+| `criado_em` | timestamptz | Sim | — | Criação da cópia. |
+| `categoria` | varchar(40) | Não | Enum | Categoria. |
+| `categoria_personalizada` | varchar(120) | Não | — | Categoria livre. |
+| `prioridade` | varchar(20) | Não | Enum | Prioridade. |
+| `tipo_recorrencia` | varchar(40) | Não | Enum | Recorrência. |
+| `horario_previsto` | time | Não | — | Horário planejado. |
+| `intervalo_dias` | integer | Não | — | Intervalo em dias. |
+| `lembrete_habilitado` | boolean | Não | — | Habilita antecedência. |
+| `minutos_antecedencia_lembrete` | integer | Não | — | Antecedência. |
+| `anotacoes` | varchar(2000) | Não | — | Notas do cuidado. |
+| `nome_medicamento` | varchar(180) | Não | — | Medicamento. |
+| `dosagem_medicamento` | varchar(80) | Não | — | Dosagem. |
+| `unidade_medicamento` | varchar(30) | Não | Enum | Unidade. |
+| `unidade_personalizada_medicamento` | varchar(80) | Não | — | Unidade livre. |
+| `via_administracao_medicamento` | varchar(30) | Não | Enum | Via de administração. |
+| `via_personalizada_medicamento` | varchar(120) | Não | — | Via livre. |
+| `instrucoes_medicamento` | varchar(1000) | Não | — | Instruções. |
+| `lembrar_no_horario_previsto` | boolean | Sim | — | Lembrete no horário. |
+| `lembrete_atraso_habilitado` | boolean | Sim | — | Habilita alerta de atraso. |
+| `minutos_para_atraso` | integer | Não | — | Tolerância para atraso. |
+| `repetir_enquanto_pendente` | boolean | Sim | — | Repete lembrete. |
+| `intervalo_repeticao_minutos` | integer | Não | — | Intervalo de repetição. |
+| `importante` | boolean | Sim | — | Marca criticidade. |
+| `notificar_responsavel_se_importante` | boolean | Sim | — | Alerta o responsável. |
+| `exige_foto_conclusao` | boolean | Sim | — | Exige evidência fotográfica. |
+
+**Relacionamentos e regras:** solicitação → `solicitacoes_servico`; rotina → `rotinas_cuidado`; item → `rotinas_cuidado_itens` com `ON DELETE SET NULL`. A cópia é a fonte de provisionamento das tarefas contratadas e deve permanecer imutável.
+
+## 4.20 `solicitacoes_servico_itens_cuidado_copias_dias_semana`
+
+**Finalidade:** dias semanais congelados na cópia. **Entidade:** coleção de `ServiceRequestCareItemSnapshot`. **Requisitos relacionados:** RF08 e RF13.
+
+**Papel nos requisitos:** apoio; preserva a recorrência semanal acordada.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `item_copia_id` | uuid | Sim | PK/FK | Cópia do item. |
+| `dia_semana` | varchar(20) | Sim | PK/Enum | Dia congelado. |
+
+**Relacionamentos e regras:** FK → `solicitacoes_servico_itens_cuidado_copias.id`, `ON DELETE CASCADE`; PK composta.
+
+## 4.21 `contratacoes`
+
+**Finalidade:** vínculo aceito entre responsável, cuidador e pessoa assistida. **Entidade:** `CareContract`. **Requisitos relacionados:** RF09, RF10, RF11, RF12, RF15, RF16, RF17 e RF18.
+
+**Papel nos requisitos:** principal para histórico, encerramento e agenda; apoio aos fluxos que exigem vínculo ativo.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `solicitacao_servico_id` | uuid | Sim | FK, Unique | Solicitação aceita. |
+| `usuario_responsavel_id` | uuid | Sim | FK | Responsável. |
+| `usuario_cuidador_id` | uuid | Sim | FK | Cuidador. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa atendida. |
+| `status` | varchar(30) | Sim | Enum | Situação do vínculo. |
+| `data_inicio` | date | Sim | — | Início. |
+| `data_fim` | date | Não | — | Fim previsto. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `motivo_cancelamento` | varchar(1000) | Não | — | Motivo do cancelamento. |
+| `motivo_encerramento` | varchar(1000) | Não | — | Motivo do encerramento. |
+| `tipo_encerramento` | varchar(50) | Não | Enum | Modalidade de término. |
+| `motivo_solicitacao_encerramento` | varchar(1000) | Não | — | Justificativa solicitada. |
+| `observacoes_encerramento` | varchar(1000) | Não | — | Observações do término. |
+| `usuario_solicitante_encerramento_id` | uuid | Não | FK | Autor do pedido de encerramento. |
+| `encerramento_solicitado_em` | timestamptz | Não | — | Momento do pedido. |
+| `data_fim_efetiva` | date | Não | — | Data efetiva. |
+| `cancelado_em` | timestamptz | Não | — | Momento do cancelamento. |
+| `usuario_solicitante_cancelamento_id` | uuid | Não | FK | Autor do cancelamento. |
+| `cancelamento_solicitado_em` | timestamptz | Não | — | Momento da solicitação. |
+
+**Relacionamentos e regras:** FKs → solicitação, usuários e pessoa assistida. Uma solicitação gera no máximo uma contratação. Antes do início, cancela-se; após início, encerra-se. A aceitação define `AGENDADA` ou `ATIVA` e provisiona tarefas da rotina.
+
+## 4.22 `rotinas_cuidado`
+
+**Finalidade:** modelos reutilizáveis de cuidados. **Entidade:** `CareRoutine`. **Requisitos relacionados:** RF08 e RF13.
+
+**Papel nos requisitos:** principal na lista de tarefas; apoio à solicitação que seleciona uma rotina.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `usuario_responsavel_id` | uuid | Sim | FK | Responsável proprietário. |
+| `pessoa_assistida_id` | uuid | Não | FK | Pessoa específica, se houver. |
+| `nome` | varchar(140) | Sim | — | Nome da rotina. |
+| `descricao` | varchar(1000) | Não | — | Descrição. |
+| `ativo` | boolean | Sim | — | Disponibilidade para uso. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+
+**Relacionamentos e regras:** FKs → `usuarios` e `pessoas_assistidas`; possui itens com cascade. Só responsáveis gerenciam rotinas; uma rotina usada deve estar ativa, pertencer ao responsável/pessoa e conter ao menos um cuidado.
+
+## 4.23 `rotinas_cuidado_itens`
+
+**Finalidade:** cuidados que compõem uma rotina. **Entidade:** `CareRoutineItem`. **Requisitos relacionados:** RF13.
+
+**Papel nos requisitos:** principal; define os cuidados planejados da rotina.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `rotina_cuidado_id` | uuid | Sim | FK | Rotina pai. |
+| `titulo` | varchar(140) | Sim | — | Título do cuidado. |
+| `descricao` | varchar(1000) | Não | — | Descrição. |
+| `ordem_exibicao` | integer | Sim | — | Ordem. |
+| `ativo` | boolean | Sim | — | Ativação. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `categoria` | varchar(40) | Não | Enum | Categoria. |
+| `categoria_personalizada` | varchar(120) | Não | — | Categoria livre. |
+| `prioridade` | varchar(20) | Não | Enum | Prioridade. |
+| `tipo_recorrencia` | varchar(40) | Não | Enum | Recorrência. |
+| `horario_previsto` | time | Não | — | Horário. |
+| `intervalo_dias` | integer | Não | — | Intervalo em dias. |
+| `lembrete_habilitado` | boolean | Não | — | Habilita antecedência. |
+| `minutos_antecedencia_lembrete` | integer | Não | — | Antecedência. |
+| `anotacoes` | varchar(2000) | Não | — | Notas. |
+| `nome_medicamento` | varchar(180) | Não | — | Medicamento. |
+| `dosagem_medicamento` | varchar(80) | Não | — | Dosagem. |
+| `unidade_medicamento` | varchar(30) | Não | Enum | Unidade. |
+| `unidade_personalizada_medicamento` | varchar(80) | Não | — | Unidade livre. |
+| `via_administracao_medicamento` | varchar(30) | Não | Enum | Via. |
+| `via_personalizada_medicamento` | varchar(120) | Não | — | Via livre. |
+| `instrucoes_medicamento` | varchar(1000) | Não | — | Instruções. |
+| `lembrar_no_horario_previsto` | boolean | Sim | — | Lembrete pontual. |
+| `lembrete_atraso_habilitado` | boolean | Sim | — | Alerta de atraso. |
+| `minutos_para_atraso` | integer | Não | — | Tolerância. |
+| `repetir_enquanto_pendente` | boolean | Sim | — | Repete alerta. |
+| `intervalo_repeticao_minutos` | integer | Não | — | Intervalo de repetição. |
+| `importante` | boolean | Sim | — | Criticidade. |
+| `notificar_responsavel_se_importante` | boolean | Sim | — | Alerta o responsável. |
+| `exige_foto_conclusao` | boolean | Sim | — | Exige foto. |
+
+**Relacionamentos e regras:** FK → `rotinas_cuidado.id`, `ON DELETE CASCADE`. Categoria personalizada exige texto; recorrência semanal exige dias; intervalo deve ser positivo; configurações de lembrete exigem seus minutos; dados de medicamento só são aceitos para categoria `MEDICACAO`.
+
+## 4.24 `rotinas_cuidado_itens_dias_semana`
+
+**Finalidade:** recorrência semanal do item. **Entidade:** coleção de `CareRoutineItem`. **Requisitos relacionados:** RF13.
+
+**Papel nos requisitos:** apoio; define em quais dias o item deve gerar tarefas.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `item_rotina_cuidado_id` | uuid | Sim | PK/FK | Item da rotina. |
+| `dia_semana` | varchar(20) | Sim | PK/Enum | Dia de execução. |
+
+**Relacionamentos e regras:** FK → `rotinas_cuidado_itens.id`, cascade; PK composta.
+
+## 4.25 `tarefas_cuidado`
+
+**Finalidade:** séries operacionais que geram ocorrências. **Entidade:** `CareTask`. **Requisitos relacionados:** RF13, RF14 e RF15.
+
+**Papel nos requisitos:** principal na lista e nos lembretes; apoio ao registro das execuções.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador da série. |
+| `titulo` | varchar(140) | Sim | — | Título. |
+| `descricao` | varchar(2000) | Não | — | Descrição. |
+| `categoria` | varchar(40) | Sim | Enum | Categoria. |
+| `categoria_personalizada` | varchar(120) | Não | — | Categoria livre. |
+| `prioridade` | varchar(20) | Sim | Enum | Prioridade. |
+| `tipo_recorrencia` | varchar(40) | Sim | Enum | Regra de repetição. |
+| `data_inicio` | date | Sim | — | Início da série. |
+| `data_fim` | date | Não | Check | Fim, nunca antes do início. |
+| `horario_previsto` | time | Sim | — | Horário local. |
+| `intervalo_dias` | integer | Não | Check | Intervalo positivo. |
+| `fuso_horario` | varchar(80) | Sim | — | Fuso IANA. |
+| `lembrete_habilitado` | boolean | Sim | Check | Habilita antecedência. |
+| `minutos_antecedencia_lembrete` | integer | Não | Check | Antecedência não negativa. |
+| `anotacoes` | varchar(2000) | Não | — | Notas. |
+| `status` | varchar(20) | Sim | Enum | Estado da série. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa. |
+| `contratacao_id` | uuid | Sim | FK | Contratação. |
+| `responsavel_criador_id` | uuid | Sim | FK | Responsável criador. |
+| `cuidador_executor_id` | uuid | Sim | FK | Cuidador executor. |
+| `serie_anterior_id` | uuid | Não | FK | Série substituída. |
+| `nome_medicamento` | varchar(180) | Não | — | Medicamento. |
+| `dosagem_medicamento` | varchar(80) | Não | — | Dosagem. |
+| `unidade_medicamento` | varchar(30) | Não | Enum | Unidade. |
+| `unidade_personalizada_medicamento` | varchar(80) | Não | — | Unidade livre. |
+| `via_administracao_medicamento` | varchar(30) | Não | Enum | Via. |
+| `via_personalizada_medicamento` | varchar(120) | Não | — | Via livre. |
+| `instrucoes_medicamento` | varchar(1000) | Não | — | Instruções. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `usuario_criacao_id` | uuid | Sim | FK | Autor da criação. |
+| `usuario_atualizacao_id` | uuid | Sim | FK | Autor da atualização. |
+| `versao` | bigint | Sim | Lock otimista | Versão concorrente. |
+| `item_copia_origem_id` | uuid | Não | FK, Unique parcial | Cópia contratada de origem. |
+| `lembrar_no_horario_previsto` | boolean | Sim | — | Alerta pontual. |
+| `lembrete_atraso_habilitado` | boolean | Sim | — | Alerta de atraso. |
+| `minutos_para_atraso` | integer | Não | — | Tolerância. |
+| `repetir_enquanto_pendente` | boolean | Sim | — | Repetição. |
+| `intervalo_repeticao_minutos` | integer | Não | — | Intervalo da repetição. |
+| `importante` | boolean | Sim | — | Criticidade. |
+| `notificar_responsavel_se_importante` | boolean | Sim | — | Notificação especial. |
+| `exige_foto_conclusao` | boolean | Sim | — | Evidência obrigatória. |
+| `tarefa_duplicada_de_id` | uuid | Não | FK | Série canônica da duplicata. |
+
+**Relacionamentos e regras:** FKs para contratação, pessoa, usuários, cópia e autorreferências. Uma cópia origina no máximo uma série canônica. Somente séries ativas pausam; somente pausadas reativam; canceladas/finalizadas não executam. Alterações futuras podem encerrar a série e criar sucessora.
+
+## 4.26 `tarefas_cuidado_dias_semana`
+
+**Finalidade:** dias de recorrência da série. **Entidade:** coleção de `CareTask`. **Requisitos relacionados:** RF13.
+
+**Papel nos requisitos:** apoio; materializa a recorrência semanal da tarefa.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `tarefa_id` | uuid | Sim | PK/FK | Série. |
+| `dia_semana` | varchar(20) | Sim | PK/Enum | Dia. |
+
+**Relacionamentos e regras:** FK → `tarefas_cuidado.id`; PK composta.
+
+## 4.27 `tarefas_cuidado_auditoria`
+
+**Finalidade:** trilha de mudanças em tarefas e ocorrências. **Entidade:** `TaskAuditEntry`. **Requisitos relacionados:** RF13 e RF15.
+
+**Papel nos requisitos:** principal na auditoria do registro de atividades e apoio à gestão das tarefas.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `tarefa_id` | uuid | Sim | FK | Tarefa auditada. |
+| `ocorrencia_id` | uuid | Não | FK | Ocorrência, quando aplicável. |
+| `usuario_ator_id` | uuid | Não | FK | Autor; nulo para automação. |
+| `acao` | varchar(40) | Sim | Enum | Evento auditado. |
+| `detalhes` | varchar(500) | Não | — | Contexto. |
+| `criado_em` | timestamptz | Sim | — | Momento. |
+
+**Relacionamentos e regras:** FKs → tarefa, ocorrência e usuário. A nulabilidade do ator permite expiração e outros processos automáticos.
+
+## 4.28 `ocorrencias_cuidado`
+
+**Finalidade:** execução prevista ou realizada de uma tarefa em data e horário. **Entidade:** `TaskOccurrence`. **Requisitos relacionados:** RF12, RF14, RF15, RF16 e RF19.
+
+**Papel nos requisitos:** principal nos lembretes e registros de execução; apoio à agenda, diário e relatório.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `tarefa_id` | uuid | Sim | FK, Unique composto | Série de origem. |
+| `contratacao_id` | uuid | Sim | FK | Contratação. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa. |
+| `usuario_cuidador_id` | uuid | Sim | FK | Cuidador previsto. |
+| `data_prevista` | date | Sim | Unique composto | Data local. |
+| `horario_previsto` | time | Sim | Unique composto | Hora local. |
+| `instante_previsto_utc` | timestamptz | Sim | — | Instante UTC para processamento. |
+| `fuso_horario` | varchar(80) | Sim | — | Fuso da previsão. |
+| `status` | varchar(25) | Sim | Enum | Estado da ocorrência. |
+| `concluido_em` | timestamptz | Não | — | Conclusão. |
+| `usuario_executor_id` | uuid | Não | FK | Usuário que registrou. |
+| `motivo_nao_realizacao` | varchar(1000) | Não | — | Justificativa. |
+| `anotacao_execucao` | varchar(1000) | Não | — | Nota da execução. |
+| `cancelado_em` | timestamptz | Não | — | Cancelamento. |
+| `excecao` | boolean | Sim | — | Indica exceção à série. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `versao` | bigint | Sim | Lock otimista | Versão concorrente. |
+| `marcada_nao_realizada_automaticamente` | boolean | Sim | — | Marca ação automática. |
+| `status_atualizado_em` | timestamptz | Não | — | Última mudança de estado. |
+
+**Relacionamentos e regras:** FKs → tarefa, contratação, pessoa e usuários. `tarefa_id,data_prevista,horario_previsto` é único; índice adicional inclui a contratação. Só se atualiza no dia previsto e em contratação válida; foto é exigida quando configurada; não realização exige justificativa; estados terminais não são reexecutados; conclusão cria um registro diário único.
+
+## 4.29 `ocorrencias_cuidado_fotos`
+
+**Finalidade:** evidências fotográficas de ocorrência ou cuidado avulso. **Entidade:** `CareOccurrencePhoto`. **Requisitos relacionados:** RF15, RF16 e RF19.
+
+**Papel nos requisitos:** apoio; comprova cuidados planejados ou avulsos e integra o relatório.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `ocorrencia_id` | uuid | Não | FK | Ocorrência planejada. |
+| `usuario_envio_id` | uuid | Sim | FK | Autor do envio. |
+| `nome_arquivo` | varchar(80) | Sim | Unique | Nome interno. |
+| `nome_arquivo_original` | varchar(255) | Não | — | Nome recebido. |
+| `tipo_conteudo` | varchar(30) | Sim | — | MIME type. |
+| `tamanho_arquivo` | bigint | Sim | — | Tamanho em bytes. |
+| `criado_em` | timestamptz | Sim | — | Envio. |
+| `registro_atividade_id` | uuid | Não | FK | Cuidado diário avulso. |
+
+**Relacionamentos e regras:** FKs → ocorrência, diário e usuário; os dois pais usam cascade. Check exige exatamente um entre `ocorrencia_id` e `registro_atividade_id`. O serviço limita a cinco fotos e controla tipo/tamanho no armazenamento.
+
+## 4.30 `ocorrencias_cuidado_lembretes`
+
+**Finalidade:** agenda e resultado dos lembretes. **Entidade:** `TaskReminder`. **Requisitos relacionados:** RF14.
+
+**Papel nos requisitos:** principal; controla agendamento, deduplicação e entrega dos lembretes.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `ocorrencia_id` | uuid | Sim | FK | Ocorrência. |
+| `usuario_destinatario_id` | uuid | Sim | FK | Destinatário. |
+| `tipo_lembrete` | varchar(40) | Sim | Enum | Momento/finalidade. |
+| `previsto_em` | timestamptz | Sim | — | Disparo previsto. |
+| `enviado_em` | timestamptz | Não | — | Envio efetivo. |
+| `cancelado_em` | timestamptz | Não | — | Cancelamento. |
+| `status` | varchar(20) | Sim | Enum | Estado do processamento. |
+| `chave_deduplicacao` | varchar(220) | Sim | Unique | Idempotência. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+
+**Relacionamentos e regras:** FKs → ocorrência e usuário. A chave impede disparos duplicados; lembretes futuros são cancelados quando tarefa/ocorrência deixa de ser executável.
+
+## 4.31 `registros_diario_cuidado`
+
+**Finalidade:** diário cronológico de cuidados planejados e avulsos. **Entidade:** `CareActivityRecord`. **Requisitos relacionados:** RF15, RF16 e RF19.
+
+**Papel nos requisitos:** principal no registro e no diário; apoio à consolidação do relatório.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `ocorrencia_id` | uuid | Não | FK, Unique | Ocorrência concluída. |
+| `contratacao_id` | uuid | Sim | FK | Contratação. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa. |
+| `usuario_responsavel_id` | uuid | Sim | FK | Responsável. |
+| `usuario_cuidador_id` | uuid | Sim | FK | Cuidador. |
+| `tipo_atividade` | varchar(40) | Sim | Código | `TAREFA_CONCLUIDA` ou `CUIDADO_AVULSO`. |
+| `titulo` | varchar(180) | Sim | — | Título. |
+| `anotacoes` | varchar(1000) | Não | — | Notas. |
+| `ocorrido_em` | timestamptz | Sim | — | Momento real. |
+| `criado_em` | timestamptz | Sim | — | Persistência. |
+| `tipo_origem` | varchar(20) | Sim | Enum | `PLANNED` ou `MANUAL`. |
+| `data_registro` | date | Sim | — | Data local. |
+| `fuso_horario` | varchar(80) | Sim | — | Fuso. |
+| `tipo_cuidado` | varchar(40) | Sim | Código | Categoria planejada ou tipo manual. |
+| `descricao` | varchar(2000) | Não | — | Descrição. |
+| `importante` | boolean | Sim | — | Sinalização. |
+| `usuario_criacao_id` | uuid | Sim | FK | Autor. |
+
+**Relacionamentos e regras:** FKs → ocorrência, contratação, pessoa e usuários. Uma ocorrência gera no máximo um diário; cuidado manual fica sem ocorrência. Registro exige participante autorizado, pessoa compatível e atendimento válido na data.
+
+## 4.32 `registros_atendimento`
+
+**Finalidade:** início/fim real do atendimento com localização e janela permitida. **Entidade:** `ServiceAttendanceRecord`. **Requisitos relacionados:** RF12, RF16, RF18 e RF19.
+
+**Papel nos requisitos:** principal no check-in/check-out; apoio à agenda, ao diário e ao relatório.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `contratacao_id` | uuid | Sim | FK, Unique composto | Contratação. |
+| `cuidador_id` | uuid | Sim | FK | Cuidador. |
+| `responsavel_id` | uuid | Sim | FK | Responsável. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa. |
+| `data_atendimento` | date | Sim | Unique composto | Data local. |
+| `tipo_registro` | varchar(10) | Sim | Check/Unique composto | `START` ou `END`. |
+| `registrado_em` | timestamptz | Sim | — | Momento real. |
+| `latitude` | double precision | Sim | Check | Latitude entre -90 e 90. |
+| `longitude` | double precision | Sim | Check | Longitude entre -180 e 180. |
+| `precisao` | double precision | Sim | Check | Precisão entre 0 e 1000 metros. |
+| `localizacao_capturada_em` | timestamptz | Sim | — | Momento da captura. |
+| `endereco_registrado` | varchar(500) | Não | — | Texto do local. |
+| `fuso_dispositivo` | varchar(80) | Sim | — | Fuso do dispositivo. |
+| `horario_inicio_previsto` | time | Sim | — | Início planejado. |
+| `horario_fim_previsto` | time | Sim | — | Fim planejado. |
+| `janela_permitida_inicio` | timestamptz | Sim | — | Limite inicial. |
+| `janela_permitida_fim` | timestamptz | Sim | — | Limite final. |
+| `dentro_janela_permitida` | boolean | Sim | — | Resultado da validação temporal. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+
+**Relacionamentos e regras:** FKs → contratação, usuários e pessoa; contratação usa `ON DELETE CASCADE`. O triplo contratação/data/tipo é único. Só o cuidador contratado registra; `END` depende de `START`; a agenda e a janela são validadas e a localização é obrigatória.
+
+## 4.33 `relatorios_atendimento`
+
+**Finalidade:** consolida o atendimento e controla finalização e e-mail assíncrono. **Entidade:** `AttendanceReport`. **Requisitos relacionados:** RF19.
+
+**Papel nos requisitos:** principal; gera, edita, finaliza e controla o envio assíncrono do relatório.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `contratacao_id` | uuid | Sim | FK, Unique composto | Contratação. |
+| `data_atendimento` | date | Sim | Unique composto | Data. |
+| `registro_inicio_atendimento_id` | uuid | Sim | FK | Registro `START`. |
+| `registro_fim_atendimento_id` | uuid | Sim | FK | Registro `END`. |
+| `cuidador_id` | uuid | Sim | FK | Cuidador. |
+| `responsavel_id` | uuid | Sim | FK | Responsável. |
+| `pessoa_assistida_id` | uuid | Sim | FK | Pessoa. |
+| `texto_gerado` | text | Sim | — | Texto automático inicial. |
+| `texto_editado` | text | Não | — | Versão editada. |
+| `texto_final` | text | Não | — | Conteúdo congelado final. |
+| `observacoes_adicionais` | varchar(4000) | Não | — | Complemento do cuidador. |
+| `anotacoes_enfermagem` | text | Sim | — | Consolidação clínica/operacional. |
+| `status` | varchar(20) | Sim | Check/Enum | `DRAFT` ou `FINALIZED`. |
+| `status_email` | varchar(20) | Sim | Check/Enum | Estado da entrega. |
+| `email_enviado_em` | timestamptz | Não | — | Envio concluído. |
+| `mensagem_erro_email` | varchar(500) | Não | — | Último erro. |
+| `gerado_em` | timestamptz | Sim | — | Geração. |
+| `editado_em` | timestamptz | Não | — | Última edição. |
+| `finalizado_em` | timestamptz | Não | — | Finalização. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+| `email_solicitado_em` | timestamptz | Não | — | Entrada na fila. |
+| `tentativas_email` | integer | Sim | — | Número de tentativas. |
+| `proxima_tentativa_email_em` | timestamptz | Não | — | Próximo retry. |
+
+**Relacionamentos e regras:** FKs → contratação, dois registros de atendimento, usuários e pessoa. Uma contratação tem no máximo um relatório por data. Relatório nasce após encerramento, em `DRAFT`; só o cuidador edita/finaliza; finalizado não é alterado e fica disponível ao responsável; e-mail usa estados e retentativas assíncronas.
+
+## 4.34 `notificacoes`
+
+**Finalidade:** notificações internas dos eventos do sistema. **Entidade:** `Notification`. **Requisitos relacionados:** RF09, RF11, RF14, RF17, RF18 e RF19.
+
+**Papel nos requisitos:** apoio; comunica decisões, encerramentos, lembretes, interesses, atendimento e relatório.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `usuario_destinatario_id` | uuid | Sim | FK | Destinatário. |
+| `tipo` | varchar(50) | Sim | Enum | Evento de negócio. |
+| `titulo` | varchar(180) | Sim | — | Título exibido. |
+| `mensagem` | varchar(500) | Sim | — | Mensagem exibida. |
+| `tipo_entidade_relacionada` | varchar(40) | Sim | Enum | Tipo do alvo. |
+| `entidade_relacionada_id` | uuid | Sim | Referência lógica | UUID do alvo. |
+| `lida_em` | timestamptz | Não | — | Leitura. |
+| `removida_em` | timestamptz | Não | — | Remoção lógica. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `chave_deduplicacao` | varchar(220) | Não | Unique parcial | Idempotência opcional. |
+
+**Relacionamentos e regras:** FK física apenas para `usuarios`; o alvo é polimórfico. Preferências podem suprimir eventos configuráveis. A chave, quando preenchida, impede duplicação; remoção é lógica.
+
+## 4.35 `notificacoes_preferencias`
+
+**Finalidade:** habilitação de tipos de notificação por usuário. **Entidade:** `UserNotificationPreference`. **Requisitos relacionados:** RF09, RF11, RF14, RF17, RF18 e RF19.
+
+**Papel nos requisitos:** apoio; aplica a escolha do usuário aos eventos notificáveis.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador. |
+| `usuario_id` | uuid | Sim | FK, Unique composto | Usuário. |
+| `tipo_notificacao` | varchar(64) | Sim | Enum, Unique composto | Evento configurado. |
+| `habilitado` | boolean | Sim | — | Permite ou bloqueia. |
+| `criado_em` | timestamptz | Sim | — | Criação. |
+| `atualizado_em` | timestamptz | Sim | — | Atualização. |
+
+**Relacionamentos e regras:** FK → `usuarios.id`, `ON DELETE CASCADE`; o par usuário/tipo é único. Tipos antigos de tarefa foram normalizados para códigos de ocorrência pela V022.
+
+## 4.36 `flyway_schema_history`
+
+**Nome lógico:** Histórico de migrations. **Finalidade:** infraestrutura de versionamento do schema. **Entidade:** gerenciada pelo Flyway, sem entidade JPA. **Requisitos relacionados:** nenhum RF funcional.
+
+**Papel nos requisitos:** infraestrutura; garante a evolução técnica do schema, sem atender diretamente a uma funcionalidade.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `installed_rank` | integer | Sim | PK | Ordem de instalação. |
+| `version` | varchar(50) | Não | — | Versão da migration; pode ser nula em repeatable. |
+| `description` | varchar(200) | Sim | — | Descrição. |
+| `type` | varchar(20) | Sim | — | Tipo do artefato. |
+| `script` | varchar(1000) | Sim | — | Nome do script. |
+| `checksum` | integer | Não | — | Soma de verificação. |
+| `installed_by` | varchar(100) | Sim | — | Usuário do banco. |
+| `installed_on` | timestamp | Sim | — | Instalação, padrão `now()`. |
+| `execution_time` | integer | Sim | — | Duração em milissegundos. |
+| `success` | boolean | Sim | — | Resultado. |
+
+**Relacionamentos e regras:** não participa do domínio; o Flyway controla escrita, valida checksum e consulta `success`. Seu nome não deve ser traduzido.
+
+## 5. Relacionamentos principais
+
+- `usuarios` é a raiz de identidade; `responsaveis` e `cuidadores` especializam uma conta em relações um para um.
+- Um responsável cadastra várias `pessoas_assistidas`; cada pessoa tem coleções clínicas e até um contato de emergência.
+- `solicitacoes_servico` une responsável, pessoa e, quando conhecido, cuidador. Publicações abertas e candidaturas usam a mesma tabela e a autorreferência `oportunidade_origem_id`.
+- A aceitação produz uma única `contratacao`, cujo histórico de estados compartilha a tabela polimórfica com solicitações.
+- `rotinas_cuidado` possuem itens; ao solicitar, esses itens são copiados para preservar o conteúdo acordado.
+- A contratação provisiona `tarefas_cuidado`; uma tarefa gera várias `ocorrencias_cuidado`, lembretes e auditorias.
+- Uma ocorrência concluída gera no máximo um `registro_diario_cuidado`; cuidados manuais usam o diário sem ocorrência. Fotos ligam-se exclusivamente a um desses dois pais.
+- Por contratação e data, `registros_atendimento` guarda `START` e `END`; ambos sustentam um `relatorio_atendimento` único.
+- `notificacoes` aponta para entidades de negócio por tipo e UUID, mas somente o destinatário possui FK física.
+
+## 6. Status e tipos enumerados
+
+As colunas são `varchar`, não enums nativos do PostgreSQL. Os valores vêm dos enums Java, exceto onde indicado.
+
+### Identidade e perfil
+
+| Campo/enum | Valores e significado |
 |---|---|
-| `id`; `usuario_id` | uuid Sim; uuid Sim, FK única → `usuarios.id` |
-| `formacao`; `formacao_outro`; `tempo_experiencia` | varchar(40) Não; varchar(180) Não; varchar(30) Não |
-| `experiencia`; `biografia` | varchar(500) Não; varchar(500) Não |
-| `cep`; `rua`; `numero`; `complemento`; `bairro`; `cidade`; `estado`; `ponto_referencia` | varchar(9/180/30/120/120/120/2/180), Não |
-| `latitude`; `longitude` | numeric(10,7), Não |
-| `horario_inicio`; `horario_fim` | time, Não |
-| `observacao`; `modalidade_outro`; `servico_outro` | varchar(500/180/180), Não |
-| `criado_em`; `atualizado_em` | timestamptz Sim; timestamptz Sim |
+| `tipo_usuario` | `RESPONSAVEL` (organiza o cuidado), `CUIDADOR` (executa), `ADMIN`; `FAMILY` e `CAREGIVER` são legados. |
+| `Parentesco` | `FILHO`, `CONJUGE`, `NETO`, `IRMAO`, `SOBRINHO`, `TUTOR_LEGAL`, `RESPONSAVEL_CONTRATUAL`, `AMIGO`, `OUTRO`. |
+| `PreferenciaContato` | `WHATSAPP`, `LIGACAO`, `EMAIL`, `SMS`, `QUALQUER`. |
+| `FormacaoCuidador` | curso de cuidador, técnico/auxiliar/superior em enfermagem, primeiros socorros, experiência prática ou outro. |
+| `TempoExperiencia` | menos de 1; 1–2; 3–5; 6–10; mais de 10 anos. |
+| `ModalidadeAtendimento` | diurno, noturno, 12x36, 24h, eventual, fins de semana, consultas ou outro. |
+| `ServicoOferecido` | higiene, banho, alimentação, locomoção, companhia, medicação orientada, consultas, tarefas leves, monitoramento noturno ou outro. |
+| `DiaSemana` | `SEGUNDA` a `DOMINGO`. |
+| `PeriodoDisponibilidade` | `MANHA`, `TARDE`, `NOITE`, `MADRUGADA`, `INTEGRAL`, `HORARIO_PERSONALIZADO`. |
+| `GrauDependencia` | `BAIXA`, `MODERADA`, `ALTA`, `TOTAL`, `NAO_SEI_INFORMAR`. |
+| `Mobilidade` | independente, bengala, andador, cadeira de rodas, acamado, auxílio de pessoa ou outro. |
+| `Alergia` | não possui, medicamentos, alimentos, higiene, látex, poeira, outro ou não informado. |
+| `RestricaoAlimentar` | não possui, diabética, hipossódica, pastosa, líquida, sem lactose/glúten, vegetariana, outra ou não informada. |
 
-### `pessoas_assistidas` — Pessoas assistidas
+### Solicitações e contratações
 
-| Colunas | Tipo/obrigatoriedade |
+| Campo/enum | Valores e significado |
 |---|---|
-| `id`; `usuario_responsavel_id` | uuid Sim, PK; uuid Sim, FK → `usuarios.id` |
-| `nome`; `cpf`; `data_nascimento` | varchar(140) Sim; varchar(11) Não; date Sim |
-| `grau_dependencia`; `mobilidade`; `mobilidade_outro` | varchar(30) Sim; varchar(30) Sim; varchar(120) Não |
-| `alergias_outro`; `alergias_detalhes` | varchar(180) Não; varchar(500) Não |
-| `restricoes_alimentares_outro`; `restricoes_alimentares_detalhes` | varchar(180) Não; varchar(500) Não |
-| `medicamentos`; `observacoes` | varchar(500), Não |
-| `cep`; `rua`; `numero`; `complemento`; `bairro`; `cidade`; `estado`; `ponto_referencia` | varchar(9/180/30/120/120/120/2/180), Não |
-| `latitude`; `longitude` | numeric(10,7), Não |
-| `criado_em`; `atualizado_em` | timestamptz Sim; timestamptz Sim |
+| `HiringType` | `PONTUAL`, `PERIODO_DETERMINADO`, `PERIODO_INDETERMINADO`. |
+| `ServiceRequestStatus` | `ABERTA`, `PENDENTE`, `ACEITA`, `REJEITADA`, `CANCELADA`, `EXPIRADA`. |
+| `ServiceRequestInitiator` | `RESPONSIBLE` (responsável) ou `CAREGIVER` (cuidador). |
+| `CareContractStatus` | `AGENDADA`, `ATIVA`, `ENCERRAMENTO_AGENDADO`, `ENCERRADA`, `FINALIZADA`, `CANCELADA`. |
+| `ContractTerminationType` | término previsto, antecipado por uma parte, acordo, cancelamento antes do início ou término automático. |
+| `StatusHistoryEntityType` | `SERVICE_REQUEST` ou `CARE_CONTRACT`. |
 
-### Tabelas auxiliares de perfil
+### Planejamento e execução
 
-| Tabela | Colunas | Relacionamento/finalidade |
+| Campo/enum | Valores e significado |
+|---|---|
+| `TaskCategory` | medicação, alimentação, hidratação, higiene/banho, mobilidade, exercício, curativo, sinais vitais, compromisso ou personalizada. |
+| `TaskPriority` | `BAIXA`, `NORMAL`, `ALTA`. |
+| `TaskRecurrenceType` | única, diária, dias específicos, intervalo, período determinado ou sem data final. |
+| `TaskSeriesStatus` | `ATIVA`, `PAUSADA`, `CANCELADA`, `FINALIZADA`. |
+| `TaskOccurrenceStatus` | `PENDENTE`, `CONCLUIDA`, `ATRASADA`, `NAO_REALIZADA`, `CANCELADA`. |
+| `MedicationUnit` | mg, g, ml, gotas, comprimido, cápsula, aplicação ou personalizada. |
+| `MedicationAdministrationRoute` | oral, tópica, inalatória, subcutânea ou outra. |
+| `TaskReminderType` | antes, no horário, atraso, repetição pendente ou alerta ao responsável. |
+| `TaskReminderStatus` | `SCHEDULED`, `SENT`, `CANCELED`, `SKIPPED`, `FAILED`. |
+| `CareRecordSourceType` | `PLANNED` ou `MANUAL`. |
+| `ManualCareType` | medicação, alimentação, higiene, mobilidade, companhia, observação, ocorrência ou outro. |
+| `TaskAuditAction` | criação/alteração/pausa/reativação/cancelamento e eventos de ocorrência, foto, notificação e lembrete. |
+
+### Atendimento, relatório e notificações
+
+| Campo/enum | Valores e significado |
+|---|---|
+| `AttendanceRecordType` | `START` (início) e `END` (encerramento). |
+| `AttendanceReportStatus` | `DRAFT` (rascunho) e `FINALIZED` (finalizado). |
+| `AttendanceReportEmailStatus` | `NOT_SENT`, `PENDING`, `SENT`, `FAILED`. |
+| `RelatedEntityType` | solicitação, contratação, tarefa, ocorrência (código antigo ou atual) e relatório. |
+| `NotificationType` | eventos de solicitação/publicação/interesse, contratação, atendimento, relatório, tarefa e ocorrência. A lista canônica está em `NotificationType.java`; códigos antigos de tarefa continuam declarados por compatibilidade. |
+
+Os valores persistíveis de `NotificationType` são:
+
+| Grupo | Valores e significado |
+|---|---|
+| Solicitação direta | `SERVICE_REQUEST_CREATED` (criada), `SERVICE_REQUEST_ACCEPTED` (aceita), `SERVICE_REQUEST_REJECTED` (rejeitada), `SERVICE_REQUEST_CANCELED` (cancelada), `SERVICE_REQUEST_EXPIRED` (expirada). |
+| Publicação e interesse | `SERVICE_PUBLICATION_CREATED`, `SERVICE_PUBLICATION_CANCELED`, `SERVICE_PUBLICATION_EXPIRED`, `SERVICE_PUBLICATION_STATUS_UPDATED`; `SERVICE_OPPORTUNITY_APPLICATION_CREATED`, `SERVICE_OPPORTUNITY_APPLICATION_ACCEPTED`, `SERVICE_OPPORTUNITY_APPLICATION_REJECTED`. |
+| Contratação | `CONTRACT_TERMINATION_SCHEDULED` (término agendado), `CONTRACT_TERMINATED` (encerrada), `CONTRACT_CANCELED_BEFORE_START` (cancelada antes do início), `CONTRACT_AUTOMATICALLY_TERMINATED` (término automático). |
+| Atendimento e relatório | `SERVICE_ATTENDANCE_STARTED`, `SERVICE_ATTENDANCE_ENDED`, `ATTENDANCE_REPORT_AVAILABLE`. |
+| Cuidado — códigos atuais | `CARE_TASK_CREATED`, `CARE_TASK_CANCELED`, `CARE_OCCURRENCE_REMINDER`, `CARE_OCCURRENCE_OVERDUE`, `CARE_OCCURRENCE_NOT_DONE`, `CARE_OCCURRENCE_COMPLETED`, `CARE_OCCURRENCE_RESPONSIBLE_ALERT`. |
+| Cuidado — compatibilidade | `TASK_OCCURRENCE_COMPLETED`, `TASK_OCCURRENCE_NOT_COMPLETED`, `CARE_TASK_REMINDER`, `CARE_TASK_OVERDUE`, `CARE_TASK_NOT_DONE`, `CARE_TASK_RESPONSIBLE_ALERT`; a V022 normaliza preferências antigas para os códigos atuais de ocorrência. |
+
+As ações persistíveis de `TaskAuditAction` são `CRIADA`, `ALTERADA`, `PAUSADA`, `REATIVADA` e `CANCELADA` para a série; `OCORRENCIA_ALTERADA`, `OCORRENCIA_CANCELADA`, `OCORRENCIA_CONCLUIDA`, `OCORRENCIA_NAO_REALIZADA` e `OCORRENCIA_NAO_REALIZADA_AUTOMATICAMENTE` para execuções; e `FOTO_ANEXADA`, `NOTIFICACAO_INTERNA_CRIADA` e `LEMBRETE_CANCELADO` para efeitos associados.
+
+### Campos textuais sem enum/check completo
+
+- `usuarios.status` recebe `ACTIVE`, mas não tem enum nem check.
+- `registros_diario_cuidado.tipo_atividade` usa atualmente `TAREFA_CONCLUIDA` e `CUIDADO_AVULSO`; `tipo_cuidado` recebe `TaskCategory` ou `ManualCareType` como texto.
+
+## 7. Observações de integridade e regras de negócio
+
+- Uniques evitam duplicidade de e-mail, CPF, token, perfil por usuário, solicitação contratada, candidatura por cuidador, ocorrência por agenda, lembrete/notificação por chave, diário por ocorrência, marcação de presença por tipo e relatório por data.
+- Cascades existem nas coleções e cópias dependentes, em registros de atendimento/relatórios ligados à contratação e nas fotos ligadas ao pai. Outras FKs não definem cascade e exigem exclusão coordenada.
+- Checks físicos validam tipo e coordenadas do atendimento, status do relatório, datas/intervalo/lembrete da tarefa, papel do usuário e exclusividade do pai da foto.
+- `versao` em tarefas e ocorrências implementa bloqueio otimista contra atualizações concorrentes.
+- Cópias de rotina mantêm o conteúdo acordado mesmo se a rotina original for editada; a FK do item original usa `ON DELETE SET NULL`.
+- Históricos e notificações possuem referências polimórficas sem FK física; a aplicação deve garantir que tipo e UUID correspondam.
+- Índices cobrem consultas por participante/status/data, agenda, ocorrências vencidas, lembretes devidos, entrega de e-mail e linhas do tempo.
+
+## 8. Critérios de rastreabilidade
+
+As matrizes classificam a participação como **Principal** quando a persistência é indispensável à execução do requisito, **Apoio** quando complementa uma tabela principal, **Indireta** quando participa apenas por encadeamento e **Infraestrutura** quando não implementa funcionalidade de usuário. Estruturas removidas não integram as matrizes do schema vigente; a seção 12 aponta o relatório histórico correspondente.
+
+## 9. Requisitos funcionais considerados na modelagem
+
+| RF | Nome resumido | Descrição |
 |---|---|---|
-| `pessoas_assistidas_contatos_emergencia` | `id` uuid Sim; `pessoa_assistida_id` uuid Sim; `nome` varchar(140) Sim; `telefone` varchar(20) Sim; `vinculo` varchar(120) Sim; `contato_responsavel` boolean Sim; `criado_em`/`atualizado_em` timestamptz Sim | FK única para `pessoas_assistidas.id`. |
-| `pessoas_assistidas_alergias` | `pessoa_assistida_id` uuid Sim; `alergia` varchar(40) Sim | FK para pessoa assistida; coleção de enums. |
-| `pessoas_assistidas_restricoes_alimentares` | `pessoa_assistida_id` uuid Sim; `restricao` varchar(40) Sim | FK para pessoa assistida; coleção de enums. |
-| `cuidadores_modalidades` | `perfil_cuidador_id` uuid Sim; `modalidade` varchar(40) Sim | FK para cuidador. |
-| `cuidadores_servicos` | `perfil_cuidador_id` uuid Sim; `servico` varchar(50) Sim | FK para cuidador. |
-| `cuidadores_disponibilidade_dias` | `perfil_cuidador_id` uuid Sim; `dia_semana` varchar(20) Sim | FK para cuidador. |
-| `cuidadores_disponibilidade_periodos` | `perfil_cuidador_id` uuid Sim; `periodo` varchar(30) Sim | FK para cuidador. |
-| `cuidadores_formacoes` | `perfil_cuidador_id` uuid Sim; `formacao` varchar(40) Sim | Par único por cuidador e formação. |
+| RF01 | Cadastro de usuário | Cadastro de responsáveis e cuidadores. |
+| RF02 | Autenticação | Login e logout dos usuários. |
+| RF03 | Recuperação de senha | Redefinição de senha por token temporário. |
+| RF04 | Gerenciamento de perfil | Consulta e edição dos dados cadastrais. |
+| RF05 | Cadastro de cuidador com perfil profissional | Formação, experiência, serviços, modalidades e disponibilidade do cuidador. |
+| RF06 | Busca de cuidadores | Pesquisa de cuidadores por filtros e localização. |
+| RF07 | Perfil do cuidador | Visualização detalhada do cuidador. |
+| RF08 | Solicitação de serviço | Solicitação de atendimento entre responsável e cuidador. |
+| RF09 | Aceite/rejeição de solicitação | Resposta à solicitação de serviço. |
+| RF10 | Histórico de contratações | Consulta de contratações e histórico de serviços. |
+| RF11 | Encerramento do serviço | Cancelamento ou encerramento da contratação. |
+| RF12 | Agenda de cuidados | Visualização dos atendimentos e cuidados agendados. |
+| RF13 | Lista de tarefas | Organização das tarefas e cuidados planejados vinculados à rotina e à contratação. |
+| RF14 | Lembretes de medicação e tarefas | Lembretes e alertas dos cuidados planejados. |
+| RF15 | Registro de atividades | Execução, não realização, auditoria e histórico das atividades de cuidado. |
+| RF16 | Diário da pessoa assistida | Registros manuais e cuidados avulsos. |
+| RF17 | Busca de serviços pelo cuidador | Busca de serviços publicados e manifestação de interesse. |
+| RF18 | Check-in e check-out do serviço com localização | Início e encerramento do atendimento com horário real e localização. |
+| RF19 | Relatório de atendimento e anotações de enfermagem | Geração, edição, finalização e envio do relatório. |
 
-## Solicitações e contratações
+## 10. Rastreabilidade: requisitos funcionais para tabelas
 
-### `solicitacoes_servico` — Solicitações de serviço
+| Requisito | Nome do requisito | Tabelas principais | Tabelas de apoio | Justificativa |
+|---|---|---|---|---|
+| RF01 | Cadastro de usuário | `usuarios`, `responsaveis`, `pessoas_assistidas` | `cuidadores`, `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos`, `pessoas_assistidas_alergias`, `pessoas_assistidas_restricoes_alimentares`, `pessoas_assistidas_contatos_emergencia` | Separa identidade, perfis e dados da pessoa que receberá o cuidado. |
+| RF02 | Autenticação | `usuarios` | — | Consulta identidade, papel, status e hash da senha. |
+| RF03 | Recuperação de senha | `usuarios_tokens_redefinicao_senha` | `usuarios` | Associa à conta um token com validade e uso único. |
+| RF04 | Gerenciamento de perfil | `usuarios`, `responsaveis`, `cuidadores`, `pessoas_assistidas` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos`, `pessoas_assistidas_alergias`, `pessoas_assistidas_restricoes_alimentares`, `pessoas_assistidas_contatos_emergencia` | Permite consultar e atualizar dados comuns e específicos. |
+| RF05 | Cadastro de cuidador com perfil profissional | `cuidadores`, `usuarios` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos` | Complementa a conta com qualificação, oferta e disponibilidade profissional. |
+| RF06 | Busca de cuidadores | `cuidadores`, `usuarios` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos` | Fornece identificação, localização, formação, serviços e disponibilidade usados nos filtros. |
+| RF07 | Perfil do cuidador | `cuidadores`, `usuarios` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos` | Compõe a visualização detalhada do profissional. |
+| RF08 | Solicitação de serviço | `solicitacoes_servico`, `solicitacoes_servico_agenda_dias`, `solicitacoes_servico_datas`, `solicitacoes_servico_atividades` | `pessoas_assistidas`, `rotinas_cuidado`, `solicitacoes_servico_itens_cuidado_copias`, `solicitacoes_servico_itens_cuidado_copias_dias_semana` | Registra participantes, período, atividades e cópia imutável da rotina solicitada. |
+| RF09 | Aceite/rejeição de solicitação | `solicitacoes_servico`, `solicitacoes_servico_contratacoes_historico_status` | `contratacoes`, `notificacoes`, `notificacoes_preferencias` | Persiste a decisão, sua transição histórica, o vínculo aceito e a comunicação. |
+| RF10 | Histórico de contratações | `contratacoes`, `solicitacoes_servico_contratacoes_historico_status` | `solicitacoes_servico`, `pessoas_assistidas`, `usuarios` | Reconstrói vínculo, participantes, serviço de origem e mudanças de estado. |
+| RF11 | Encerramento do serviço | `contratacoes`, `solicitacoes_servico_contratacoes_historico_status` | `notificacoes`, `notificacoes_preferencias` | Registra tipo, motivo, solicitante, data efetiva e comunicação do término. |
+| RF12 | Agenda de cuidados | `contratacoes`, `solicitacoes_servico_agenda_dias`, `solicitacoes_servico_datas` | `registros_atendimento`, `ocorrencias_cuidado` | Combina vigência contratual, agenda prevista e eventos operacionais do dia. |
+| RF13 | Lista de tarefas | `rotinas_cuidado`, `rotinas_cuidado_itens`, `tarefas_cuidado` | `rotinas_cuidado_itens_dias_semana`, `tarefas_cuidado_dias_semana`, `tarefas_cuidado_auditoria`, `solicitacoes_servico_itens_cuidado_copias`, `solicitacoes_servico_itens_cuidado_copias_dias_semana` | Transforma o modelo de rotina contratado em séries de tarefas rastreáveis. |
+| RF14 | Lembretes de medicação e tarefas | `ocorrencias_cuidado_lembretes`, `ocorrencias_cuidado`, `tarefas_cuidado` | `notificacoes`, `notificacoes_preferencias` | Calcula disparos por ocorrência e respeita preferências do destinatário. |
+| RF15 | Registro de atividades | `ocorrencias_cuidado`, `registros_diario_cuidado`, `tarefas_cuidado_auditoria` | `ocorrencias_cuidado_fotos`, `tarefas_cuidado`, `contratacoes` | Registra resultado, justificativa, evidência e trilha de auditoria do cuidado. |
+| RF16 | Diário da pessoa assistida | `registros_diario_cuidado` | `ocorrencias_cuidado`, `ocorrencias_cuidado_fotos`, `contratacoes`, `registros_atendimento` | Unifica cuidados planejados e avulsos dentro de atendimento autorizado. |
+| RF17 | Busca de serviços pelo cuidador | `solicitacoes_servico` | `pessoas_assistidas`, `usuarios`, `contratacoes`, `notificacoes`, `notificacoes_preferencias` | A mesma tabela representa publicação e candidatura, com apoio de participantes e comunicação. |
+| RF18 | Check-in e check-out do serviço com localização | `registros_atendimento` | `contratacoes`, `pessoas_assistidas`, `usuarios`, `notificacoes`, `notificacoes_preferencias` | Valida vínculo, horário e localização e comunica início ou fim. |
+| RF19 | Relatório de atendimento e anotações de enfermagem | `relatorios_atendimento` | `registros_atendimento`, `ocorrencias_cuidado`, `registros_diario_cuidado`, `ocorrencias_cuidado_fotos`, `notificacoes`, `notificacoes_preferencias` | Consolida presença e cuidados, finaliza o texto e controla o envio assíncrono na própria tabela. |
 
-Representa tanto o convite direto do responsável quanto uma oportunidade aberta e a candidatura derivada dela.
+Não existe tabela separada para envio de e-mail: `status_email`, datas, tentativas, próxima tentativa e mensagem de erro ficam em `relatorios_atendimento`.
 
-| Colunas | Tipo/obrigatoriedade |
-|---|---|
-| `id` | uuid Sim, PK |
-| `usuario_responsavel_id`; `usuario_cuidador_id`; `pessoa_assistida_id` | uuid Sim; uuid Não; uuid Sim — FKs |
-| `usuario_solicitante_id`; `oportunidade_origem_id` | uuid Sim, FK → `usuarios`; uuid Não, autorreferência |
-| `tipo_contratacao`; `status`; `iniciado_por` | varchar(40) Sim; varchar(30) Sim; varchar(20) Sim |
-| `data_inicio`; `data_fim` | date Não; date Não |
-| `descricao_necessidades` | varchar(2000) Sim |
-| `outra_atividade`; `observacoes_adicionais`; `observacoes_negociacao` | varchar(500/2000/1000), Não |
-| `motivo_rejeicao`; `motivo_cancelamento` | varchar(1000), Não |
-| `rotina_cuidado_id`; `nome_rotina_snapshot` | uuid Não, FK → `rotinas_cuidado`; varchar(140) Não |
-| `criado_em`; `atualizado_em`; `expira_em`; `cancelado_em` | timestamptz Sim; Sim; Sim; Não |
+## 11. Rastreabilidade: tabelas para requisitos funcionais
 
-### Tabelas auxiliares das solicitações
+| Tabela | Requisitos relacionados | Tipo de participação | Justificativa |
+|---|---|---|---|
+| `usuarios` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18 | Principal/Apoio | Base de identidade e autenticação; identifica participantes nos demais fluxos. |
+| `usuarios_tokens_redefinicao_senha` | RF03 | Principal | Persiste o token, sua validade e consumo. |
+| `responsaveis` | RF01, RF04 | Principal | Especializa a conta do responsável. |
+| `cuidadores` | RF01, RF04, RF05, RF06, RF07 | Principal/Apoio | Mantém o perfil profissional consultado e pesquisado. |
+| `cuidadores_disponibilidade_dias` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
+| `cuidadores_disponibilidade_periodos` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
+| `cuidadores_formacoes` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém múltiplas qualificações. |
+| `cuidadores_modalidades` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém modalidades de atendimento. |
+| `cuidadores_servicos` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém serviços oferecidos. |
+| `pessoas_assistidas` | RF01, RF04, RF08, RF10, RF17, RF18 | Principal/Apoio | Centraliza a pessoa, necessidades e endereço do cuidado. |
+| `pessoas_assistidas_alergias` | RF01, RF04 | Apoio | Complementa o cadastro clínico. |
+| `pessoas_assistidas_contatos_emergencia` | RF01, RF04 | Apoio | Complementa o cadastro com contato emergencial. |
+| `pessoas_assistidas_restricoes_alimentares` | RF01, RF04 | Apoio | Complementa o cadastro clínico e alimentar. |
+| `solicitacoes_servico` | RF08, RF09, RF10, RF17 | Principal/Apoio | Unifica pedido direto, publicação, candidatura e origem do contrato. |
+| `solicitacoes_servico_agenda_dias` | RF08, RF12 | Principal | Define a grade semanal solicitada e agendada. |
+| `solicitacoes_servico_atividades` | RF08 | Principal | Define as atividades requeridas. |
+| `solicitacoes_servico_datas` | RF08, RF12 | Principal | Define datas pontuais do serviço. |
+| `solicitacoes_servico_contratacoes_historico_status` | RF09, RF10, RF11 | Principal | Registra a linha do tempo de solicitações e contratos. |
+| `solicitacoes_servico_itens_cuidado_copias` | RF08, RF13 | Apoio | Preserva o item de rotina acordado e origina tarefa. |
+| `solicitacoes_servico_itens_cuidado_copias_dias_semana` | RF08, RF13 | Apoio | Preserva os dias do item acordado. |
+| `contratacoes` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18 | Principal/Apoio | Materializa o vínculo aceito e autoriza operações posteriores. |
+| `rotinas_cuidado` | RF08, RF13 | Principal/Apoio | Modelo reutilizável selecionado na solicitação. |
+| `rotinas_cuidado_itens` | RF13 | Principal | Define cada cuidado planejado. |
+| `rotinas_cuidado_itens_dias_semana` | RF13 | Apoio | Define recorrência semanal do item. |
+| `tarefas_cuidado` | RF13, RF14, RF15 | Principal/Apoio | Série operacional exibida, lembrada e executada. |
+| `tarefas_cuidado_dias_semana` | RF13 | Apoio | Materializa a recorrência semanal. |
+| `tarefas_cuidado_auditoria` | RF13, RF15 | Principal/Apoio | Preserva mudanças e ações de execução. |
+| `ocorrencias_cuidado` | RF12, RF14, RF15, RF16, RF19 | Principal/Apoio | Representa cada execução em data e horário. |
+| `ocorrencias_cuidado_fotos` | RF15, RF16, RF19 | Apoio | Evidência de cuidados planejados ou avulsos. |
+| `ocorrencias_cuidado_lembretes` | RF14 | Principal | Agenda e deduplica os lembretes. |
+| `registros_diario_cuidado` | RF15, RF16, RF19 | Principal/Apoio | Linha cronológica usada no diário e relatório. |
+| `registros_atendimento` | RF12, RF16, RF18, RF19 | Principal/Apoio | Registra presença e delimita atendimento válido. |
+| `relatorios_atendimento` | RF19 | Principal | Armazena relatório, finalização e entrega por e-mail. |
+| `notificacoes` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Comunica eventos desses requisitos. |
+| `notificacoes_preferencias` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Controla quais eventos são recebidos. |
+| `flyway_schema_history` | Nenhum RF funcional | Infraestrutura | Versiona a evolução técnica do schema. |
 
-| Tabela | Colunas | Chave/relacionamento |
-|---|---|---|
-| `solicitacoes_servico_datas` | `solicitacao_servico_id` uuid Sim; `data_servico` date Sim | PK composta; FK com exclusão em cascata. |
-| `solicitacoes_servico_agenda_dias` | `solicitacao_servico_id` uuid Sim; `dia_semana` varchar(20) Sim; `horario_inicio`/`horario_fim` time Sim | PK composta; grade semanal. |
-| `solicitacoes_servico_atividades` | `solicitacao_servico_id` uuid Sim; `atividade` varchar(50) Sim | PK composta. |
+## 13. Pontos de atenção
 
-### `contratacoes` — Contratações
+### 13.1 Compatibilidade e legado
 
-| Colunas | Tipo/obrigatoriedade |
-|---|---|
-| `id`; `solicitacao_servico_id` | uuid Sim, PK; uuid Sim, FK única |
-| `usuario_responsavel_id`; `usuario_cuidador_id`; `pessoa_assistida_id` | uuid Sim, FKs |
-| `status`; `data_inicio`; `data_fim` | varchar(30) Sim; date Sim; date Não |
-| `motivo_cancelamento`; `motivo_encerramento` | varchar(1000), Não |
-| `tipo_encerramento`; `motivo_solicitacao_encerramento`; `observacoes_encerramento` | varchar(50/1000/1000), Não |
-| `usuario_solicitante_encerramento_id`; `usuario_solicitante_cancelamento_id` | uuid Não, FKs → `usuarios.id` |
-| `encerramento_solicitado_em`; `cancelamento_solicitado_em`; `cancelado_em` | timestamptz Não |
-| `data_fim_efetiva` | date Não |
-| `criado_em`; `atualizado_em` | timestamptz Sim |
+- A V040 é condicional: uma instalação limpa e um banco evoluído vazio convergem para o mesmo catálogo sem as estruturas antigas.
+- A migração aborta se detectar qualquer dado legado, exigindo tratamento manual em vez de exclusão silenciosa.
+- V012 e V013 constam no histórico do banco evoluído, mas não no repositório atual; V038 e V039 permanecem imutáveis e a configuração aceita migrations ausentes.
+- Não foram encontrados seeds SQL ativos fora das migrations.
 
-### `solicitacoes_servico_contratacoes_historico_status` — Histórico de status
+### 13.2 Integridade referencial
 
-| Coluna | Tipo | Obrigatória | Regra |
-|---|---|---:|---|
-| `id` | uuid | Sim | PK. |
-| `tipo_entidade` | varchar(40) | Sim | Solicitação ou contratação. |
-| `entidade_id` | uuid | Sim | Identificador polimórfico. |
-| `status_anterior` | varchar(30) | Não | Estado anterior. |
-| `novo_status` | varchar(30) | Sim | Novo estado. |
-| `usuario_alteracao_id` | uuid | Não | FK → `usuarios.id`; pode ser ação automática. |
-| `motivo` | varchar(1000) | Não | Justificativa. |
-| `criado_em` | timestamptz | Sim | Instante da transição. |
+- Coleções de alergias, restrições, disponibilidade, modalidades e serviços não têm PK/unique física; o `Set` da aplicação reduz duplicidades, mas inserções externas ainda podem repeti-las.
+- `entidade_id` do histórico e `entidade_relacionada_id` da notificação são referências polimórficas sem FK física.
+- `usuarios.status` e alguns códigos do diário são texto sem check; a documentação de valores deve acompanhar o código.
 
-## Rotinas e cuidados
+### 13.3 Padronização de nomenclatura
 
-### `rotinas_cuidado` e `rotinas_cuidado_itens`
+- As annotations `@Table` usam nomes históricos em inglês; a correspondência com o schema depende da `PortuguesePhysicalNamingStrategy`.
 
-| Tabela | Colunas |
-|---|---|
-| `rotinas_cuidado` | `id` uuid Sim; `usuario_responsavel_id` uuid Sim FK; `pessoa_assistida_id` uuid Não FK; `nome` varchar(140) Sim; `descricao` varchar(1000) Não; `ativo` boolean Sim; `criado_em`/`atualizado_em` timestamptz Sim. |
-| `rotinas_cuidado_itens` | `id` uuid Sim; `rotina_cuidado_id` uuid Sim FK; `titulo` varchar(140) Sim; `descricao` varchar(1000) Não; `ordem_exibicao` integer Sim; `ativo` boolean Sim; `categoria` varchar(40) Não; `categoria_personalizada` varchar(120) Não; `prioridade` varchar(20) Não; `tipo_recorrencia` varchar(40) Não; `horario_previsto` time Não; `intervalo_dias` integer Não; campos de lembrete boolean/integer; `importante`, `notificar_responsavel_se_importante` e `exige_foto_conclusao` boolean Sim; campos de medicamento varchar; `anotacoes` varchar(2000) Não; `criado_em`/`atualizado_em` timestamptz Sim. |
+### 13.4 Segurança e proteção de dados
 
-Os campos de medicamento são `nome_medicamento` varchar(180), `dosagem_medicamento` varchar(80), `unidade_medicamento` varchar(30), `unidade_personalizada_medicamento` varchar(80), `via_administracao_medicamento` varchar(30), `via_personalizada_medicamento` varchar(120) e `instrucoes_medicamento` varchar(1000), todos opcionais. Os campos de lembrete são `lembrete_habilitado` boolean opcional, `minutos_antecedencia_lembrete` integer opcional, `lembrar_no_horario_previsto` boolean obrigatório, `lembrete_atraso_habilitado` boolean obrigatório, `minutos_para_atraso` integer opcional, `repetir_enquanto_pendente` boolean obrigatório e `intervalo_repeticao_minutos` integer opcional.
+- CPF, saúde, endereço, coordenadas, relatórios e fotos são dados pessoais ou sensíveis e exigem autenticação, autorização, retenção adequada e acesso mínimo necessário.
+- Fotos e coordenadas devem ser disponibilizadas somente aos participantes autorizados da contratação.
 
-### Snapshots e recorrência de rotina
+### 13.5 Melhorias futuras
 
-| Tabela | Colunas/relacionamentos |
-|---|---|
-| `solicitacoes_servico_itens_cuidado_copias` | Mesmos campos estruturados do item de rotina, exceto `ativo` e `atualizado_em`; inclui `id`, `solicitacao_servico_id`, `rotina_cuidado_original_id`, `item_rotina_cuidado_original_id` opcional, `ordem_exibicao` e `criado_em`. Preserva o conteúdo contratado. |
-| `rotinas_cuidado_itens_dias_semana` | `item_rotina_cuidado_id` uuid Sim FK; `dia_semana` varchar(20) Sim. |
-| `solicitacoes_servico_itens_cuidado_copias_dias_semana` | `item_snapshot_id` uuid Sim FK; `dia_semana` varchar(20) Sim. |
-
-### `tarefas_cuidado` — Tarefas de cuidado
-
-| Grupo | Colunas |
-|---|---|
-| Identificação | `id` uuid Sim PK; `titulo` varchar(140) Sim; `descricao` varchar(2000) Não; `categoria` varchar(40) Sim; `categoria_personalizada` varchar(120) Não; `prioridade` varchar(20) Sim; `status` varchar(20) Sim. |
-| Recorrência | `tipo_recorrencia` varchar(40) Sim; `data_inicio` date Sim; `data_fim` date Não; `horario_previsto` time Sim; `intervalo_dias` integer Não; `fuso_horario` varchar(80) Sim. |
-| Participantes | `pessoa_assistida_id`, `contratacao_id`, `responsavel_criador_id`, `cuidador_executor_id` uuid Sim e FKs. |
-| Linhagem | `serie_anterior_id`, `item_snapshot_origem_id`, `tarefa_duplicada_de_id` uuid Não e FKs. |
-| Lembretes | `lembrete_habilitado` boolean Sim; `minutos_antecedencia_lembrete` integer Não; demais campos de lembrete descritos acima. |
-| Evidência | `importante`, `notificar_responsavel_se_importante`, `exige_foto_conclusao` boolean Sim. |
-| Medicamento | Os sete campos opcionais de medicamento descritos acima. |
-| Auditoria | `anotacoes` varchar(2000) Não; `usuario_criacao_id`/`usuario_atualizacao_id` uuid Sim; `criado_em`/`atualizado_em` timestamptz Sim; `versao` bigint Sim. |
-
-### `ocorrencias_cuidado` — Ocorrências de cuidado
-
-| Colunas | Tipo/obrigatoriedade |
-|---|---|
-| `id`; `tarefa_id`; `contratacao_id`; `pessoa_assistida_id`; `usuario_cuidador_id` | uuid Sim; PK/FKs |
-| `data_prevista`; `horario_previsto`; `instante_previsto_utc`; `fuso_horario` | date Sim; time Sim; timestamptz Sim; varchar(80) Sim |
-| `status` | varchar(25) Sim |
-| `concluido_em`; `cancelado_em`; `status_atualizado_em` | timestamptz Não |
-| `usuario_executor_id` | uuid Não, FK → `usuarios.id` |
-| `motivo_nao_realizacao`; `anotacao_execucao` | varchar(1000), Não |
-| `excecao`; `marcada_nao_realizada_automaticamente` | boolean Sim |
-| `criado_em`; `atualizado_em`; `versao` | timestamptz Sim; timestamptz Sim; bigint Sim |
-
-A combinação `tarefa_id`, `data_prevista` e `horario_previsto` é única.
-
-### Diário, auditoria, lembretes e fotos
-
-| Tabela | Colunas principais |
-|---|---|
-| `registros_diario_cuidado` | `id` uuid Sim; `ocorrencia_id` uuid Não e único; `contratacao_id`, `pessoa_assistida_id`, `usuario_responsavel_id`, `usuario_cuidador_id`, `usuario_criacao_id` uuid Sim; `tipo_atividade`, `tipo_origem`, `tipo_cuidado` varchar Sim; `data_registro` date Sim; `fuso_horario` varchar(80) Sim; `titulo` varchar(180) Sim; `descricao` varchar(2000) Não; `anotacoes` varchar(1000) Não; `importante` boolean Sim; `ocorrido_em`/`criado_em` timestamptz Sim. |
-| `tarefas_cuidado_auditoria` | `id` uuid Sim; `tarefa_id` uuid Sim; `ocorrencia_id` uuid Não; `usuario_ator_id` uuid Não; `acao` varchar(40) Sim; `detalhes` varchar(500) Não; `criado_em` timestamptz Sim. |
-| `ocorrencias_cuidado_lembretes` | `id` uuid Sim; `ocorrencia_id`/`usuario_destinatario_id` uuid Sim; `tipo_lembrete` varchar(40) Sim; `previsto_em` timestamptz Sim; `enviado_em`/`cancelado_em` timestamptz Não; `status` varchar(20) Sim; `chave_deduplicacao` varchar(220) Sim e única; `criado_em`/`atualizado_em` timestamptz Sim. |
-| `ocorrencias_cuidado_fotos` | `id` uuid Sim; `ocorrencia_id` ou `registro_atividade_id` uuid (exatamente um preenchido); `usuario_envio_id` uuid Sim; `nome_arquivo` varchar(80) Sim e único; `nome_arquivo_original` varchar(255) Não; `tipo_conteudo` varchar(30) Sim; `tamanho_arquivo` bigint Sim; `criado_em` timestamptz Sim. |
-| `tarefas_cuidado_dias_semana` | `tarefa_id` uuid Sim; `dia_semana` varchar(20) Sim; PK composta. |
-
-## Atendimento e relatório
-
-### `registros_atendimento` — Registros de atendimento
-
-| Coluna | Tipo | Obrigatória |
-|---|---|---:|
-| `id` | uuid | Sim |
-| `contratacao_id`; `cuidador_id`; `responsavel_id`; `pessoa_assistida_id` | uuid | Sim |
-| `data_atendimento` | date | Sim |
-| `tipo_registro` | varchar(10) | Sim |
-| `registrado_em`; `localizacao_capturada_em` | timestamptz | Sim |
-| `latitude`; `longitude`; `precisao` | double precision | Sim |
-| `endereco_registrado` | varchar(500) | Não |
-| `fuso_dispositivo` | varchar(80) | Sim |
-| `horario_inicio_previsto`; `horario_fim_previsto` | time | Sim |
-| `janela_permitida_inicio`; `janela_permitida_fim` | timestamptz | Sim |
-| `dentro_janela_permitida` | boolean | Sim |
-| `criado_em`; `atualizado_em` | timestamptz | Sim |
-
-Há checks para tipo (`START`/`END`), latitude, longitude e precisão. A combinação contratação/data/tipo é única.
-
-### `relatorios_atendimento` — Relatórios de atendimento
-
-| Colunas | Tipo/obrigatoriedade |
-|---|---|
-| `id`; `contratacao_id`; `registro_inicio_atendimento_id`; `registro_fim_atendimento_id`; `cuidador_id`; `responsavel_id`; `pessoa_assistida_id` | uuid Sim, PK/FKs |
-| `data_atendimento` | date Sim |
-| `texto_gerado`; `anotacoes_enfermagem` | text Sim |
-| `texto_editado`; `texto_final` | text Não |
-| `observacoes_adicionais` | varchar(4000) Não |
-| `status`; `status_email` | varchar(20) Sim |
-| `email_solicitado_em`; `email_enviado_em`; `proxima_tentativa_email_em` | timestamptz Não |
-| `tentativas_email` | integer Sim |
-| `mensagem_erro_email` | varchar(500) Não |
-| `gerado_em`; `criado_em`; `atualizado_em` | timestamptz Sim |
-| `editado_em`; `finalizado_em` | timestamptz Não |
-
-A combinação contratação/data é única. O status do relatório admite `DRAFT` e `FINALIZED`; a entrega admite `NOT_SENT`, `PENDING`, `SENT` e `FAILED`.
-
-## Notificações
-
-| Tabela | Colunas |
-|---|---|
-| `notificacoes` | `id` uuid Sim; `usuario_destinatario_id` uuid Sim FK; `tipo` varchar(50) Sim; `titulo` varchar(180) Sim; `mensagem` varchar(500) Sim; `tipo_entidade_relacionada` varchar(40) Sim; `entidade_relacionada_id` uuid Sim; `lida_em`/`removida_em` timestamptz Não; `chave_deduplicacao` varchar(220) Não e única quando preenchida; `criado_em` timestamptz Sim. |
-| `notificacoes_preferencias` | `id` uuid Sim; `usuario_id` uuid Sim FK; `tipo_notificacao` varchar(64) Sim; `habilitado` boolean Sim; `criado_em`/`atualizado_em` timestamptz Sim; par usuário/tipo único. |
-
-## Relacionamentos principais
-
-- Um `usuario` possui no máximo um perfil de responsável ou cuidador.
-- Um responsável possui várias `pessoas_assistidas`; cada pessoa assistida possui um contato de emergência e coleções de alergias/restrições.
-- Uma `solicitacao_servico` liga responsável, pessoa assistida e, quando definido, cuidador; sua aceitação origina uma `contratacao` única.
-- Uma contratação provisiona `tarefas_cuidado`; cada tarefa gera várias `ocorrencias_cuidado` e seus lembretes/auditorias.
-- Uma ocorrência concluída pode originar um `registro_diario_cuidado` e fotos; cuidados avulsos usam o mesmo diário sem ocorrência planejada.
-- Uma contratação possui registros de início e fim de atendimento por data; esses registros sustentam um `relatorio_atendimento`.
-- Notificações referenciam entidades de negócio de forma polimórfica por tipo e UUID.
-
-## Enums e status
-
-Os valores dos enums permanecem como códigos estáveis sem acento (por exemplo, `RESPONSAVEL`, `CUIDADOR`, `PENDENTE`, `FINALIZADA`, `START` e `END`). Eles são dados de integração e não rótulos de interface. O aplicativo continua convertendo esses códigos para textos visíveis corretamente acentuados em português.
-
-## Segurança da migração
-
-- As migrations V031–V039 usam apenas operações de rename; não removem nem recriam tabelas.
-- Renomes preservam dados, constraints e índices vinculados no PostgreSQL.
-- PKs, FKs, uniques, checks e índices são renomeados depois das tabelas e colunas.
-- Cada lote possui `lock_timeout` de 10 segundos e `statement_timeout` de 2 minutos, evitando espera indefinida por locks.
-- O banco limpo executa as migrations disponíveis até V039; bancos existentes executam apenas as migrations ainda pendentes.
-- Antes da aplicação em um banco com dados importantes, deve ser realizado backup e teste em uma cópia representativa.
-
-### Checklist operacional
-
-- [ ] Backup realizado.
-- [x] Cadeia disponível V001–V039 testada em PostgreSQL limpo temporário.
-- [x] V039 testada no banco local com dados e contagens verificadas.
-- [x] Contagens das 30 tabelas renomeadas conferidas antes/depois.
-- [x] Aplicação iniciada com `ddl-auto=validate` no banco limpo e no banco com dados.
-- [ ] Endpoints de autenticação, perfil, agenda, contratação, cuidados, diário, atendimento, relatório e notificações validados.
-- [ ] RF09, RF10, RF11, RF12, RF14, RF15, RF17, RF18, RF19 e RF20 validados no ambiente integrado.
+- Avaliar constraints de unicidade nas coleções e checks para status textuais.
+- Documentar explicitamente a política de retenção de tokens, fotos, localização, notificações e relatórios.
+- Manter as duas matrizes atualizadas quando um RF, enum, tabela ou relacionamento mudar.
