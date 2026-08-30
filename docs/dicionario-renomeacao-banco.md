@@ -1,6 +1,6 @@
 # Dicionário de renomeação do banco
 
-Este documento registra a primeira etapa de tradução, entre as migrations V031–V038. A organização relacional da V039, inclusive para tabelas que mantiveram o nome, está em [dicionario-nomenclatura-relacional.md](dicionario-nomenclatura-relacional.md). Os cinco artefatos de grupos/itens identificados como legados nesta visão histórica foram removidos pela V040; a V041 traduz as três colunas físicas que ainda continham `snapshot`. O schema vigente está em [modelagem-banco-dados.md](modelagem-banco-dados.md). Os identificadores físicos usam `snake_case`, sem acentos. Nomes Java, propriedades JSON e endpoints REST foram preservados.
+Este documento registra a primeira etapa de tradução, entre as migrations V031–V038. A organização relacional da V039, inclusive para tabelas que mantiveram o nome, está em [dicionario-nomenclatura-relacional.md](dicionario-nomenclatura-relacional.md). Os cinco artefatos de grupos/itens identificados como legados nesta visão histórica foram removidos pela V040; a V041 traduz as três colunas físicas que ainda continham `snapshot`; e a V042 consolida a formação na coleção normalizada e remove `cuidadores.formacao`. O schema vigente está em [modelagem-banco-dados.md](modelagem-banco-dados.md). Os identificadores físicos usam `snake_case`, sem acentos. Nomes Java, propriedades JSON e endpoints REST foram preservados nessa etapa histórica.
 
 ## Tabelas
 

@@ -1,6 +1,6 @@
 # Inventário técnico de colunas do schema `public`
 
-Catálogo extraído após a V041. Cada uma das 417 colunas foi analisada. As descrições funcionais por coluna estão no [dicionário principal](modelagem-banco-dados.md); este apêndice concentra metadados físicos e o mapeamento responsável.
+Catálogo vigente após a V042. As 416 colunas estão relacionadas abaixo. As descrições funcionais por coluna estão no [dicionário principal](modelagem-banco-dados.md); este apêndice concentra metadados físicos e o mapeamento responsável.
 
 | Tabela | Coluna | Tipo | Obrigatória | PK | FK para | Unique | Check(s) | Default | Índice(s) | JPA/infraestrutura |
 |---|---|---|---:|---:|---|---:|---|---|---|---|
@@ -27,7 +27,6 @@ Catálogo extraído após a V041. Cada uma das 417 colunas foi analisada. As des
 | `contratacoes` | `cancelamento_solicitado_em` | timestamp with time zone | Não | Não | — | Não | — | — | — | `CareContract` |
 | `cuidadores` | `id` | uuid | Sim | Sim | — | Não | — | — | pk_cuidadores | `CaregiverProfile` |
 | `cuidadores` | `usuario_id` | uuid | Sim | Não | usuarios | Sim | — | — | uk_cuidadores_usuario_id | `CaregiverProfile` |
-| `cuidadores` | `formacao` | character varying | Não | Não | — | Não | — | — | — | `CaregiverProfile` |
 | `cuidadores` | `formacao_outro` | character varying | Não | Não | — | Não | — | — | — | `CaregiverProfile` |
 | `cuidadores` | `experiencia` | character varying | Não | Não | — | Não | — | — | — | `CaregiverProfile` |
 | `cuidadores` | `biografia` | character varying | Não | Não | — | Não | — | — | — | `CaregiverProfile` |

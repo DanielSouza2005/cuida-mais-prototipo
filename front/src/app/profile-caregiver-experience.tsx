@@ -37,7 +37,7 @@ export default function ProfileCaregiverExperienceScreen() {
       .then((profile) => {
         if (!active) return;
         setTempoExperiencia(profile.caregiverProfile?.tempoExperiencia ?? null);
-        setFormacoes(profile.caregiverProfile?.formacoes ?? (profile.caregiverProfile?.formacao ? [profile.caregiverProfile.formacao] : []));
+        setFormacoes(profile.caregiverProfile?.formacoes ?? []);
         setFormacaoOutro(profile.caregiverProfile?.formacaoOutro ?? '');
         setBiografia(profile.caregiverProfile?.biografia ?? '');
       })

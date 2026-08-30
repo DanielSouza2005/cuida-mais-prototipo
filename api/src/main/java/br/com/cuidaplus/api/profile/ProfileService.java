@@ -107,7 +107,6 @@ public class ProfileService {
       availability.put("observacao", availabilityData.getObservacao());
 
       Map<String, Object> caregiverProfile = new LinkedHashMap<>();
-      caregiverProfile.put("formacao", profile.getFormacao());
       caregiverProfile.put("formacoes", new LinkedHashSet<>(profile.getFormacoes()));
       caregiverProfile.put("formacaoOutro", profile.getFormacaoOutro());
       caregiverProfile.put("tempoExperiencia", profile.getTempoExperiencia());
@@ -204,9 +203,8 @@ public class ProfileService {
   @Transactional
   public MessageResponse updateCaregiverExperience(UUID userId, CaregiverExperienceUpdateRequest request) {
     CaregiverProfile profile = findCaregiverProfile(userId);
-    LinkedHashSet<FormacaoCuidador> formacoes = normalizeFormacoes(request.formacoes(), request.formacao());
+    LinkedHashSet<FormacaoCuidador> formacoes = new LinkedHashSet<>(request.formacoes());
     profile.setTempoExperiencia(request.tempoExperiencia());
-    profile.setFormacao(formacoes.stream().findFirst().orElse(null));
     profile.setFormacoes(formacoes);
     profile.setFormacaoOutro(formacoes.contains(FormacaoCuidador.OUTRO) ? trimToNull(request.formacaoOutro()) : null);
     profile.setBiografia(trimToNull(request.biografia()));
@@ -366,19 +364,6 @@ public class ProfileService {
   private String optionalDigits(String value) {
     String digits = UserService.onlyDigits(value);
     return digits.isBlank() ? null : digits;
-  }
-
-  private LinkedHashSet<FormacaoCuidador> normalizeFormacoes(java.util.Set<FormacaoCuidador> formacoes, FormacaoCuidador formacao) {
-    if (formacoes != null) {
-      return new LinkedHashSet<>(formacoes);
-    }
-
-    LinkedHashSet<FormacaoCuidador> normalized = new LinkedHashSet<>();
-    if (formacao != null) {
-      normalized.add(formacao);
-    }
-
-    return normalized;
   }
 
   private String resolveResponsibleRelationship(ResponsibleProfile profile) {

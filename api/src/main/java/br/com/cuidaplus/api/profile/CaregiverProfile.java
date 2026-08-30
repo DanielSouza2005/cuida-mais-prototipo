@@ -34,10 +34,6 @@ public class CaregiverProfile {
   @JoinColumn(name = "user_id", nullable = false, unique = true)
   private User user;
 
-  @Enumerated(EnumType.STRING)
-  @Column(length = 40)
-  private FormacaoCuidador formacao;
-
   @ElementCollection
   @Enumerated(EnumType.STRING)
   @CollectionTable(name = "caregiver_formations", joinColumns = @JoinColumn(name = "caregiver_profile_id"))
@@ -109,14 +105,6 @@ public class CaregiverProfile {
 
   public void setUser(User user) {
     this.user = user;
-  }
-
-  public FormacaoCuidador getFormacao() {
-    return formacao;
-  }
-
-  public void setFormacao(FormacaoCuidador formacao) {
-    this.formacao = formacao;
   }
 
   public Set<FormacaoCuidador> getFormacoes() {

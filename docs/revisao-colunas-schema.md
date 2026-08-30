@@ -1,6 +1,6 @@
 # Colunas candidatas à tradução
 
-Revisão realizada em 30/08/2026 sobre o schema `public` após a V040. O catálogo contém 36 tabelas e 417 colunas. O inventário técnico integral, incluindo tipo, nulabilidade, chaves, checks, defaults e índices, está em [Inventário técnico de colunas](inventario-colunas-schema.md).
+Revisão realizada em 30/08/2026 sobre o schema `public` após a V040, quando o catálogo continha 36 tabelas e 417 colunas. O [inventário técnico de colunas](inventario-colunas-schema.md) acompanha o estado vigente após a V042, com 416 colunas; a diferença é a remoção posterior de `cuidadores.formacao`, documentada em [Análise de campos candidatos à remoção](analise-campos-candidatos-remocao.md).
 
 ## Método
 

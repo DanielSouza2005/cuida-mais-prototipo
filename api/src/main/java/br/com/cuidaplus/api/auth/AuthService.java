@@ -195,10 +195,9 @@ public class AuthService {
 
     CaregiverProfile profile = new CaregiverProfile();
     profile.setUser(user);
-    Set<FormacaoCuidador> formacoes = normalizeFormacoes(profileRequest.formacoes(), profileRequest.formacao());
-    profile.setFormacao(formacoes.stream().findFirst().orElse(null));
-    profile.setFormacoes(formacoes);
-    profile.setFormacaoOutro(formacoes.contains(FormacaoCuidador.OUTRO) ? trimToNull(profileRequest.formacaoOutro()) : null);
+    profile.setFormacoes(new LinkedHashSet<>(profileRequest.formacoes()));
+    profile.setFormacaoOutro(profileRequest.formacoes().contains(FormacaoCuidador.OUTRO)
+      ? trimToNull(profileRequest.formacaoOutro()) : null);
     profile.setTempoExperiencia(profileRequest.tempoExperiencia());
     profile.setBiografia(trimToNull(profileRequest.biografia()));
     profile.setEnderecoAtendimento(toAddress(request.address()));
@@ -336,19 +335,6 @@ public class AuthService {
   private String optionalDigits(String value) {
     String digits = UserService.onlyDigits(value);
     return digits.isBlank() ? null : digits;
-  }
-
-  private Set<FormacaoCuidador> normalizeFormacoes(Set<FormacaoCuidador> formacoes, FormacaoCuidador formacao) {
-    if (formacoes != null) {
-      return new LinkedHashSet<>(formacoes);
-    }
-
-    LinkedHashSet<FormacaoCuidador> normalized = new LinkedHashSet<>();
-    if (formacao != null) {
-      normalized.add(formacao);
-    }
-
-    return normalized;
   }
 
   private String trimToNull(String value) {

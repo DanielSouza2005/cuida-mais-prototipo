@@ -1,6 +1,6 @@
 # Dicionário de nomenclatura relacional das tabelas
 
-Este mapa registra o catálogo histórico do PostgreSQL na versão 038, antes da migration de padronização relacional. O padrão adotado é português, `snake_case`, sem acentos, com tabelas filhas iniciando pelo nome do domínio principal. `flyway_schema_history` é infraestrutura externa e permanece inalterada. As cinco tabelas marcadas como legadas foram removidas posteriormente pela V040 e não integram o schema vigente. A V041 substitui nas colunas físicas restantes `nome_rotina_snapshot`, `item_snapshot_id` e `item_snapshot_origem_id` por `nome_rotina_copia`, `item_copia_id` e `item_copia_origem_id`.
+Este mapa registra o catálogo histórico do PostgreSQL na versão 038, antes da migration de padronização relacional. O padrão adotado é português, `snake_case`, sem acentos, com tabelas filhas iniciando pelo nome do domínio principal. `flyway_schema_history` é infraestrutura externa e permanece inalterada. As cinco tabelas marcadas como legadas foram removidas posteriormente pela V040 e não integram o schema vigente. A V041 substitui nas colunas físicas restantes `nome_rotina_snapshot`, `item_snapshot_id` e `item_snapshot_origem_id` por `nome_rotina_copia`, `item_copia_id` e `item_copia_origem_id`. A V042 remove a coluna singular `cuidadores.formacao` após consolidá-la em `cuidadores_formacoes`.
 
 ## Inventário técnico anterior à V039
 

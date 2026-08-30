@@ -26,7 +26,6 @@ export type MyCaregiverProfile = {
   tempoExperiencia?: CaregiverExperienceRange | null;
   experiencia?: string | null;
   formacoes: CaregiverEducation[];
-  formacao?: CaregiverEducation | null;
   formacaoOutro?: string | null;
   biografia?: string | null;
   enderecoAtendimento?: Address | null;

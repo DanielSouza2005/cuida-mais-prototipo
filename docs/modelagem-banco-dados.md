@@ -2,7 +2,7 @@
 
 ## 1. Visão geral
 
-O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório e notificações. Este documento descreve o schema `public` após a V041 e foi conferido no catálogo do banco, migrations V001–V041, entidades JPA, enums, repositories e serviços.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório e notificações. Este documento descreve o schema `public` após a V042 e foi conferido no catálogo do banco, migrations V001–V042, entidades JPA, enums, repositories e serviços.
 
 O modelo vigente possui 35 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
@@ -89,7 +89,6 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 |---|---|---:|---|---|
 | `id` | uuid | Sim | PK | Identificador do perfil. |
 | `usuario_id` | uuid | Sim | FK, Unique | Conta vinculada. |
-| `formacao` | varchar(40) | Não | Enum | Formação principal legada. |
 | `formacao_outro` | varchar(180) | Não | — | Formação livre. |
 | `experiencia` | varchar(500) | Não | — | Experiência profissional. |
 | `biografia` | varchar(500) | Não | — | Apresentação pública. |
@@ -112,7 +111,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `latitude` | numeric(10,7) | Não | — | Latitude para busca. |
 | `longitude` | numeric(10,7) | Não | — | Longitude para busca. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `formacao` coexiste com `cuidadores_formacoes` por compatibilidade.
+**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidadores_formacoes` é a fonte oficial das qualificações profissionais; a coluna singular legada foi consolidada e removida pela V042.
 
 ## 4.5 `cuidadores_disponibilidade_dias`
 
@@ -1047,6 +1046,10 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 ### 13.3 Padronização de nomenclatura
 
 - As annotations `@Table` usam nomes históricos em inglês; a correspondência com o schema depende da `PortuguesePhysicalNamingStrategy`.
+- A V041 conclui a tradução das colunas de domínio que ainda continham `snapshot`, usando `copia` sem alterar nomes Java ou contratos JSON.
+- A V042 remove somente `cuidadores.formacao`; a formação profissional continua normalizada em `cuidadores_formacoes`.
+- As coordenadas de `cuidadores` e `pessoas_assistidas` são mantidas porque alimentam as buscas por distância de RF06 e RF17.
+- Os fusos de tarefas, ocorrências e diário são mantidos porque preservam a data civil, a conversão UTC, os lembretes e a linha do tempo.
 
 ### 13.4 Segurança e proteção de dados
 
