@@ -15,7 +15,7 @@ public interface TaskOccurrenceRepository extends JpaRepository<TaskOccurrence, 
     br.com.cuidaplus.api.care_contract.CareContract contract, CareTask task, LocalDate date, LocalTime time);
   @Modifying(flushAutomatically = true)
   @Query(value = """
-    INSERT INTO ocorrencias_cuidado (
+    INSERT INTO ocorrencia_cuidado (
       id, tarefa_id, contratacao_id, pessoa_assistida_id, usuario_cuidador_id,
       data_prevista, horario_previsto, instante_previsto_utc, fuso_horario, status,
       excecao, marcada_nao_realizada_automaticamente, criado_em, atualizado_em, versao

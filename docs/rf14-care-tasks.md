@@ -1,8 +1,8 @@
-# RF14 — Lista de Tarefas
+﻿# RF14 — Lista de Tarefas
 
 ## Visão técnica
 
-O RF14 usa uma série (`care_tasks`) como configuração da rotina e ocorrências (`task_occurrences`) como execuções independentes. A funcionalidade reutiliza os usuários, pessoas assistidas e contratos existentes. Não há duplicação de responsáveis, cuidadores ou dados contratuais.
+O RF14 usa uma série (`care_tasks`) como configuração da rotina e ocorrências (`task_occurrences`) como execuções independentes. A funcionalidade reutiliza os usuários, pessoas assistidas e contratos existentes. Não há duplicação de responsáveis, cuidador ou dados contratuais.
 
 Uma tarefa sem data final não é materializada indefinidamente. Na criação, a API gera no máximo 60 dias. Consultas futuras estendem somente o intervalo solicitado, com limite de 90 dias. A verificação em aplicação e a restrição única `(task_id, scheduled_date, scheduled_time)` tornam a geração idempotente.
 

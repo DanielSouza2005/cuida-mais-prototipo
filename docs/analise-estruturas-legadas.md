@@ -1,6 +1,6 @@
 # Análise de estruturas legadas
 
-Análise realizada em 30/08/2026 sobre o código versionado e sobre o banco PostgreSQL configurado para desenvolvimento, com Flyway aplicado até a versão `039`.
+Análise histórica realizada em 30/08/2026 sobre o banco com Flyway na versão `039`. As estruturas legadas avaliadas foram removidas pela V040 e não chegaram à renomeação da V043. Os nomes plurais abaixo identificam o estado que foi auditado, não o schema vigente; a nomenclatura atual está no [dicionário da V043](dicionario-renomeacao-tabelas-singular.md).
 
 ## Escopo e método
 

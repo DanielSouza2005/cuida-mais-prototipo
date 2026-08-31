@@ -1,6 +1,6 @@
 # Análise de campos candidatos à remoção
 
-Análise realizada em 30/08/2026 sobre o schema `public` na V041, antes de qualquer remoção. Foram cruzados catálogo PostgreSQL, dados existentes, entidades JPA, DTOs, serviços, repositories, migrations, testes, frontend e a rastreabilidade RF01–RF19.
+Análise histórica realizada em 30/08/2026 sobre o schema `public` na V041, antes de qualquer remoção. Os nomes plurais abaixo identificam aquele estado. A V042 executou a remoção aprovada e a V043 renomeou as tabelas de domínio para o singular; a correspondência atual está no [dicionário da V043](dicionario-renomeacao-tabelas-singular.md).
 
 ## Resultado por campo
 

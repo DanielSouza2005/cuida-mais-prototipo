@@ -1,27 +1,27 @@
-# Modelagem do Banco de Dados — Cuidar+
+﻿# Modelagem do Banco de Dados — Cuidar+
 
 ## 1. Visão geral
 
-O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório e notificações. Este documento descreve o schema `public` após a V042 e foi conferido no catálogo do banco, migrations V001–V042, entidades JPA, enums, repositories e serviços.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório e notificações. Este documento descreve o schema `public` após a V043 e foi conferido no catálogo do banco, migrations V001–V043, entidades JPA, enums, repositories e serviços.
 
 O modelo vigente possui 35 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
 ## 2. Padrão de nomenclatura
 
-O modelo usa predominantemente português, plural e `snake_case`, sem acentos. Tabelas filhas começam pelo agregado: `rotinas_cuidado_itens`, `ocorrencias_cuidado_fotos` e `notificacoes_preferencias`. A `PortuguesePhysicalNamingStrategy` traduz os nomes históricos das entidades Java para o modelo físico. `flyway_schema_history` mantém o nome do Flyway; códigos de enum podem permanecer em inglês por serem valores de integração.
+As tabelas foram nomeadas no singular, em português, sem acentuação e em `snake_case`. A escolha do singular representa cada tabela como uma entidade ou conceito do modelo de dados, como `usuario`, `cuidador`, `contratacao` e `ocorrencia_cuidado`. Tabelas filhas começam pelo agregado também no singular, como `rotina_cuidado_item`, `ocorrencia_cuidado_foto` e `notificacao_preferencia`. A `PortuguesePhysicalNamingStrategy` traduz os nomes lógicos históricos das entidades Java para o modelo físico, sem alterar classes ou contratos JSON. `flyway_schema_history` mantém o nome definido pelo Flyway; códigos de enum podem permanecer em inglês por serem valores de integração.
 
 ## 3. Organização por domínios
 
-- **Usuários e perfis:** `usuarios`, `usuarios_tokens_redefinicao_senha`, `responsaveis`, `cuidadores` e suas cinco coleções.
-- **Pessoas assistidas:** `pessoas_assistidas`, alergias, restrições alimentares e contato de emergência.
-- **Solicitações e contratações:** `solicitacoes_servico`, suas seis tabelas filhas, `contratacoes` e histórico de status.
+- **Usuários e perfis:** `usuario`, `usuario_token_redefinicao_senha`, `responsavel`, `cuidador` e suas cinco coleções.
+- **Pessoas assistidas:** `pessoa_assistida`, alergias, restrições alimentares e contato de emergência.
+- **Solicitações e contratações:** `solicitacao_servico`, suas seis tabelas filhas, `contratacao` e histórico de status.
 - **Planejamento e cuidado:** rotinas, tarefas, ocorrências, fotos, lembretes, auditoria e diário.
 - **Atendimento e comunicação:** registros de atendimento, relatórios, notificações e preferências.
 - **Infraestrutura:** `flyway_schema_history`.
 
 ## 4. Dicionário de tabelas
 
-## 4.1 `usuarios`
+## 4.1 `usuario`
 
 **Nome lógico:** Usuários. **Finalidade:** identidade e autenticação. **Entidade:** `User`. **Requisitos relacionados:** RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17 e RF18.
 
@@ -44,7 +44,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem. Cada conta pode ter no máximo um perfil de cada tipo. O check aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. `status` não possui check de valores.
 
-## 4.2 `usuarios_tokens_redefinicao_senha`
+## 4.2 `usuario_token_redefinicao_senha`
 
 **Nome lógico:** Tokens de redefinição. **Finalidade:** recuperação de senha. **Entidade:** `PasswordResetToken`. **Requisitos relacionados:** RF03.
 
@@ -59,9 +59,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `usado_em` | timestamptz | Não | — | Momento do consumo. |
 | `usuario_id` | uuid | Sim | FK | Dono do token. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; token expirado ou já usado é recusado.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; token expirado ou já usado é recusado.
 
-## 4.3 `responsaveis`
+## 4.3 `responsavel`
 
 **Nome lógico:** Responsáveis. **Finalidade:** dados específicos de quem organiza o cuidado. **Entidade:** `ResponsibleProfile`. **Requisitos relacionados:** RF01 e RF04.
 
@@ -77,9 +77,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `atualizado_em` | timestamptz | Sim | — | Atualização. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; a unique implementa relação um para um. Pessoas assistidas referenciam a conta em `usuarios`, não este `id`.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; a unique implementa relação um para um. Pessoas assistidas referenciam a conta em `usuario`, não este `id`.
 
-## 4.4 `cuidadores`
+## 4.4 `cuidador`
 
 **Nome lógico:** Cuidadores. **Finalidade:** qualificação, apresentação, endereço e disponibilidade. **Entidade:** `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
 
@@ -111,9 +111,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `latitude` | numeric(10,7) | Não | — | Latitude para busca. |
 | `longitude` | numeric(10,7) | Não | — | Longitude para busca. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuarios.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidadores_formacoes` é a fonte oficial das qualificações profissionais; a coluna singular legada foi consolidada e removida pela V042.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidador_formacao` é a fonte oficial das qualificações profissionais; a coluna singular legada foi consolidada e removida pela V042.
 
-## 4.5 `cuidadores_disponibilidade_dias`
+## 4.5 `cuidador_disponibilidade_dia`
 
 **Finalidade:** dias disponíveis. **Entidade:** coleção de `CaregiverAvailability`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
 
@@ -124,9 +124,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `perfil_cuidador_id` | uuid | Sim | FK | Cuidador proprietário. |
 | `dia_semana` | varchar(20) | Sim | Enum | Dia disponível. |
 
-**Relacionamentos e regras:** FK → `cuidadores.id`. Não há PK/unique física; a coleção `Set` reduz duplicidade na aplicação.
+**Relacionamentos e regras:** FK → `cuidador.id`. Não há PK/unique física; a coleção `Set` reduz duplicidade na aplicação.
 
-## 4.6 `cuidadores_disponibilidade_periodos`
+## 4.6 `cuidador_disponibilidade_periodo`
 
 **Finalidade:** períodos disponíveis. **Entidade:** coleção de `CaregiverAvailability`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
 
@@ -137,9 +137,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `perfil_cuidador_id` | uuid | Sim | FK | Cuidador proprietário. |
 | `periodo` | varchar(30) | Sim | Enum | Manhã, tarde, noite ou outro período. |
 
-**Relacionamentos e regras:** FK → `cuidadores.id`; `HORARIO_PERSONALIZADO` usa os horários da tabela pai. Sem PK/unique física.
+**Relacionamentos e regras:** FK → `cuidador.id`; `HORARIO_PERSONALIZADO` usa os horários da tabela pai. Sem PK/unique física.
 
-## 4.7 `cuidadores_formacoes`
+## 4.7 `cuidador_formacao`
 
 **Finalidade:** múltiplas qualificações. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
 
@@ -150,9 +150,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `perfil_cuidador_id` | uuid | Sim | FK, Unique composto | Cuidador. |
 | `formacao` | varchar(40) | Sim | Enum, Unique composto | Qualificação. |
 
-**Relacionamentos e regras:** FK → `cuidadores.id`; o par cuidador/formação é único.
+**Relacionamentos e regras:** FK → `cuidador.id`; o par cuidador/formação é único.
 
-## 4.8 `cuidadores_modalidades`
+## 4.8 `cuidador_modalidade`
 
 **Finalidade:** modalidades aceitas pelo cuidador. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
 
@@ -163,9 +163,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `perfil_cuidador_id` | uuid | Sim | FK | Cuidador. |
 | `modalidade` | varchar(40) | Sim | Enum | Forma de atendimento. |
 
-**Relacionamentos e regras:** FK → `cuidadores.id`; `OUTRO` é detalhado no pai. Sem PK/unique física.
+**Relacionamentos e regras:** FK → `cuidador.id`; `OUTRO` é detalhado no pai. Sem PK/unique física.
 
-## 4.9 `cuidadores_servicos`
+## 4.9 `cuidador_servico`
 
 **Finalidade:** serviços oferecidos. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
 
@@ -176,9 +176,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `perfil_cuidador_id` | uuid | Sim | FK | Cuidador. |
 | `servico` | varchar(50) | Sim | Enum | Serviço oferecido. |
 
-**Relacionamentos e regras:** FK → `cuidadores.id`; `OUTRO` é detalhado no pai. Sem PK/unique física.
+**Relacionamentos e regras:** FK → `cuidador.id`; `OUTRO` é detalhado no pai. Sem PK/unique física.
 
-## 4.10 `pessoas_assistidas`
+## 4.10 `pessoa_assistida`
 
 **Nome lógico:** Pessoas assistidas. **Finalidade:** dados pessoais, necessidades e endereço de cuidado. **Entidade:** `AssistedPerson`. **Requisitos relacionados:** RF01, RF04, RF08, RF10, RF17 e RF18.
 
@@ -213,9 +213,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `latitude` | numeric(10,7) | Não | — | Latitude do cuidado. |
 | `longitude` | numeric(10,7) | Não | — | Longitude do cuidado. |
 
-**Relacionamentos e regras:** `usuario_responsavel_id` → `usuarios.id`; é referenciada pelos fluxos de serviço e cuidado. A solicitação exige que pertença ao responsável e tenha endereço. Dados de saúde e localização são sensíveis.
+**Relacionamentos e regras:** `usuario_responsavel_id` → `usuario.id`; é referenciada pelos fluxos de serviço e cuidado. A solicitação exige que pertença ao responsável e tenha endereço. Dados de saúde e localização são sensíveis.
 
-## 4.11 `pessoas_assistidas_alergias`
+## 4.11 `pessoa_assistida_alergia`
 
 **Finalidade:** categorias de alergia. **Entidade:** coleção de `AssistedPerson`. **Requisitos relacionados:** RF01 e RF04.
 
@@ -226,9 +226,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `pessoa_assistida_id` | uuid | Sim | FK | Pessoa assistida. |
 | `alergia` | varchar(40) | Sim | Enum | Categoria de alergia. |
 
-**Relacionamentos e regras:** FK → `pessoas_assistidas.id`; sem PK/unique física.
+**Relacionamentos e regras:** FK → `pessoa_assistida.id`; sem PK/unique física.
 
-## 4.12 `pessoas_assistidas_contatos_emergencia`
+## 4.12 `pessoa_assistida_contato_emergencia`
 
 **Finalidade:** contato de emergência. **Entidade:** `EmergencyContact`. **Requisitos relacionados:** RF01 e RF04.
 
@@ -245,9 +245,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `atualizado_em` | timestamptz | Sim | — | Atualização. |
 
-**Relacionamentos e regras:** FK → `pessoas_assistidas.id`; a unique limita a um contato por pessoa.
+**Relacionamentos e regras:** FK → `pessoa_assistida.id`; a unique limita a um contato por pessoa.
 
-## 4.13 `pessoas_assistidas_restricoes_alimentares`
+## 4.13 `pessoa_assistida_restricao_alimentar`
 
 **Finalidade:** categorias de restrição alimentar. **Entidade:** coleção de `AssistedPerson`. **Requisitos relacionados:** RF01 e RF04.
 
@@ -258,9 +258,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `pessoa_assistida_id` | uuid | Sim | FK | Pessoa assistida. |
 | `restricao` | varchar(40) | Sim | Enum | Restrição alimentar. |
 
-**Relacionamentos e regras:** FK → `pessoas_assistidas.id`; sem PK/unique física.
+**Relacionamentos e regras:** FK → `pessoa_assistida.id`; sem PK/unique física.
 
-## 4.14 `solicitacoes_servico`
+## 4.14 `solicitacao_servico`
 
 **Nome lógico:** Solicitações e publicações de serviço. **Finalidade:** representa convite direto, publicação aberta e candidatura de cuidador. **Entidade:** `ServiceRequest`. **Requisitos relacionados:** RF08, RF09, RF10 e RF17.
 
@@ -292,9 +292,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `usuario_solicitante_id` | uuid | Sim | FK | Usuário que iniciou o registro. |
 | `oportunidade_origem_id` | uuid | Não | FK, Unique parcial | Publicação da qual nasceu a candidatura. |
 
-**Relacionamentos e regras:** FKs para `usuarios`, `pessoas_assistidas`, `rotinas_cuidado` e autorreferência. Uma candidatura por publicação/cuidador é garantida por índice unique parcial. Solicitação direta inicia `PENDENTE`; publicação sem cuidador inicia `ABERTA`; vencidas tornam-se `EXPIRADA`. Datas e horários variam conforme `tipo_contratacao`, e o fim não pode anteceder o início. Não existe tabela física `publicacoes_servico`.
+**Relacionamentos e regras:** FKs para `usuario`, `pessoa_assistida`, `rotina_cuidado` e autorreferência. Uma candidatura por publicação/cuidador é garantida por índice unique parcial. Solicitação direta inicia `PENDENTE`; publicação sem cuidador inicia `ABERTA`; vencidas tornam-se `EXPIRADA`. Datas e horários variam conforme `tipo_contratacao`, e o fim não pode anteceder o início. Não existe tabela física `publicacoes_servico`.
 
-## 4.15 `solicitacoes_servico_agenda_dias`
+## 4.15 `solicitacao_servico_agenda_dia`
 
 **Finalidade:** grade semanal do serviço. **Entidade:** coleção de `ServiceRequest`. **Requisitos relacionados:** RF08 e RF12.
 
@@ -307,9 +307,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `horario_inicio` | time | Sim | — | Início diário. |
 | `horario_fim` | time | Sim | — | Fim diário. |
 
-**Relacionamentos e regras:** FK → `solicitacoes_servico.id`, com exclusão em cascata. O fim deve ser posterior ao início; PK composta impede dia repetido.
+**Relacionamentos e regras:** FK → `solicitacao_servico.id`, com exclusão em cascata. O fim deve ser posterior ao início; PK composta impede dia repetido.
 
-## 4.16 `solicitacoes_servico_atividades`
+## 4.16 `solicitacao_servico_atividade`
 
 **Finalidade:** atividades solicitadas. **Entidade:** coleção de `ServiceRequest`. **Requisitos relacionados:** RF08.
 
@@ -320,9 +320,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `solicitacao_servico_id` | uuid | Sim | PK/FK | Solicitação. |
 | `atividade` | varchar(50) | Sim | PK/Enum | Serviço necessário. |
 
-**Relacionamentos e regras:** FK → `solicitacoes_servico.id`, `ON DELETE CASCADE`; PK composta evita repetição.
+**Relacionamentos e regras:** FK → `solicitacao_servico.id`, `ON DELETE CASCADE`; PK composta evita repetição.
 
-## 4.17 `solicitacoes_servico_datas`
+## 4.17 `solicitacao_servico_data`
 
 **Finalidade:** datas específicas de serviço pontual. **Entidade:** coleção de `ServiceRequest`. **Requisitos relacionados:** RF08 e RF12.
 
@@ -333,9 +333,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `solicitacao_servico_id` | uuid | Sim | PK/FK | Solicitação. |
 | `data_servico` | date | Sim | PK | Data solicitada. |
 
-**Relacionamentos e regras:** FK → `solicitacoes_servico.id`, `ON DELETE CASCADE`; contratação pontual exige ao menos uma data.
+**Relacionamentos e regras:** FK → `solicitacao_servico.id`, `ON DELETE CASCADE`; contratação pontual exige ao menos uma data.
 
-## 4.18 `solicitacoes_servico_contratacoes_historico_status`
+## 4.18 `solicitacao_servico_contratacao_historico_status`
 
 **Nome lógico:** Histórico de status. **Finalidade:** registra transições de solicitações e contratações. **Entidade:** `StatusHistory`. **Requisitos relacionados:** RF09, RF10 e RF11.
 
@@ -352,9 +352,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `motivo` | varchar(1000) | Não | — | Justificativa. |
 | `criado_em` | timestamptz | Sim | — | Momento da transição. |
 
-**Relacionamentos e regras:** somente `usuario_alteracao_id` possui FK → `usuarios.id`; `entidade_id` é polimórfico e não tem FK física. Índice por tipo, entidade e data apoia a linha do tempo.
+**Relacionamentos e regras:** somente `usuario_alteracao_id` possui FK → `usuario.id`; `entidade_id` é polimórfico e não tem FK física. Índice por tipo, entidade e data apoia a linha do tempo.
 
-## 4.19 `solicitacoes_servico_itens_cuidado_copias`
+## 4.19 `solicitacao_servico_item_cuidado_copia`
 
 **Nome lógico:** Cópias dos itens de rotina. **Finalidade:** congela o cuidado aceito, preservando-o contra edições futuras. **Entidade:** `ServiceRequestCareItemSnapshot`. **Requisitos relacionados:** RF08 e RF13.
 
@@ -395,9 +395,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `notificar_responsavel_se_importante` | boolean | Sim | — | Alerta o responsável. |
 | `exige_foto_conclusao` | boolean | Sim | — | Exige evidência fotográfica. |
 
-**Relacionamentos e regras:** solicitação → `solicitacoes_servico`; rotina → `rotinas_cuidado`; item → `rotinas_cuidado_itens` com `ON DELETE SET NULL`. A cópia é a fonte de provisionamento das tarefas contratadas e deve permanecer imutável.
+**Relacionamentos e regras:** solicitação → `solicitacao_servico`; rotina → `rotina_cuidado`; item → `rotina_cuidado_item` com `ON DELETE SET NULL`. A cópia é a fonte de provisionamento das tarefas contratadas e deve permanecer imutável.
 
-## 4.20 `solicitacoes_servico_itens_cuidado_copias_dias_semana`
+## 4.20 `solicitacao_servico_item_cuidado_copia_dia_semana`
 
 **Finalidade:** dias semanais congelados na cópia. **Entidade:** coleção de `ServiceRequestCareItemSnapshot`. **Requisitos relacionados:** RF08 e RF13.
 
@@ -408,9 +408,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `item_copia_id` | uuid | Sim | PK/FK | Cópia do item. |
 | `dia_semana` | varchar(20) | Sim | PK/Enum | Dia congelado. |
 
-**Relacionamentos e regras:** FK → `solicitacoes_servico_itens_cuidado_copias.id`, `ON DELETE CASCADE`; PK composta.
+**Relacionamentos e regras:** FK → `solicitacao_servico_item_cuidado_copia.id`, `ON DELETE CASCADE`; PK composta.
 
-## 4.21 `contratacoes`
+## 4.21 `contratacao`
 
 **Finalidade:** vínculo aceito entre responsável, cuidador e pessoa assistida. **Entidade:** `CareContract`. **Requisitos relacionados:** RF09, RF10, RF11, RF12, RF15, RF16, RF17 e RF18.
 
@@ -442,7 +442,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → solicitação, usuários e pessoa assistida. Uma solicitação gera no máximo uma contratação. Antes do início, cancela-se; após início, encerra-se. A aceitação define `AGENDADA` ou `ATIVA` e provisiona tarefas da rotina.
 
-## 4.22 `rotinas_cuidado`
+## 4.22 `rotina_cuidado`
 
 **Finalidade:** modelos reutilizáveis de cuidados. **Entidade:** `CareRoutine`. **Requisitos relacionados:** RF08 e RF13.
 
@@ -459,9 +459,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `atualizado_em` | timestamptz | Sim | — | Atualização. |
 
-**Relacionamentos e regras:** FKs → `usuarios` e `pessoas_assistidas`; possui itens com cascade. Só responsáveis gerenciam rotinas; uma rotina usada deve estar ativa, pertencer ao responsável/pessoa e conter ao menos um cuidado.
+**Relacionamentos e regras:** FKs → `usuario` e `pessoa_assistida`; possui itens com cascade. Só responsáveis gerenciam rotinas; uma rotina usada deve estar ativa, pertencer ao responsável/pessoa e conter ao menos um cuidado.
 
-## 4.23 `rotinas_cuidado_itens`
+## 4.23 `rotina_cuidado_item`
 
 **Finalidade:** cuidados que compõem uma rotina. **Entidade:** `CareRoutineItem`. **Requisitos relacionados:** RF13.
 
@@ -502,9 +502,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `notificar_responsavel_se_importante` | boolean | Sim | — | Alerta o responsável. |
 | `exige_foto_conclusao` | boolean | Sim | — | Exige foto. |
 
-**Relacionamentos e regras:** FK → `rotinas_cuidado.id`, `ON DELETE CASCADE`. Categoria personalizada exige texto; recorrência semanal exige dias; intervalo deve ser positivo; configurações de lembrete exigem seus minutos; dados de medicamento só são aceitos para categoria `MEDICACAO`.
+**Relacionamentos e regras:** FK → `rotina_cuidado.id`, `ON DELETE CASCADE`. Categoria personalizada exige texto; recorrência semanal exige dias; intervalo deve ser positivo; configurações de lembrete exigem seus minutos; dados de medicamento só são aceitos para categoria `MEDICACAO`.
 
-## 4.24 `rotinas_cuidado_itens_dias_semana`
+## 4.24 `rotina_cuidado_item_dia_semana`
 
 **Finalidade:** recorrência semanal do item. **Entidade:** coleção de `CareRoutineItem`. **Requisitos relacionados:** RF13.
 
@@ -515,9 +515,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `item_rotina_cuidado_id` | uuid | Sim | PK/FK | Item da rotina. |
 | `dia_semana` | varchar(20) | Sim | PK/Enum | Dia de execução. |
 
-**Relacionamentos e regras:** FK → `rotinas_cuidado_itens.id`, cascade; PK composta.
+**Relacionamentos e regras:** FK → `rotina_cuidado_item.id`, cascade; PK composta.
 
-## 4.25 `tarefas_cuidado`
+## 4.25 `tarefa_cuidado`
 
 **Finalidade:** séries operacionais que geram ocorrências. **Entidade:** `CareTask`. **Requisitos relacionados:** RF13, RF14 e RF15.
 
@@ -571,7 +571,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs para contratação, pessoa, usuários, cópia e autorreferências. Uma cópia origina no máximo uma série canônica. Somente séries ativas pausam; somente pausadas reativam; canceladas/finalizadas não executam. Alterações futuras podem encerrar a série e criar sucessora.
 
-## 4.26 `tarefas_cuidado_dias_semana`
+## 4.26 `tarefa_cuidado_dia_semana`
 
 **Finalidade:** dias de recorrência da série. **Entidade:** coleção de `CareTask`. **Requisitos relacionados:** RF13.
 
@@ -582,9 +582,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `tarefa_id` | uuid | Sim | PK/FK | Série. |
 | `dia_semana` | varchar(20) | Sim | PK/Enum | Dia. |
 
-**Relacionamentos e regras:** FK → `tarefas_cuidado.id`; PK composta.
+**Relacionamentos e regras:** FK → `tarefa_cuidado.id`; PK composta.
 
-## 4.27 `tarefas_cuidado_auditoria`
+## 4.27 `tarefa_cuidado_auditoria`
 
 **Finalidade:** trilha de mudanças em tarefas e ocorrências. **Entidade:** `TaskAuditEntry`. **Requisitos relacionados:** RF13 e RF15.
 
@@ -602,7 +602,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → tarefa, ocorrência e usuário. A nulabilidade do ator permite expiração e outros processos automáticos.
 
-## 4.28 `ocorrencias_cuidado`
+## 4.28 `ocorrencia_cuidado`
 
 **Finalidade:** execução prevista ou realizada de uma tarefa em data e horário. **Entidade:** `TaskOccurrence`. **Requisitos relacionados:** RF12, RF14, RF15, RF16 e RF19.
 
@@ -634,7 +634,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → tarefa, contratação, pessoa e usuários. `tarefa_id,data_prevista,horario_previsto` é único; índice adicional inclui a contratação. Só se atualiza no dia previsto e em contratação válida; foto é exigida quando configurada; não realização exige justificativa; estados terminais não são reexecutados; conclusão cria um registro diário único.
 
-## 4.29 `ocorrencias_cuidado_fotos`
+## 4.29 `ocorrencia_cuidado_foto`
 
 **Finalidade:** evidências fotográficas de ocorrência ou cuidado avulso. **Entidade:** `CareOccurrencePhoto`. **Requisitos relacionados:** RF15, RF16 e RF19.
 
@@ -654,7 +654,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → ocorrência, diário e usuário; os dois pais usam cascade. Check exige exatamente um entre `ocorrencia_id` e `registro_atividade_id`. O serviço limita a cinco fotos e controla tipo/tamanho no armazenamento.
 
-## 4.30 `ocorrencias_cuidado_lembretes`
+## 4.30 `ocorrencia_cuidado_lembrete`
 
 **Finalidade:** agenda e resultado dos lembretes. **Entidade:** `TaskReminder`. **Requisitos relacionados:** RF14.
 
@@ -676,7 +676,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → ocorrência e usuário. A chave impede disparos duplicados; lembretes futuros são cancelados quando tarefa/ocorrência deixa de ser executável.
 
-## 4.31 `registros_diario_cuidado`
+## 4.31 `registro_diario_cuidado`
 
 **Finalidade:** diário cronológico de cuidados planejados e avulsos. **Entidade:** `CareActivityRecord`. **Requisitos relacionados:** RF15, RF16 e RF19.
 
@@ -705,7 +705,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → ocorrência, contratação, pessoa e usuários. Uma ocorrência gera no máximo um diário; cuidado manual fica sem ocorrência. Registro exige participante autorizado, pessoa compatível e atendimento válido na data.
 
-## 4.32 `registros_atendimento`
+## 4.32 `registro_atendimento`
 
 **Finalidade:** início/fim real do atendimento com localização e janela permitida. **Entidade:** `ServiceAttendanceRecord`. **Requisitos relacionados:** RF12, RF16, RF18 e RF19.
 
@@ -737,7 +737,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → contratação, usuários e pessoa; contratação usa `ON DELETE CASCADE`. O triplo contratação/data/tipo é único. Só o cuidador contratado registra; `END` depende de `START`; a agenda e a janela são validadas e a localização é obrigatória.
 
-## 4.33 `relatorios_atendimento`
+## 4.33 `relatorio_atendimento`
 
 **Finalidade:** consolida o atendimento e controla finalização e e-mail assíncrono. **Entidade:** `AttendanceReport`. **Requisitos relacionados:** RF19.
 
@@ -773,7 +773,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 **Relacionamentos e regras:** FKs → contratação, dois registros de atendimento, usuários e pessoa. Uma contratação tem no máximo um relatório por data. Relatório nasce após encerramento, em `DRAFT`; só o cuidador edita/finaliza; finalizado não é alterado e fica disponível ao responsável; e-mail usa estados e retentativas assíncronas.
 
-## 4.34 `notificacoes`
+## 4.34 `notificacao`
 
 **Finalidade:** notificações internas dos eventos do sistema. **Entidade:** `Notification`. **Requisitos relacionados:** RF09, RF11, RF14, RF17, RF18 e RF19.
 
@@ -793,9 +793,9 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `chave_deduplicacao` | varchar(220) | Não | Unique parcial | Idempotência opcional. |
 
-**Relacionamentos e regras:** FK física apenas para `usuarios`; o alvo é polimórfico. Preferências podem suprimir eventos configuráveis. A chave, quando preenchida, impede duplicação; remoção é lógica.
+**Relacionamentos e regras:** FK física apenas para `usuario`; o alvo é polimórfico. Preferências podem suprimir eventos configuráveis. A chave, quando preenchida, impede duplicação; remoção é lógica.
 
-## 4.35 `notificacoes_preferencias`
+## 4.35 `notificacao_preferencia`
 
 **Finalidade:** habilitação de tipos de notificação por usuário. **Entidade:** `UserNotificationPreference`. **Requisitos relacionados:** RF09, RF11, RF14, RF17, RF18 e RF19.
 
@@ -810,7 +810,7 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `atualizado_em` | timestamptz | Sim | — | Atualização. |
 
-**Relacionamentos e regras:** FK → `usuarios.id`, `ON DELETE CASCADE`; o par usuário/tipo é único. Tipos antigos de tarefa foram normalizados para códigos de ocorrência pela V022.
+**Relacionamentos e regras:** FK → `usuario.id`, `ON DELETE CASCADE`; o par usuário/tipo é único. Tipos antigos de tarefa foram normalizados para códigos de ocorrência pela V022.
 
 ## 4.36 `flyway_schema_history`
 
@@ -835,15 +835,15 @@ O modelo usa predominantemente português, plural e `snake_case`, sem acentos. T
 
 ## 5. Relacionamentos principais
 
-- `usuarios` é a raiz de identidade; `responsaveis` e `cuidadores` especializam uma conta em relações um para um.
-- Um responsável cadastra várias `pessoas_assistidas`; cada pessoa tem coleções clínicas e até um contato de emergência.
-- `solicitacoes_servico` une responsável, pessoa e, quando conhecido, cuidador. Publicações abertas e candidaturas usam a mesma tabela e a autorreferência `oportunidade_origem_id`.
+- `usuario` é a raiz de identidade; `responsavel` e `cuidador` especializam uma conta em relações um para um.
+- Um responsável cadastra várias `pessoa_assistida`; cada pessoa tem coleções clínicas e até um contato de emergência.
+- `solicitacao_servico` une responsável, pessoa e, quando conhecido, cuidador. Publicações abertas e candidaturas usam a mesma tabela e a autorreferência `oportunidade_origem_id`.
 - A aceitação produz uma única `contratacao`, cujo histórico de estados compartilha a tabela polimórfica com solicitações.
-- `rotinas_cuidado` possuem itens; ao solicitar, esses itens são copiados para preservar o conteúdo acordado.
-- A contratação provisiona `tarefas_cuidado`; uma tarefa gera várias `ocorrencias_cuidado`, lembretes e auditorias.
+- `rotina_cuidado` possuem itens; ao solicitar, esses itens são copiados para preservar o conteúdo acordado.
+- A contratação provisiona `tarefa_cuidado`; uma tarefa gera várias `ocorrencia_cuidado`, lembretes e auditorias.
 - Uma ocorrência concluída gera no máximo um `registro_diario_cuidado`; cuidados manuais usam o diário sem ocorrência. Fotos ligam-se exclusivamente a um desses dois pais.
-- Por contratação e data, `registros_atendimento` guarda `START` e `END`; ambos sustentam um `relatorio_atendimento` único.
-- `notificacoes` aponta para entidades de negócio por tipo e UUID, mas somente o destinatário possui FK física.
+- Por contratação e data, `registro_atendimento` guarda `START` e `END`; ambos sustentam um `relatorio_atendimento` único.
+- `notificacao` aponta para entidades de negócio por tipo e UUID, mas somente o destinatário possui FK física.
 
 ## 6. Status e tipos enumerados
 
@@ -920,8 +920,8 @@ As ações persistíveis de `TaskAuditAction` são `CRIADA`, `ALTERADA`, `PAUSAD
 
 ### Campos textuais sem enum/check completo
 
-- `usuarios.status` recebe `ACTIVE`, mas não tem enum nem check.
-- `registros_diario_cuidado.tipo_atividade` usa atualmente `TAREFA_CONCLUIDA` e `CUIDADO_AVULSO`; `tipo_cuidado` recebe `TaskCategory` ou `ManualCareType` como texto.
+- `usuario.status` recebe `ACTIVE`, mas não tem enum nem check.
+- `registro_diario_cuidado.tipo_atividade` usa atualmente `TAREFA_CONCLUIDA` e `CUIDADO_AVULSO`; `tipo_cuidado` recebe `TaskCategory` ou `ManualCareType` como texto.
 
 ## 7. Observações de integridade e regras de negócio
 
@@ -941,12 +941,12 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 
 | RF | Nome resumido | Descrição |
 |---|---|---|
-| RF01 | Cadastro de usuário | Cadastro de responsáveis e cuidadores. |
+| RF01 | Cadastro de usuário | Cadastro de responsáveis e cuidador. |
 | RF02 | Autenticação | Login e logout dos usuários. |
 | RF03 | Recuperação de senha | Redefinição de senha por token temporário. |
 | RF04 | Gerenciamento de perfil | Consulta e edição dos dados cadastrais. |
 | RF05 | Cadastro de cuidador com perfil profissional | Formação, experiência, serviços, modalidades e disponibilidade do cuidador. |
-| RF06 | Busca de cuidadores | Pesquisa de cuidadores por filtros e localização. |
+| RF06 | Busca de cuidador | Pesquisa de cuidador por filtros e localização. |
 | RF07 | Perfil do cuidador | Visualização detalhada do cuidador. |
 | RF08 | Solicitação de serviço | Solicitação de atendimento entre responsável e cuidador. |
 | RF09 | Aceite/rejeição de solicitação | Resposta à solicitação de serviço. |
@@ -965,67 +965,67 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 
 | Requisito | Nome do requisito | Tabelas principais | Tabelas de apoio | Justificativa |
 |---|---|---|---|---|
-| RF01 | Cadastro de usuário | `usuarios`, `responsaveis`, `pessoas_assistidas` | `cuidadores`, `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos`, `pessoas_assistidas_alergias`, `pessoas_assistidas_restricoes_alimentares`, `pessoas_assistidas_contatos_emergencia` | Separa identidade, perfis e dados da pessoa que receberá o cuidado. |
-| RF02 | Autenticação | `usuarios` | — | Consulta identidade, papel, status e hash da senha. |
-| RF03 | Recuperação de senha | `usuarios_tokens_redefinicao_senha` | `usuarios` | Associa à conta um token com validade e uso único. |
-| RF04 | Gerenciamento de perfil | `usuarios`, `responsaveis`, `cuidadores`, `pessoas_assistidas` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos`, `pessoas_assistidas_alergias`, `pessoas_assistidas_restricoes_alimentares`, `pessoas_assistidas_contatos_emergencia` | Permite consultar e atualizar dados comuns e específicos. |
-| RF05 | Cadastro de cuidador com perfil profissional | `cuidadores`, `usuarios` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos` | Complementa a conta com qualificação, oferta e disponibilidade profissional. |
-| RF06 | Busca de cuidadores | `cuidadores`, `usuarios` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos` | Fornece identificação, localização, formação, serviços e disponibilidade usados nos filtros. |
-| RF07 | Perfil do cuidador | `cuidadores`, `usuarios` | `cuidadores_formacoes`, `cuidadores_modalidades`, `cuidadores_servicos`, `cuidadores_disponibilidade_dias`, `cuidadores_disponibilidade_periodos` | Compõe a visualização detalhada do profissional. |
-| RF08 | Solicitação de serviço | `solicitacoes_servico`, `solicitacoes_servico_agenda_dias`, `solicitacoes_servico_datas`, `solicitacoes_servico_atividades` | `pessoas_assistidas`, `rotinas_cuidado`, `solicitacoes_servico_itens_cuidado_copias`, `solicitacoes_servico_itens_cuidado_copias_dias_semana` | Registra participantes, período, atividades e cópia imutável da rotina solicitada. |
-| RF09 | Aceite/rejeição de solicitação | `solicitacoes_servico`, `solicitacoes_servico_contratacoes_historico_status` | `contratacoes`, `notificacoes`, `notificacoes_preferencias` | Persiste a decisão, sua transição histórica, o vínculo aceito e a comunicação. |
-| RF10 | Histórico de contratações | `contratacoes`, `solicitacoes_servico_contratacoes_historico_status` | `solicitacoes_servico`, `pessoas_assistidas`, `usuarios` | Reconstrói vínculo, participantes, serviço de origem e mudanças de estado. |
-| RF11 | Encerramento do serviço | `contratacoes`, `solicitacoes_servico_contratacoes_historico_status` | `notificacoes`, `notificacoes_preferencias` | Registra tipo, motivo, solicitante, data efetiva e comunicação do término. |
-| RF12 | Agenda de cuidados | `contratacoes`, `solicitacoes_servico_agenda_dias`, `solicitacoes_servico_datas` | `registros_atendimento`, `ocorrencias_cuidado` | Combina vigência contratual, agenda prevista e eventos operacionais do dia. |
-| RF13 | Lista de tarefas | `rotinas_cuidado`, `rotinas_cuidado_itens`, `tarefas_cuidado` | `rotinas_cuidado_itens_dias_semana`, `tarefas_cuidado_dias_semana`, `tarefas_cuidado_auditoria`, `solicitacoes_servico_itens_cuidado_copias`, `solicitacoes_servico_itens_cuidado_copias_dias_semana` | Transforma o modelo de rotina contratado em séries de tarefas rastreáveis. |
-| RF14 | Lembretes de medicação e tarefas | `ocorrencias_cuidado_lembretes`, `ocorrencias_cuidado`, `tarefas_cuidado` | `notificacoes`, `notificacoes_preferencias` | Calcula disparos por ocorrência e respeita preferências do destinatário. |
-| RF15 | Registro de atividades | `ocorrencias_cuidado`, `registros_diario_cuidado`, `tarefas_cuidado_auditoria` | `ocorrencias_cuidado_fotos`, `tarefas_cuidado`, `contratacoes` | Registra resultado, justificativa, evidência e trilha de auditoria do cuidado. |
-| RF16 | Diário da pessoa assistida | `registros_diario_cuidado` | `ocorrencias_cuidado`, `ocorrencias_cuidado_fotos`, `contratacoes`, `registros_atendimento` | Unifica cuidados planejados e avulsos dentro de atendimento autorizado. |
-| RF17 | Busca de serviços pelo cuidador | `solicitacoes_servico` | `pessoas_assistidas`, `usuarios`, `contratacoes`, `notificacoes`, `notificacoes_preferencias` | A mesma tabela representa publicação e candidatura, com apoio de participantes e comunicação. |
-| RF18 | Check-in e check-out do serviço com localização | `registros_atendimento` | `contratacoes`, `pessoas_assistidas`, `usuarios`, `notificacoes`, `notificacoes_preferencias` | Valida vínculo, horário e localização e comunica início ou fim. |
-| RF19 | Relatório de atendimento e anotações de enfermagem | `relatorios_atendimento` | `registros_atendimento`, `ocorrencias_cuidado`, `registros_diario_cuidado`, `ocorrencias_cuidado_fotos`, `notificacoes`, `notificacoes_preferencias` | Consolida presença e cuidados, finaliza o texto e controla o envio assíncrono na própria tabela. |
+| RF01 | Cadastro de usuário | `usuario`, `responsavel`, `pessoa_assistida` | `cuidador`, `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo`, `pessoa_assistida_alergia`, `pessoa_assistida_restricao_alimentar`, `pessoa_assistida_contato_emergencia` | Separa identidade, perfis e dados da pessoa que receberá o cuidado. |
+| RF02 | Autenticação | `usuario` | — | Consulta identidade, papel, status e hash da senha. |
+| RF03 | Recuperação de senha | `usuario_token_redefinicao_senha` | `usuario` | Associa à conta um token com validade e uso único. |
+| RF04 | Gerenciamento de perfil | `usuario`, `responsavel`, `cuidador`, `pessoa_assistida` | `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo`, `pessoa_assistida_alergia`, `pessoa_assistida_restricao_alimentar`, `pessoa_assistida_contato_emergencia` | Permite consultar e atualizar dados comuns e específicos. |
+| RF05 | Cadastro de cuidador com perfil profissional | `cuidador`, `usuario` | `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo` | Complementa a conta com qualificação, oferta e disponibilidade profissional. |
+| RF06 | Busca de cuidador | `cuidador`, `usuario` | `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo` | Fornece identificação, localização, formação, serviços e disponibilidade usados nos filtros. |
+| RF07 | Perfil do cuidador | `cuidador`, `usuario` | `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo` | Compõe a visualização detalhada do profissional. |
+| RF08 | Solicitação de serviço | `solicitacao_servico`, `solicitacao_servico_agenda_dia`, `solicitacao_servico_data`, `solicitacao_servico_atividade` | `pessoa_assistida`, `rotina_cuidado`, `solicitacao_servico_item_cuidado_copia`, `solicitacao_servico_item_cuidado_copia_dia_semana` | Registra participantes, período, atividades e cópia imutável da rotina solicitada. |
+| RF09 | Aceite/rejeição de solicitação | `solicitacao_servico`, `solicitacao_servico_contratacao_historico_status` | `contratacao`, `notificacao`, `notificacao_preferencia` | Persiste a decisão, sua transição histórica, o vínculo aceito e a comunicação. |
+| RF10 | Histórico de contratações | `contratacao`, `solicitacao_servico_contratacao_historico_status` | `solicitacao_servico`, `pessoa_assistida`, `usuario` | Reconstrói vínculo, participantes, serviço de origem e mudanças de estado. |
+| RF11 | Encerramento do serviço | `contratacao`, `solicitacao_servico_contratacao_historico_status` | `notificacao`, `notificacao_preferencia` | Registra tipo, motivo, solicitante, data efetiva e comunicação do término. |
+| RF12 | Agenda de cuidados | `contratacao`, `solicitacao_servico_agenda_dia`, `solicitacao_servico_data` | `registro_atendimento`, `ocorrencia_cuidado` | Combina vigência contratual, agenda prevista e eventos operacionais do dia. |
+| RF13 | Lista de tarefas | `rotina_cuidado`, `rotina_cuidado_item`, `tarefa_cuidado` | `rotina_cuidado_item_dia_semana`, `tarefa_cuidado_dia_semana`, `tarefa_cuidado_auditoria`, `solicitacao_servico_item_cuidado_copia`, `solicitacao_servico_item_cuidado_copia_dia_semana` | Transforma o modelo de rotina contratado em séries de tarefas rastreáveis. |
+| RF14 | Lembretes de medicação e tarefas | `ocorrencia_cuidado_lembrete`, `ocorrencia_cuidado`, `tarefa_cuidado` | `notificacao`, `notificacao_preferencia` | Calcula disparos por ocorrência e respeita preferências do destinatário. |
+| RF15 | Registro de atividades | `ocorrencia_cuidado`, `registro_diario_cuidado`, `tarefa_cuidado_auditoria` | `ocorrencia_cuidado_foto`, `tarefa_cuidado`, `contratacao` | Registra resultado, justificativa, evidência e trilha de auditoria do cuidado. |
+| RF16 | Diário da pessoa assistida | `registro_diario_cuidado` | `ocorrencia_cuidado`, `ocorrencia_cuidado_foto`, `contratacao`, `registro_atendimento` | Unifica cuidados planejados e avulsos dentro de atendimento autorizado. |
+| RF17 | Busca de serviços pelo cuidador | `solicitacao_servico` | `pessoa_assistida`, `usuario`, `contratacao`, `notificacao`, `notificacao_preferencia` | A mesma tabela representa publicação e candidatura, com apoio de participantes e comunicação. |
+| RF18 | Check-in e check-out do serviço com localização | `registro_atendimento` | `contratacao`, `pessoa_assistida`, `usuario`, `notificacao`, `notificacao_preferencia` | Valida vínculo, horário e localização e comunica início ou fim. |
+| RF19 | Relatório de atendimento e anotações de enfermagem | `relatorio_atendimento` | `registro_atendimento`, `ocorrencia_cuidado`, `registro_diario_cuidado`, `ocorrencia_cuidado_foto`, `notificacao`, `notificacao_preferencia` | Consolida presença e cuidados, finaliza o texto e controla o envio assíncrono na própria tabela. |
 
-Não existe tabela separada para envio de e-mail: `status_email`, datas, tentativas, próxima tentativa e mensagem de erro ficam em `relatorios_atendimento`.
+Não existe tabela separada para envio de e-mail: `status_email`, datas, tentativas, próxima tentativa e mensagem de erro ficam em `relatorio_atendimento`.
 
 ## 11. Rastreabilidade: tabelas para requisitos funcionais
 
 | Tabela | Requisitos relacionados | Tipo de participação | Justificativa |
 |---|---|---|---|
-| `usuarios` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18 | Principal/Apoio | Base de identidade e autenticação; identifica participantes nos demais fluxos. |
-| `usuarios_tokens_redefinicao_senha` | RF03 | Principal | Persiste o token, sua validade e consumo. |
-| `responsaveis` | RF01, RF04 | Principal | Especializa a conta do responsável. |
-| `cuidadores` | RF01, RF04, RF05, RF06, RF07 | Principal/Apoio | Mantém o perfil profissional consultado e pesquisado. |
-| `cuidadores_disponibilidade_dias` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
-| `cuidadores_disponibilidade_periodos` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
-| `cuidadores_formacoes` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém múltiplas qualificações. |
-| `cuidadores_modalidades` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém modalidades de atendimento. |
-| `cuidadores_servicos` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém serviços oferecidos. |
-| `pessoas_assistidas` | RF01, RF04, RF08, RF10, RF17, RF18 | Principal/Apoio | Centraliza a pessoa, necessidades e endereço do cuidado. |
-| `pessoas_assistidas_alergias` | RF01, RF04 | Apoio | Complementa o cadastro clínico. |
-| `pessoas_assistidas_contatos_emergencia` | RF01, RF04 | Apoio | Complementa o cadastro com contato emergencial. |
-| `pessoas_assistidas_restricoes_alimentares` | RF01, RF04 | Apoio | Complementa o cadastro clínico e alimentar. |
-| `solicitacoes_servico` | RF08, RF09, RF10, RF17 | Principal/Apoio | Unifica pedido direto, publicação, candidatura e origem do contrato. |
-| `solicitacoes_servico_agenda_dias` | RF08, RF12 | Principal | Define a grade semanal solicitada e agendada. |
-| `solicitacoes_servico_atividades` | RF08 | Principal | Define as atividades requeridas. |
-| `solicitacoes_servico_datas` | RF08, RF12 | Principal | Define datas pontuais do serviço. |
-| `solicitacoes_servico_contratacoes_historico_status` | RF09, RF10, RF11 | Principal | Registra a linha do tempo de solicitações e contratos. |
-| `solicitacoes_servico_itens_cuidado_copias` | RF08, RF13 | Apoio | Preserva o item de rotina acordado e origina tarefa. |
-| `solicitacoes_servico_itens_cuidado_copias_dias_semana` | RF08, RF13 | Apoio | Preserva os dias do item acordado. |
-| `contratacoes` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18 | Principal/Apoio | Materializa o vínculo aceito e autoriza operações posteriores. |
-| `rotinas_cuidado` | RF08, RF13 | Principal/Apoio | Modelo reutilizável selecionado na solicitação. |
-| `rotinas_cuidado_itens` | RF13 | Principal | Define cada cuidado planejado. |
-| `rotinas_cuidado_itens_dias_semana` | RF13 | Apoio | Define recorrência semanal do item. |
-| `tarefas_cuidado` | RF13, RF14, RF15 | Principal/Apoio | Série operacional exibida, lembrada e executada. |
-| `tarefas_cuidado_dias_semana` | RF13 | Apoio | Materializa a recorrência semanal. |
-| `tarefas_cuidado_auditoria` | RF13, RF15 | Principal/Apoio | Preserva mudanças e ações de execução. |
-| `ocorrencias_cuidado` | RF12, RF14, RF15, RF16, RF19 | Principal/Apoio | Representa cada execução em data e horário. |
-| `ocorrencias_cuidado_fotos` | RF15, RF16, RF19 | Apoio | Evidência de cuidados planejados ou avulsos. |
-| `ocorrencias_cuidado_lembretes` | RF14 | Principal | Agenda e deduplica os lembretes. |
-| `registros_diario_cuidado` | RF15, RF16, RF19 | Principal/Apoio | Linha cronológica usada no diário e relatório. |
-| `registros_atendimento` | RF12, RF16, RF18, RF19 | Principal/Apoio | Registra presença e delimita atendimento válido. |
-| `relatorios_atendimento` | RF19 | Principal | Armazena relatório, finalização e entrega por e-mail. |
-| `notificacoes` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Comunica eventos desses requisitos. |
-| `notificacoes_preferencias` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Controla quais eventos são recebidos. |
+| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18 | Principal/Apoio | Base de identidade e autenticação; identifica participantes nos demais fluxos. |
+| `usuario_token_redefinicao_senha` | RF03 | Principal | Persiste o token, sua validade e consumo. |
+| `responsavel` | RF01, RF04 | Principal | Especializa a conta do responsável. |
+| `cuidador` | RF01, RF04, RF05, RF06, RF07 | Principal/Apoio | Mantém o perfil profissional consultado e pesquisado. |
+| `cuidador_disponibilidade_dia` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
+| `cuidador_disponibilidade_periodo` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
+| `cuidador_formacao` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém múltiplas qualificações. |
+| `cuidador_modalidade` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém modalidades de atendimento. |
+| `cuidador_servico` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém serviços oferecidos. |
+| `pessoa_assistida` | RF01, RF04, RF08, RF10, RF17, RF18 | Principal/Apoio | Centraliza a pessoa, necessidades e endereço do cuidado. |
+| `pessoa_assistida_alergia` | RF01, RF04 | Apoio | Complementa o cadastro clínico. |
+| `pessoa_assistida_contato_emergencia` | RF01, RF04 | Apoio | Complementa o cadastro com contato emergencial. |
+| `pessoa_assistida_restricao_alimentar` | RF01, RF04 | Apoio | Complementa o cadastro clínico e alimentar. |
+| `solicitacao_servico` | RF08, RF09, RF10, RF17 | Principal/Apoio | Unifica pedido direto, publicação, candidatura e origem do contrato. |
+| `solicitacao_servico_agenda_dia` | RF08, RF12 | Principal | Define a grade semanal solicitada e agendada. |
+| `solicitacao_servico_atividade` | RF08 | Principal | Define as atividades requeridas. |
+| `solicitacao_servico_data` | RF08, RF12 | Principal | Define datas pontuais do serviço. |
+| `solicitacao_servico_contratacao_historico_status` | RF09, RF10, RF11 | Principal | Registra a linha do tempo de solicitações e contratos. |
+| `solicitacao_servico_item_cuidado_copia` | RF08, RF13 | Apoio | Preserva o item de rotina acordado e origina tarefa. |
+| `solicitacao_servico_item_cuidado_copia_dia_semana` | RF08, RF13 | Apoio | Preserva os dias do item acordado. |
+| `contratacao` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18 | Principal/Apoio | Materializa o vínculo aceito e autoriza operações posteriores. |
+| `rotina_cuidado` | RF08, RF13 | Principal/Apoio | Modelo reutilizável selecionado na solicitação. |
+| `rotina_cuidado_item` | RF13 | Principal | Define cada cuidado planejado. |
+| `rotina_cuidado_item_dia_semana` | RF13 | Apoio | Define recorrência semanal do item. |
+| `tarefa_cuidado` | RF13, RF14, RF15 | Principal/Apoio | Série operacional exibida, lembrada e executada. |
+| `tarefa_cuidado_dia_semana` | RF13 | Apoio | Materializa a recorrência semanal. |
+| `tarefa_cuidado_auditoria` | RF13, RF15 | Principal/Apoio | Preserva mudanças e ações de execução. |
+| `ocorrencia_cuidado` | RF12, RF14, RF15, RF16, RF19 | Principal/Apoio | Representa cada execução em data e horário. |
+| `ocorrencia_cuidado_foto` | RF15, RF16, RF19 | Apoio | Evidência de cuidados planejados ou avulsos. |
+| `ocorrencia_cuidado_lembrete` | RF14 | Principal | Agenda e deduplica os lembretes. |
+| `registro_diario_cuidado` | RF15, RF16, RF19 | Principal/Apoio | Linha cronológica usada no diário e relatório. |
+| `registro_atendimento` | RF12, RF16, RF18, RF19 | Principal/Apoio | Registra presença e delimita atendimento válido. |
+| `relatorio_atendimento` | RF19 | Principal | Armazena relatório, finalização e entrega por e-mail. |
+| `notificacao` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Comunica eventos desses requisitos. |
+| `notificacao_preferencia` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Controla quais eventos são recebidos. |
 | `flyway_schema_history` | Nenhum RF funcional | Infraestrutura | Versiona a evolução técnica do schema. |
 
 ## 13. Pontos de atenção
@@ -1041,14 +1041,14 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 - Coleções de alergias, restrições, disponibilidade, modalidades e serviços não têm PK/unique física; o `Set` da aplicação reduz duplicidades, mas inserções externas ainda podem repeti-las.
 - `entidade_id` do histórico e `entidade_relacionada_id` da notificação são referências polimórficas sem FK física.
-- `usuarios.status` e alguns códigos do diário são texto sem check; a documentação de valores deve acompanhar o código.
+- `usuario.status` e alguns códigos do diário são texto sem check; a documentação de valores deve acompanhar o código.
 
 ### 13.3 Padronização de nomenclatura
 
 - As annotations `@Table` usam nomes históricos em inglês; a correspondência com o schema depende da `PortuguesePhysicalNamingStrategy`.
 - A V041 conclui a tradução das colunas de domínio que ainda continham `snapshot`, usando `copia` sem alterar nomes Java ou contratos JSON.
-- A V042 remove somente `cuidadores.formacao`; a formação profissional continua normalizada em `cuidadores_formacoes`.
-- As coordenadas de `cuidadores` e `pessoas_assistidas` são mantidas porque alimentam as buscas por distância de RF06 e RF17.
+- A V042 remove somente `cuidador.formacao`; a formação profissional continua normalizada em `cuidador_formacao`.
+- As coordenadas de `cuidador` e `pessoa_assistida` são mantidas porque alimentam as buscas por distância de RF06 e RF17.
 - Os fusos de tarefas, ocorrências e diário são mantidos porque preservam a data civil, a conversão UTC, os lembretes e a linha do tempo.
 
 ### 13.4 Segurança e proteção de dados

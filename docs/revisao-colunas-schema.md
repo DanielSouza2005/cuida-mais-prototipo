@@ -1,6 +1,6 @@
 # Colunas candidatas à tradução
 
-Revisão realizada em 30/08/2026 sobre o schema `public` após a V040, quando o catálogo continha 36 tabelas e 417 colunas. O [inventário técnico de colunas](inventario-colunas-schema.md) acompanha o estado vigente após a V042, com 416 colunas; a diferença é a remoção posterior de `cuidadores.formacao`, documentada em [Análise de campos candidatos à remoção](analise-campos-candidatos-remocao.md).
+Revisão realizada em 30/08/2026 sobre o schema `public` após a V040, quando o catálogo continha 36 tabelas e 417 colunas. Os nomes plurais neste documento são referências históricas ao estado auditado. O [inventário técnico de colunas](inventario-colunas-schema.md) acompanha o estado vigente após a V043, com 416 colunas e tabelas no singular; a diferença de colunas decorre da remoção de `cuidadores.formacao` na V042. A transição de nomes está no [dicionário da V043](dicionario-renomeacao-tabelas-singular.md).
 
 ## Método
 
