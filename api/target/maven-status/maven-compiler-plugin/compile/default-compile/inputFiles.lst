@@ -1,3 +1,10 @@
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\AdminController.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\AdminDtos.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\AdminService.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\CaregiverStatusHistory.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\CaregiverStatusHistoryRepository.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\ResponsibleStatusHistory.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\admin\ResponsibleStatusHistoryRepository.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\agenda\AgendaController.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\agenda\AgendaService.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\agenda\AgendaSourceType.java
@@ -169,6 +176,7 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\Alergia.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\AssistedPerson.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\AssistedPersonRepository.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\CaregiverApprovalStatus.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\CaregiverAvailability.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\CaregiverProfile.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\CaregiverProfileRepository.java
@@ -193,6 +201,7 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\PreferenciaContato.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\ProfileController.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\ProfileService.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\ResponsibleApprovalStatus.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\ResponsibleProfile.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\ResponsibleProfileRepository.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\profile\RestricaoAlimentar.java
@@ -251,6 +260,7 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\status_history\StatusHistoryService.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\storage\ProfilePhotoController.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\storage\ProfilePhotoStorageService.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\user\AccountStatus.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\user\dto\UpdateProfileRequest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\user\dto\UserResponse.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\main\java\br\com\cuidaplus\api\user\User.java

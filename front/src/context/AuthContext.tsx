@@ -4,6 +4,8 @@ import * as authService from '@/services/authService';
 import { AUTH_TOKEN_KEY, deleteSessionItem, getSessionItem, setSessionItem } from '@/services/sessionStorage';
 import type {
   AuthResponse,
+  CaregiverRegistrationResponse,
+  RegistrationReviewResponse,
   LoginRequest,
   RegisterCaregiverPayload,
   RegisterResponsiblePayload,
@@ -19,8 +21,8 @@ type AuthContextValue = {
   login: (request: LoginRequest) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   register: (request: SignupRequest) => Promise<AuthResponse>;
-  registerCaregiver: (request: RegisterCaregiverPayload) => Promise<AuthResponse>;
-  registerResponsible: (request: RegisterResponsiblePayload) => Promise<AuthResponse>;
+  registerCaregiver: (request: RegisterCaregiverPayload) => Promise<CaregiverRegistrationResponse>;
+  registerResponsible: (request: RegisterResponsiblePayload) => Promise<RegistrationReviewResponse>;
   restoreSession: () => Promise<void>;
   refreshUser: () => Promise<User | null>;
   signup: (request: SignupRequest) => Promise<AuthResponse>;
@@ -92,16 +94,12 @@ export function AuthProvider({ children }: Props) {
   const register = signup;
 
   const registerResponsible = useCallback(async (request: RegisterResponsiblePayload) => {
-    const response = await authService.registerResponsible(request);
-    await persistSession(response);
-    return response;
-  }, [persistSession]);
+    return authService.registerResponsible(request);
+  }, []);
 
   const registerCaregiver = useCallback(async (request: RegisterCaregiverPayload) => {
-    const response = await authService.registerCaregiver(request);
-    await persistSession(response);
-    return response;
-  }, [persistSession]);
+    return authService.registerCaregiver(request);
+  }, []);
 
   const logout = useCallback(async () => {
     const currentToken = token;

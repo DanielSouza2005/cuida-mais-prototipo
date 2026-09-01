@@ -2,9 +2,9 @@
 
 ## 1. Visão geral
 
-O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório e notificações. Este documento descreve o schema `public` após a V043 e foi conferido no catálogo do banco, migrations V001–V043, entidades JPA, enums, repositories e serviços.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações e administração. Este documento descreve o schema `public` após a V046 e foi conferido nas migrations V001–V046, entidades JPA, enums, repositories e serviços.
 
-O modelo vigente possui 35 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
+O modelo vigente possui 37 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
 ## 2. Padrão de nomenclatura
 
@@ -12,7 +12,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 ## 3. Organização por domínios
 
-- **Usuários e perfis:** `usuario`, `usuario_token_redefinicao_senha`, `responsavel`, `cuidador` e suas cinco coleções.
+- **Usuários e perfis:** `usuario`, `usuario_token_redefinicao_senha`, `responsavel`, `cuidador`, suas cinco coleções e os históricos de situação de responsável e cuidador.
 - **Pessoas assistidas:** `pessoa_assistida`, alergias, restrições alimentares e contato de emergência.
 - **Solicitações e contratações:** `solicitacao_servico`, suas seis tabelas filhas, `contratacao` e histórico de status.
 - **Planejamento e cuidado:** rotinas, tarefas, ocorrências, fotos, lembretes, auditoria e diário.
@@ -23,7 +23,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 ## 4.1 `usuario`
 
-**Nome lógico:** Usuários. **Finalidade:** identidade e autenticação. **Entidade:** `User`. **Requisitos relacionados:** RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17 e RF18.
+**Nome lógico:** Usuários. **Finalidade:** identidade, autenticação e controle administrativo da conta. **Entidade:** `User`. **Requisitos relacionados:** RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20 e RF21.
 
 **Papel nos requisitos:** principal em cadastro, autenticação e perfis; apoio na recuperação de senha e nos fluxos que identificam participantes.
 
@@ -39,10 +39,16 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `atualizado_em` | timestamptz | Sim | — | Última atualização. |
 | `tipo_usuario` | varchar(20) | Sim | Check/Enum | Papel do usuário. |
 | `telefone` | varchar(20) | Não | — | Telefone de contato. |
-| `status` | varchar(30) | Sim | — | Estado cadastral; padrão `ACTIVE`. |
+| `situacao_conta` | varchar(30) | Sim | Check/Enum | Situação geral: `ATIVO`, `BLOQUEADO` ou `INATIVO`. |
+| `motivo_bloqueio` | varchar(1000) | Não | — | Justificativa administrativa do bloqueio. |
+| `bloqueado_em` | timestamptz | Não | — | Data e hora do bloqueio. |
+| `bloqueado_por_usuario_id` | uuid | Não | FK | Administrador que bloqueou a conta. |
+| `desbloqueado_em` | timestamptz | Não | — | Data e hora do último desbloqueio. |
+| `desbloqueado_por_usuario_id` | uuid | Não | FK | Administrador que desbloqueou a conta. |
+| `ultimo_login_em` | timestamptz | Não | — | Último login bem-sucedido. |
 | `url_foto_perfil` | varchar(500) | Não | — | Local da foto de perfil. |
 
-**Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem. Cada conta pode ter no máximo um perfil de cada tipo. O check aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. `status` não possui check de valores.
+**Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem. Cada conta pode ter no máximo um perfil de cada tipo. O check de papel aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. Somente conta `ATIVO` autentica; apenas contas `ATIVO` podem ser bloqueadas e apenas contas `BLOQUEADO` podem ser desbloqueadas. Bloqueio e desbloqueio não alteram a aprovação do perfil e solicitam a comunicação por e-mail somente após a confirmação da transação. A V046 cria, apenas quando ainda não existe nenhum administrador, a conta inicial necessária para acessar a área administrativa; a senha inicial deve ser alterada após o primeiro acesso.
 
 ## 4.2 `usuario_token_redefinicao_senha`
 
@@ -63,7 +69,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 ## 4.3 `responsavel`
 
-**Nome lógico:** Responsáveis. **Finalidade:** dados específicos de quem organiza o cuidado. **Entidade:** `ResponsibleProfile`. **Requisitos relacionados:** RF01 e RF04.
+**Nome lógico:** Responsáveis. **Finalidade:** dados específicos de quem organiza o cuidado e sua aprovação administrativa. **Entidade:** `ResponsibleProfile`. **Requisitos relacionados:** RF01, RF04 e RF21.
 
 **Papel nos requisitos:** principal no cadastro e gerenciamento do perfil do responsável.
 
@@ -74,14 +80,35 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `parentesco` | varchar(40) | Sim | Enum | Relação com a pessoa assistida. |
 | `parentesco_outro` | varchar(120) | Não | — | Complemento para `OUTRO`. |
 | `preferencia_contato` | varchar(30) | Sim | Enum | Canal preferencial. |
+| `situacao_aprovacao` | varchar(30) | Sim | Check/Enum | `PENDENTE`, `APROVADO`, `REPROVADO` ou `BLOQUEADO`. |
+| `analisado_em` | timestamptz | Não | — | Data e hora da última análise. |
+| `analisado_por_usuario_id` | uuid | Não | FK | Administrador da última análise. |
+| `motivo_reprovacao` | varchar(1000) | Não | — | Motivo informado na reprovação. |
+| `motivo_bloqueio` | varchar(1000) | Não | — | Motivo do bloqueio do perfil. |
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `atualizado_em` | timestamptz | Sim | — | Atualização. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuario.id`; a unique implementa relação um para um. Pessoas assistidas referenciam a conta em `usuario`, não este `id`.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; a unique implementa relação um para um. A V045 preserva responsáveis anteriores como `APROVADO` e define novos cadastros como `PENDENTE`. Pessoas assistidas referenciam a conta em `usuario`, não este `id`; o responsável só autentica após aprovação e com conta ativa.
+
+### 4.3.1 `responsavel_historico_situacao`
+
+**Finalidade:** trilha de auditoria das decisões administrativas sobre o cadastro do responsável. **Entidade:** `ResponsibleStatusHistory`. **Requisito relacionado:** RF21.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do evento. |
+| `responsavel_id` | uuid | Sim | FK | Cadastro de responsável analisado. |
+| `situacao_anterior` | varchar(30) | Não | Enum | Situação antes da ação. |
+| `situacao_nova` | varchar(30) | Sim | Check/Enum | Situação definida pelo administrador. |
+| `motivo` | varchar(1000) | Não | — | Justificativa da reprovação ou bloqueio. |
+| `usuario_administrador_id` | uuid | Sim | FK | Administrador autor da decisão. |
+| `criado_em` | timestamptz | Sim | — | Data e hora da ação. |
+
+**Relacionamentos e regras:** FKs → `responsavel.id` e `usuario.id`. Aprovação e reprovação partem exclusivamente de `PENDENTE`; bloqueio parte exclusivamente de `APROVADO`. Cada decisão válida gera um registro imutável e solicita a notificação por e-mail após a confirmação da transação. Uma transição inválida retorna conflito sem criar histórico nem solicitar e-mail.
 
 ## 4.4 `cuidador`
 
-**Nome lógico:** Cuidadores. **Finalidade:** qualificação, apresentação, endereço e disponibilidade. **Entidade:** `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+**Nome lógico:** Cuidadores. **Finalidade:** qualificação, apresentação, endereço, disponibilidade e aprovação profissional. **Entidade:** `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06, RF07 e RF21.
 
 **Papel nos requisitos:** principal no perfil profissional, busca e visualização; apoio ao cadastro geral.
 
@@ -110,8 +137,29 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `tempo_experiencia` | varchar(30) | Não | Enum | Faixa de experiência. |
 | `latitude` | numeric(10,7) | Não | — | Latitude para busca. |
 | `longitude` | numeric(10,7) | Não | — | Longitude para busca. |
+| `situacao_aprovacao` | varchar(30) | Sim | Check/Enum | `PENDENTE`, `APROVADO`, `REPROVADO` ou `BLOQUEADO`. |
+| `analisado_em` | timestamptz | Não | — | Data e hora da última análise. |
+| `analisado_por_usuario_id` | uuid | Não | FK | Administrador da última análise. |
+| `motivo_reprovacao` | varchar(1000) | Não | — | Motivo informado na reprovação. |
+| `motivo_bloqueio_profissional` | varchar(1000) | Não | — | Motivo do bloqueio profissional. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuario.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidador_formacao` é a fonte oficial das qualificações profissionais; a coluna singular legada foi consolidada e removida pela V042.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidador_formacao` é a fonte oficial das qualificações profissionais. A V044 migra cuidadores anteriores como `APROVADO` para preservar os fluxos existentes; depois troca o padrão para `PENDENTE`. Somente cuidador aprovado e com conta ativa aparece em busca, perfil público ou solicitação.
+
+### 4.4.1 `cuidador_historico_situacao`
+
+**Finalidade:** trilha de auditoria das decisões administrativas sobre o cadastro profissional. **Entidade:** `CaregiverStatusHistory`. **Requisito relacionado:** RF21.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do evento. |
+| `cuidador_id` | uuid | Sim | FK | Cadastro profissional analisado. |
+| `situacao_anterior` | varchar(30) | Não | Enum | Situação antes da ação. |
+| `situacao_nova` | varchar(30) | Sim | Check/Enum | Situação definida pelo administrador. |
+| `motivo` | varchar(1000) | Não | — | Justificativa da reprovação ou bloqueio. |
+| `usuario_administrador_id` | uuid | Sim | FK | Administrador autor da decisão. |
+| `criado_em` | timestamptz | Sim | — | Data e hora da ação. |
+
+**Relacionamentos e regras:** FKs → `cuidador.id` e `usuario.id`. Aprovação e reprovação partem exclusivamente de `PENDENTE`; o bloqueio profissional parte exclusivamente de `APROVADO`. Cada decisão válida gera um registro imutável e solicita a notificação por e-mail após a confirmação da transação; uma transição inválida retorna conflito sem criar histórico nem solicitar e-mail. O cuidador mantém também a última situação para consultas eficientes.
 
 ## 4.5 `cuidador_disponibilidade_dia`
 
@@ -920,15 +968,32 @@ As ações persistíveis de `TaskAuditAction` são `CRIADA`, `ALTERADA`, `PAUSAD
 
 ### Campos textuais sem enum/check completo
 
-- `usuario.status` recebe `ACTIVE`, mas não tem enum nem check.
+- `usuario.situacao_conta` possui check para `ATIVO`, `BLOQUEADO` e `INATIVO`; é independente das aprovações de `responsavel` e `cuidador`.
 - `registro_diario_cuidado.tipo_atividade` usa atualmente `TAREFA_CONCLUIDA` e `CUIDADO_AVULSO`; `tipo_cuidado` recebe `TaskCategory` ou `ManualCareType` como texto.
 
 ## 7. Observações de integridade e regras de negócio
+
+### Interface e transições administrativas (RF20/RF21)
+
+A navegação do administrador possui as áreas principais **Início**, **Usuários**, **Aprovações** e **Perfil**. O Início consulta `GET /api/admin/dashboard` para exibir cuidadores e responsáveis pendentes, total de usuários, contas bloqueadas e aprovações dos últimos sete dias. **Usuários** concentra pesquisa, filtros, detalhes, bloqueio e desbloqueio de contas. **Aprovações** abre em cuidadores pendentes e também permite alternar para responsáveis, preservando a mesma regra administrativa para os dois perfis.
+
+As transições aceitas são:
+
+| Ação | Transição permitida |
+|---|---|
+| Aprovar cuidador ou responsável | `PENDENTE` → `APROVADO` |
+| Reprovar cuidador ou responsável | `PENDENTE` → `REPROVADO` |
+| Bloquear perfil profissional/cadastral | `APROVADO` → `BLOQUEADO` |
+| Bloquear conta | `ATIVO` → `BLOQUEADO` |
+| Desbloquear conta | `BLOQUEADO` → `ATIVO` |
+
+Desbloquear uma conta não altera a situação de aprovação do perfil. Os botões da interface acompanham o estado atual, mas a regra definitiva é aplicada transacionalmente no backend e uma tentativa incompatível retorna HTTP 409. Histórico e e-mail só são produzidos para mudanças válidas; a solicitação de e-mail ocorre após a confirmação da transação para não comunicar uma alteração que tenha sofrido rollback.
 
 - Uniques evitam duplicidade de e-mail, CPF, token, perfil por usuário, solicitação contratada, candidatura por cuidador, ocorrência por agenda, lembrete/notificação por chave, diário por ocorrência, marcação de presença por tipo e relatório por data.
 - Cascades existem nas coleções e cópias dependentes, em registros de atendimento/relatórios ligados à contratação e nas fotos ligadas ao pai. Outras FKs não definem cascade e exigem exclusão coordenada.
 - Checks físicos validam tipo e coordenadas do atendimento, status do relatório, datas/intervalo/lembrete da tarefa, papel do usuário e exclusividade do pai da foto.
 - `versao` em tarefas e ocorrências implementa bloqueio otimista contra atualizações concorrentes.
+- Ações administrativas de conta e de aprovação carregam o alvo com bloqueio pessimista, validam a transição dentro da transação e evitam efeitos duplicados em requisições concorrentes.
 - Cópias de rotina mantêm o conteúdo acordado mesmo se a rotina original for editada; a FK do item original usa `ON DELETE SET NULL`.
 - Históricos e notificações possuem referências polimórficas sem FK física; a aplicação deve garantir que tipo e UUID correspondam.
 - Índices cobrem consultas por participante/status/data, agenda, ocorrências vencidas, lembretes devidos, entrega de e-mail e linhas do tempo.
@@ -960,6 +1025,8 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF17 | Busca de serviços pelo cuidador | Busca de serviços publicados e manifestação de interesse. |
 | RF18 | Check-in e check-out do serviço com localização | Início e encerramento do atendimento com horário real e localização. |
 | RF19 | Relatório de atendimento e anotações de enfermagem | Geração, edição, finalização e envio do relatório. |
+| RF20 | Gerenciamento administrativo de usuários | Consulta, detalhamento, bloqueio e desbloqueio de contas por administrador. |
+| RF21 | Aprovação e reprovação de perfis | Análise de cuidadores e responsáveis, histórico, restrição de acesso e comunicação por e-mail. |
 
 ## 10. Rastreabilidade: requisitos funcionais para tabelas
 
@@ -984,6 +1051,8 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF17 | Busca de serviços pelo cuidador | `solicitacao_servico` | `pessoa_assistida`, `usuario`, `contratacao`, `notificacao`, `notificacao_preferencia` | A mesma tabela representa publicação e candidatura, com apoio de participantes e comunicação. |
 | RF18 | Check-in e check-out do serviço com localização | `registro_atendimento` | `contratacao`, `pessoa_assistida`, `usuario`, `notificacao`, `notificacao_preferencia` | Valida vínculo, horário e localização e comunica início ou fim. |
 | RF19 | Relatório de atendimento e anotações de enfermagem | `relatorio_atendimento` | `registro_atendimento`, `ocorrencia_cuidado`, `registro_diario_cuidado`, `ocorrencia_cuidado_foto`, `notificacao`, `notificacao_preferencia` | Consolida presença e cuidados, finaliza o texto e controla o envio assíncrono na própria tabela. |
+| RF20 | Gerenciamento administrativo de usuários | `usuario` | — | Mantém situação da conta, motivo, datas e administradores responsáveis por bloqueio e desbloqueio. |
+| RF21 | Aprovação e reprovação de perfis | `responsavel`, `responsavel_historico_situacao`, `cuidador`, `cuidador_historico_situacao` | `usuario`, `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo` | Persiste as decisões, suas auditorias e os dados analisados; somente perfis aprovados e ativos acessam os fluxos funcionais. |
 
 Não existe tabela separada para envio de e-mail: `status_email`, datas, tentativas, próxima tentativa e mensagem de erro ficam em `relatorio_atendimento`.
 
@@ -991,10 +1060,12 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 | Tabela | Requisitos relacionados | Tipo de participação | Justificativa |
 |---|---|---|---|
-| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18 | Principal/Apoio | Base de identidade e autenticação; identifica participantes nos demais fluxos. |
+| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20, RF21 | Principal/Apoio | Base de identidade, autenticação e situação da conta; identifica participantes e administradores. |
 | `usuario_token_redefinicao_senha` | RF03 | Principal | Persiste o token, sua validade e consumo. |
-| `responsavel` | RF01, RF04 | Principal | Especializa a conta do responsável. |
-| `cuidador` | RF01, RF04, RF05, RF06, RF07 | Principal/Apoio | Mantém o perfil profissional consultado e pesquisado. |
+| `responsavel` | RF01, RF04, RF21 | Principal | Especializa a conta do responsável e mantém sua situação de aprovação. |
+| `responsavel_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o responsável. |
+| `cuidador` | RF01, RF04, RF05, RF06, RF07, RF21 | Principal/Apoio | Mantém o perfil profissional, sua situação de aprovação e dados analisados. |
+| `cuidador_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o cuidador. |
 | `cuidador_disponibilidade_dia` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
 | `cuidador_disponibilidade_periodo` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
 | `cuidador_formacao` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém múltiplas qualificações. |
@@ -1041,7 +1112,7 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 - Coleções de alergias, restrições, disponibilidade, modalidades e serviços não têm PK/unique física; o `Set` da aplicação reduz duplicidades, mas inserções externas ainda podem repeti-las.
 - `entidade_id` do histórico e `entidade_relacionada_id` da notificação são referências polimórficas sem FK física.
-- `usuario.status` e alguns códigos do diário são texto sem check; a documentação de valores deve acompanhar o código.
+- Os estados administrativos possuem checks físicos; alguns códigos históricos do diário continuam como texto e devem acompanhar o código.
 
 ### 13.3 Padronização de nomenclatura
 

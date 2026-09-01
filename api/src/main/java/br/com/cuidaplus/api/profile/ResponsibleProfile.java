@@ -40,6 +40,20 @@ public class ResponsibleProfile {
   @Column(nullable = false, length = 30)
   private PreferenciaContato preferenciaContato;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private ResponsibleApprovalStatus situacaoAprovacao = ResponsibleApprovalStatus.PENDENTE;
+
+  private Instant analisadoEm;
+
+  private UUID analisadoPorUsuarioId;
+
+  @Column(length = 1000)
+  private String motivoReprovacao;
+
+  @Column(length = 1000)
+  private String motivoBloqueio;
+
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
 
@@ -93,4 +107,17 @@ public class ResponsibleProfile {
   public void setPreferenciaContato(PreferenciaContato preferenciaContato) {
     this.preferenciaContato = preferenciaContato;
   }
+
+  public ResponsibleApprovalStatus getSituacaoAprovacao() { return situacaoAprovacao; }
+  public void setSituacaoAprovacao(ResponsibleApprovalStatus value) { situacaoAprovacao = value; }
+  public Instant getAnalisadoEm() { return analisadoEm; }
+  public void setAnalisadoEm(Instant value) { analisadoEm = value; }
+  public UUID getAnalisadoPorUsuarioId() { return analisadoPorUsuarioId; }
+  public void setAnalisadoPorUsuarioId(UUID value) { analisadoPorUsuarioId = value; }
+  public String getMotivoReprovacao() { return motivoReprovacao; }
+  public void setMotivoReprovacao(String value) { motivoReprovacao = value; }
+  public String getMotivoBloqueio() { return motivoBloqueio; }
+  public void setMotivoBloqueio(String value) { motivoBloqueio = value; }
+  public Instant getCreatedAt() { return createdAt; }
+  public boolean isApproved() { return situacaoAprovacao == ResponsibleApprovalStatus.APROVADO; }
 }

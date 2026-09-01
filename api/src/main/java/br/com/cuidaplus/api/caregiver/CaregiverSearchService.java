@@ -129,7 +129,7 @@ public class CaregiverSearchService {
       profile.getServicoOutro(),
       toAvailabilityResponse(safeAvailability(profile)),
       profile.getCreatedAt(),
-      profile.getUser().getStatus()
+      profile.getUser().getAccountStatus().name()
     );
   }
 
@@ -276,7 +276,8 @@ public class CaregiverSearchService {
   private boolean isActiveCaregiver(CaregiverProfile profile) {
     User user = profile.getUser();
     return (user.getUserType() == UserType.CUIDADOR || user.getUserType() == UserType.CAREGIVER)
-      && "ACTIVE".equalsIgnoreCase(user.getStatus());
+      && user.isActive()
+      && profile.isApproved();
   }
 
   private AddressFields safeAddress(CaregiverProfile profile) {

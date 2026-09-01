@@ -54,8 +54,22 @@ public class User {
   @Column(nullable = false, length = 20)
   private UserType userType;
 
-  @Column(nullable = false, length = 30)
-  private String status = "ACTIVE";
+  @Enumerated(EnumType.STRING)
+  @Column(name = "situacao_conta", nullable = false, length = 30)
+  private AccountStatus accountStatus = AccountStatus.ATIVO;
+
+  @Column(length = 1000)
+  private String motivoBloqueio;
+
+  private Instant bloqueadoEm;
+
+  private UUID bloqueadoPorUsuarioId;
+
+  private Instant desbloqueadoEm;
+
+  private UUID desbloqueadoPorUsuarioId;
+
+  private Instant ultimoLoginEm;
 
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
@@ -143,11 +157,34 @@ public class User {
     this.userType = userType;
   }
 
-  public String getStatus() {
-    return status;
+  public AccountStatus getAccountStatus() {
+    return accountStatus;
   }
 
-  public void setStatus(String status) {
-    this.status = status;
+  public void setAccountStatus(AccountStatus accountStatus) {
+    this.accountStatus = accountStatus;
+  }
+
+  public String getMotivoBloqueio() { return motivoBloqueio; }
+  public void setMotivoBloqueio(String value) { motivoBloqueio = value; }
+  public Instant getBloqueadoEm() { return bloqueadoEm; }
+  public void setBloqueadoEm(Instant value) { bloqueadoEm = value; }
+  public UUID getBloqueadoPorUsuarioId() { return bloqueadoPorUsuarioId; }
+  public void setBloqueadoPorUsuarioId(UUID value) { bloqueadoPorUsuarioId = value; }
+  public Instant getDesbloqueadoEm() { return desbloqueadoEm; }
+  public void setDesbloqueadoEm(Instant value) { desbloqueadoEm = value; }
+  public UUID getDesbloqueadoPorUsuarioId() { return desbloqueadoPorUsuarioId; }
+  public void setDesbloqueadoPorUsuarioId(UUID value) { desbloqueadoPorUsuarioId = value; }
+  public Instant getUltimoLoginEm() { return ultimoLoginEm; }
+  public void setUltimoLoginEm(Instant value) { ultimoLoginEm = value; }
+  public Instant getCreatedAt() { return createdAt; }
+  public Instant getUpdatedAt() { return updatedAt; }
+  public boolean isActive() { return accountStatus == AccountStatus.ATIVO; }
+  public boolean isAdmin() { return userType == UserType.ADMIN; }
+  public boolean isCaregiver() {
+    return userType == UserType.CUIDADOR || userType == UserType.CAREGIVER;
+  }
+  public boolean isResponsible() {
+    return userType == UserType.RESPONSAVEL || userType == UserType.FAMILY;
   }
 }

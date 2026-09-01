@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Calendar,
@@ -527,6 +527,7 @@ export default function SignupScreen() {
           assistedPersons: [buildAssistedPerson()],
           acceptedTerms,
         });
+        router.replace('/registration-pending' as Href);
       } else {
         await registerCaregiver({
           user: buildUser('CUIDADOR'),
@@ -535,8 +536,8 @@ export default function SignupScreen() {
           acceptedTerms,
           profilePhoto,
         });
+        router.replace('/registration-pending' as Href);
       }
-      router.replace('/(tabs)/perfil');
     } catch (error) {
       setFeedback(getSignupFeedback(error));
     } finally {

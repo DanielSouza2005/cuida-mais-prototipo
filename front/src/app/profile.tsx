@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router, useSegments, type Href } from 'expo-router';
-import { Bell, ClipboardCheck, IdCard, LogOut, Shield } from 'lucide-react-native';
+import { Bell, ClipboardCheck, IdCard, LogOut, Shield, ShieldCheck } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
@@ -21,7 +21,8 @@ export default function ProfileScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
   const isCaregiver = user?.userType === 'caregiver';
-  const isTabRoute = (segments as string[])[0] === '(tabs)';
+  const isAdmin = user?.userType === 'admin';
+  const isTabRoute = (segments as string[])[0] === '(tabs)' || (segments as string[])[0] === 'admin';
 
   const initials = useMemo(() => {
     const name = user?.fullName?.trim();
@@ -130,11 +131,12 @@ export default function ProfileScreen() {
           editLoading={isUpdatingPhoto}
           onEditPress={isCaregiver ? showPhotoOptions : undefined}
         />
-        {user ? <ProfileTypeBadge type={isCaregiver ? 'CUIDADOR' : 'RESPONSAVEL'} /> : <Text style={styles.profileNote}>Carregando dados do perfil.</Text>}
+        {user ? <ProfileTypeBadge type={isAdmin ? 'ADMIN' : isCaregiver ? 'CUIDADOR' : 'RESPONSAVEL'} /> : <Text style={styles.profileNote}>Carregando dados do perfil.</Text>}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configurações</Text>
+        {isAdmin ? <SettingsRow title="Administração" description="Gerencie usuários e analise cadastros de cuidadores e responsáveis." icon={ShieldCheck} onPress={() => router.push('/admin' as Href)} /> : null}
         <SettingsRow
           title="Dados cadastrais"
           description={isCaregiver

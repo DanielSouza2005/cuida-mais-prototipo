@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.cuidaplus.api.admin.AdminAuthorizationTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.76 s -- in br.com.cuidaplus.api.admin.AdminAuthorizationTest

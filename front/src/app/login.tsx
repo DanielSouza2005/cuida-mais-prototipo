@@ -33,6 +33,7 @@ type ConnectionToast = {
 
 function getLoginFeedback(error: unknown) {
   if (error instanceof ApiError) {
+    if (error.code?.startsWith('CAREGIVER_') || error.code?.startsWith('RESPONSIBLE_') || error.code?.startsWith('ACCOUNT_')) return error.message;
     return error.status === 401 ? 'E-mail ou senha inválidos.' : error.message;
   }
 
@@ -115,7 +116,7 @@ export default function LoginScreen() {
 
     try {
       setIsSubmitting(true);
-      await login({ email: normalizedEmail, password });
+      const response = await login({ email: normalizedEmail, password });
 
       if (rememberMe) {
         await saveRememberedEmail(normalizedEmail);
@@ -123,7 +124,7 @@ export default function LoginScreen() {
         await clearRememberedEmail();
       }
 
-      router.replace(authenticatedHomeRoute);
+      router.replace(response.user.userType === 'admin' ? ('/admin' as Href) : authenticatedHomeRoute);
     } catch (error) {
       setFeedback(getLoginFeedback(error));
     } finally {

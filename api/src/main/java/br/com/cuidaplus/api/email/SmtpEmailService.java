@@ -1,5 +1,9 @@
 package br.com.cuidaplus.api.email;
 
+import br.com.cuidaplus.api.profile.CaregiverApprovalStatus;
+import br.com.cuidaplus.api.profile.ResponsibleApprovalStatus;
+import br.com.cuidaplus.api.user.AccountStatus;
+
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -72,6 +76,54 @@ public class SmtpEmailService implements EmailService {
     }
   }
 
+  @Override @Async
+  public void sendCaregiverReviewEmail(String to, String caregiverName, CaregiverApprovalStatus status, String reason) {
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+      helper.setFrom(from); helper.setReplyTo(from); helper.setTo(to);
+      helper.setSubject(switch (status) {
+        case APROVADO -> "Cadastro de cuidador aprovado — Cuidar+";
+        case REPROVADO -> "Resultado da análise do cadastro — Cuidar+";
+        case BLOQUEADO -> "Perfil de cuidador bloqueado — Cuidar+";
+        case PENDENTE -> "Atualização do cadastro de cuidador — Cuidar+";
+      });
+      helper.setText(switch (status) {
+        case APROVADO -> "Olá, " + caregiverName + ".\n\nSeu cadastro de cuidador foi aprovado.\n\nA partir de agora, você já pode acessar o aplicativo Cuidar+ e utilizar as funcionalidades disponíveis para cuidadores.\n\nAtenciosamente,\nEquipe Cuidar+";
+        case REPROVADO -> "Olá, " + caregiverName + ".\n\nSeu cadastro de cuidador foi analisado e, no momento, não foi aprovado.\n\nMotivo informado:\n" + reason + "\n\nRevise as informações e entre em contato com o suporte caso tenha dúvidas.\n\nAtenciosamente,\nEquipe Cuidar+";
+        case BLOQUEADO -> "Olá, " + caregiverName + ".\n\nSeu perfil profissional de cuidador foi bloqueado.\n\nMotivo informado:\n" + reason + "\n\nEntre em contato com o suporte caso tenha dúvidas.\n\nAtenciosamente,\nEquipe Cuidar+";
+        case PENDENTE -> "Olá, " + caregiverName + ".\n\nSeu cadastro de cuidador está pendente de análise.\n\nAtenciosamente,\nEquipe Cuidar+";
+      });
+      mailSender.send(message);
+    } catch (Exception exception) {
+      LOGGER.error("Não foi possível enviar o resultado da análise do cuidador.", exception);
+    }
+  }
+
+  @Override @Async
+  public void sendResponsibleReviewEmail(String to, String responsibleName, ResponsibleApprovalStatus status, String reason) {
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+      helper.setFrom(from); helper.setReplyTo(from); helper.setTo(to);
+      helper.setSubject(switch (status) {
+        case APROVADO -> "Cadastro de responsável aprovado — Cuidar+";
+        case REPROVADO -> "Resultado da análise do cadastro — Cuidar+";
+        case BLOQUEADO -> "Cadastro de responsável bloqueado — Cuidar+";
+        case PENDENTE -> "Atualização do cadastro de responsável — Cuidar+";
+      });
+      helper.setText(switch (status) {
+        case APROVADO -> "Olá, " + responsibleName + ".\n\nSeu cadastro de responsável foi aprovado.\n\nA partir de agora, você já pode acessar o aplicativo Cuidar+ e utilizar as funcionalidades disponíveis para responsáveis.\n\nAtenciosamente,\nEquipe Cuidar+";
+        case REPROVADO -> "Olá, " + responsibleName + ".\n\nSeu cadastro de responsável foi analisado e, no momento, não foi aprovado.\n\nMotivo informado:\n" + reason + "\n\nRevise as informações e entre em contato com o suporte caso tenha dúvidas.\n\nAtenciosamente,\nEquipe Cuidar+";
+        case BLOQUEADO -> "Olá, " + responsibleName + ".\n\nSeu cadastro de responsável foi bloqueado.\n\nMotivo informado:\n" + reason + "\n\nEntre em contato com o suporte caso tenha dúvidas.\n\nAtenciosamente,\nEquipe Cuidar+";
+        case PENDENTE -> "Olá, " + responsibleName + ".\n\nSeu cadastro de responsável está pendente de análise.\n\nAtenciosamente,\nEquipe Cuidar+";
+      });
+      mailSender.send(message);
+    } catch (Exception exception) {
+      LOGGER.error("Não foi possível enviar o resultado da análise do responsável.", exception);
+    }
+  }
+
   private String buildAttendanceReportText(AttendanceReportEmailMessage report) {
     return "Olá, " + report.responsibleName() + ".\n\n" +
       "O relatório de atendimento de " + report.assistedPersonName() + ", realizado em " + report.attendanceDate() +
@@ -140,5 +192,22 @@ public class SmtpEmailService implements EmailService {
       .replace("\"", "&quot;")
       .replace("<", "&lt;")
       .replace(">", "&gt;");
+  }
+
+  @Override @Async
+  public void sendAccountStatusEmail(String to, String userName, AccountStatus status, String reason) {
+    try {
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+      helper.setFrom(from); helper.setReplyTo(from); helper.setTo(to);
+      boolean blocked = status == AccountStatus.BLOQUEADO;
+      helper.setSubject(blocked ? "Conta bloqueada — Cuidar+" : "Conta desbloqueada — Cuidar+");
+      helper.setText(blocked
+        ? "Olá, " + userName + ".\n\nSua conta foi bloqueada.\n\nMotivo informado:\n" + reason + "\n\nEntre em contato com o suporte caso tenha dúvidas.\n\nAtenciosamente,\nEquipe Cuidar+"
+        : "Olá, " + userName + ".\n\nSua conta foi desbloqueada. A liberação das funcionalidades também depende da situação de aprovação do seu perfil.\n\nAtenciosamente,\nEquipe Cuidar+");
+      mailSender.send(message);
+    } catch (Exception exception) {
+      LOGGER.error("Não foi possível enviar a atualização da situação da conta.", exception);
+    }
   }
 }

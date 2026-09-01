@@ -25,6 +25,7 @@ import br.com.cuidaplus.api.profile.ResponsibleProfile;
 import br.com.cuidaplus.api.profile.ResponsibleProfileRepository;
 import br.com.cuidaplus.api.security.TokenService;
 import br.com.cuidaplus.api.user.User;
+import br.com.cuidaplus.api.user.AccountStatus;
 import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserService;
@@ -115,31 +116,11 @@ public class AuthService {
 
   @Transactional
   public AuthResponse register(RegisterRequest request) {
-    String email = UserService.normalizeEmail(request.email());
-    String cpf = UserService.onlyDigits(request.cpf());
-
-    if (userRepository.existsByEmail(email)) {
-      throw new BusinessException("E-mail já cadastrado.");
-    }
-
-    if (userRepository.existsByCpf(cpf)) {
-      throw new BusinessException("CPF já cadastrado.");
-    }
-
-    User user = new User();
-    user.setFullName(request.fullName().trim());
-    user.setCpf(cpf);
-    user.setEmail(email);
-    user.setBirthDate(UserService.parseBirthDate(request.birthDate()));
-    user.setUserType(request.userType());
-    user.setPasswordHash(passwordEncoder.encode(request.password()));
-
-    User savedUser = userRepository.save(user);
-    return new AuthResponse(userMapper.toResponse(savedUser), tokenService.generate(savedUser.getId()));
+    throw new BusinessException("Use o fluxo de cadastro completo para responsável ou cuidador.", HttpStatus.BAD_REQUEST);
   }
 
   @Transactional
-  public AuthResponse registerResponsible(RegisterResponsibleRequest request) {
+  public MessageResponse registerResponsible(RegisterResponsibleRequest request) {
     User user = createUser(request.user(), UserType.RESPONSAVEL);
 
     ResponsibleProfile profile = new ResponsibleProfile();
@@ -180,16 +161,16 @@ public class AuthService {
       : contactRequest.vinculo().trim());
     emergencyContactRepository.save(contact);
 
-    return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
+    return new MessageResponse("Cadastro enviado para análise. Você será avisado por e-mail quando a avaliação for concluída.");
   }
 
   @Transactional
-  public AuthResponse registerCaregiver(RegisterCaregiverRequest request) {
+  public MessageResponse registerCaregiver(RegisterCaregiverRequest request) {
     return registerCaregiver(request, null);
   }
 
   @Transactional
-  public AuthResponse registerCaregiver(RegisterCaregiverRequest request, MultipartFile photo) {
+  public MessageResponse registerCaregiver(RegisterCaregiverRequest request, MultipartFile photo) {
     User user = createUser(request.user(), UserType.CUIDADOR);
     RegisterCaregiverRequest.CaregiverProfileRequest profileRequest = request.caregiverProfile();
 
@@ -220,10 +201,10 @@ public class AuthService {
       user.setProfilePhotoUrl(profilePhotoStorageService.store(photo));
       userRepository.save(user);
     }
-    return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
+    return new MessageResponse("Cadastro enviado para análise. Você será avisado por e-mail quando a avaliação for concluída.");
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public AuthResponse login(LoginRequest request) {
     String email = UserService.normalizeEmail(request.email());
     User user = userRepository
@@ -233,6 +214,9 @@ public class AuthService {
     if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
       throw new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED);
     }
+
+    validateLoginStatus(user);
+    user.setUltimoLoginEm(Instant.now());
 
     return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
   }
@@ -307,10 +291,39 @@ public class AuthService {
     user.setBirthDate(request.dataNascimento());
     user.setPhone(UserService.onlyDigits(request.telefone()));
     user.setUserType(userType);
-    user.setStatus("ACTIVE");
+    user.setAccountStatus(AccountStatus.ATIVO);
     user.setPasswordHash(passwordEncoder.encode(request.senha()));
 
     return userRepository.save(user);
+  }
+
+  private void validateLoginStatus(User user) {
+    if (user.getAccountStatus() == AccountStatus.BLOQUEADO) {
+      throw new BusinessException("Sua conta está bloqueada. Entre em contato com o suporte para mais informações.", HttpStatus.FORBIDDEN, "ACCOUNT_BLOCKED");
+    }
+    if (user.getAccountStatus() == AccountStatus.INATIVO) {
+      throw new BusinessException("Sua conta está inativa. Entre em contato com o suporte para mais informações.", HttpStatus.FORBIDDEN, "ACCOUNT_INACTIVE");
+    }
+    if (user.isResponsible()) {
+      var profile = responsibleProfileRepository.findByUser(user)
+        .orElseThrow(() -> new BusinessException("Perfil de responsável não encontrado.", HttpStatus.FORBIDDEN, "RESPONSIBLE_PROFILE_MISSING"));
+      switch (profile.getSituacaoAprovacao()) {
+        case PENDENTE -> throw new BusinessException("Seu cadastro de responsável ainda está em análise. Você será avisado por e-mail quando a avaliação for concluída.", HttpStatus.FORBIDDEN, "RESPONSIBLE_PENDING_APPROVAL");
+        case REPROVADO -> throw new BusinessException("Seu cadastro de responsável foi reprovado. Verifique seu e-mail para mais informações.", HttpStatus.FORBIDDEN, "RESPONSIBLE_REJECTED");
+        case BLOQUEADO -> throw new BusinessException("Seu perfil de responsável está bloqueado. Entre em contato com o suporte para mais informações.", HttpStatus.FORBIDDEN, "RESPONSIBLE_BLOCKED");
+        case APROVADO -> { }
+      }
+      return;
+    }
+    if (!user.isCaregiver()) return;
+    CaregiverProfile profile = caregiverProfileRepository.findByUser(user)
+      .orElseThrow(() -> new BusinessException("Perfil de cuidador não encontrado.", HttpStatus.FORBIDDEN));
+    switch (profile.getSituacaoAprovacao()) {
+      case PENDENTE -> throw new BusinessException("Seu cadastro de cuidador ainda está em análise. Você será avisado por e-mail quando a avaliação for concluída.", HttpStatus.FORBIDDEN, "CAREGIVER_PENDING_APPROVAL");
+      case REPROVADO -> throw new BusinessException("Seu cadastro de cuidador foi reprovado. Verifique seu e-mail para mais informações.", HttpStatus.FORBIDDEN, "CAREGIVER_REJECTED");
+      case BLOQUEADO -> throw new BusinessException("Seu perfil de cuidador está bloqueado. Entre em contato com o suporte para mais informações.", HttpStatus.FORBIDDEN, "CAREGIVER_BLOCKED");
+      case APROVADO -> { }
+    }
   }
 
   private AddressFields toAddress(AddressRequest request) {

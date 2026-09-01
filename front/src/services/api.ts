@@ -10,6 +10,7 @@ const ANDROID_EMULATOR_HOST = '10.0.2.2';
 export type ApiErrorPayload = {
   timestamp?: string;
   status?: number;
+  code?: string;
   message?: string;
   fields?: Record<string, string>;
 };
@@ -17,12 +18,14 @@ export type ApiErrorPayload = {
 export class ApiError extends Error {
   status: number;
   fields: Record<string, string>;
+  code?: string;
 
-  constructor(message: string, status: number, fields: Record<string, string> = {}) {
+  constructor(message: string, status: number, fields: Record<string, string> = {}, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.fields = fields;
+    this.code = code;
   }
 }
 
@@ -177,6 +180,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       getErrorMessage(errorPayload, response.status),
       response.status,
       errorPayload?.fields ?? {},
+      errorPayload?.code,
     );
   }
 

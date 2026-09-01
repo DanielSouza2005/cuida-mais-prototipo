@@ -74,6 +74,20 @@ public class CaregiverProfile {
   @Column(length = 180)
   private String servicoOutro;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private CaregiverApprovalStatus situacaoAprovacao = CaregiverApprovalStatus.PENDENTE;
+
+  private Instant analisadoEm;
+
+  private UUID analisadoPorUsuarioId;
+
+  @Column(length = 1000)
+  private String motivoReprovacao;
+
+  @Column(length = 1000)
+  private String motivoBloqueioProfissional;
+
   @Embedded
   private CaregiverAvailability disponibilidade = new CaregiverAvailability();
 
@@ -198,4 +212,17 @@ public class CaregiverProfile {
   public Instant getCreatedAt() {
     return createdAt;
   }
+
+  public Instant getUpdatedAt() { return updatedAt; }
+  public CaregiverApprovalStatus getSituacaoAprovacao() { return situacaoAprovacao; }
+  public void setSituacaoAprovacao(CaregiverApprovalStatus value) { situacaoAprovacao = value; }
+  public Instant getAnalisadoEm() { return analisadoEm; }
+  public void setAnalisadoEm(Instant value) { analisadoEm = value; }
+  public UUID getAnalisadoPorUsuarioId() { return analisadoPorUsuarioId; }
+  public void setAnalisadoPorUsuarioId(UUID value) { analisadoPorUsuarioId = value; }
+  public String getMotivoReprovacao() { return motivoReprovacao; }
+  public void setMotivoReprovacao(String value) { motivoReprovacao = value; }
+  public String getMotivoBloqueioProfissional() { return motivoBloqueioProfissional; }
+  public void setMotivoBloqueioProfissional(String value) { motivoBloqueioProfissional = value; }
+  public boolean isApproved() { return situacaoAprovacao == CaregiverApprovalStatus.APROVADO; }
 }

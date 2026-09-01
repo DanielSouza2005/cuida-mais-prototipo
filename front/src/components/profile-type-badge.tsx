@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
-type ProfileType = 'CUIDADOR' | 'RESPONSAVEL';
+type ProfileType = 'CUIDADOR' | 'RESPONSAVEL' | 'ADMIN';
 
 type Props = {
   type: ProfileType;
@@ -12,6 +12,7 @@ type Props = {
 const labels: Record<ProfileType, string> = {
   CUIDADOR: 'Perfil de cuidador',
   RESPONSAVEL: 'Perfil de responsável',
+  ADMIN: 'Perfil de administrador',
 };
 
 export function ProfileTypeBadge({ type, label }: Props) {

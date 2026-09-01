@@ -34,17 +34,17 @@ public class AuthController {
   }
 
   @PostMapping("/register/responsible")
-  public AuthResponse registerResponsible(@Valid @RequestBody RegisterResponsibleRequest request) {
+  public MessageResponse registerResponsible(@Valid @RequestBody RegisterResponsibleRequest request) {
     return authService.registerResponsible(request);
   }
 
   @PostMapping(value = "/register/caregiver", consumes = MediaType.APPLICATION_JSON_VALUE)
-  public AuthResponse registerCaregiver(@Valid @RequestBody RegisterCaregiverRequest request) {
+  public MessageResponse registerCaregiver(@Valid @RequestBody RegisterCaregiverRequest request) {
     return authService.registerCaregiver(request);
   }
 
   @PostMapping(value = "/register/caregiver", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public AuthResponse registerCaregiverWithPhoto(
+  public MessageResponse registerCaregiverWithPhoto(
     @Valid @RequestPart("data") RegisterCaregiverRequest request,
     @RequestPart(value = "photo", required = false) MultipartFile photo
   ) {

@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiError> handleBusinessException(BusinessException exception) {
     return ResponseEntity
       .status(exception.getStatus())
-      .body(new ApiError(Instant.now(), exception.getStatus().value(), exception.getMessage(), Map.of()));
+      .body(new ApiError(Instant.now(), exception.getStatus().value(), exception.getCode(), exception.getMessage(), Map.of()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -32,34 +32,34 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
       .badRequest()
-      .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "Dados inválidos.", fields));
+      .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "VALIDATION_ERROR", "Dados inválidos.", fields));
   }
 
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ApiError> handleUnreadableMessage() {
     return ResponseEntity
       .badRequest()
-      .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "Corpo da requisição inválido.", Map.of()));
+      .body(new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), "INVALID_REQUEST_BODY", "Corpo da requisição inválido.", Map.of()));
   }
 
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   public ResponseEntity<ApiError> handleUploadTooLarge() {
     return ResponseEntity
       .status(HttpStatus.PAYLOAD_TOO_LARGE)
-      .body(new ApiError(Instant.now(), HttpStatus.PAYLOAD_TOO_LARGE.value(), "A foto deve ter no máximo 5 MB.", Map.of()));
+      .body(new ApiError(Instant.now(), HttpStatus.PAYLOAD_TOO_LARGE.value(), "UPLOAD_TOO_LARGE", "A foto deve ter no máximo 5 MB.", Map.of()));
   }
 
   @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
   public ResponseEntity<ApiError> handleOptimisticLock() {
     return ResponseEntity
       .status(HttpStatus.CONFLICT)
-      .body(new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), "Este registro foi atualizado em outro dispositivo. Recarregue os dados.", Map.of()));
+      .body(new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), "OPTIMISTIC_LOCK", "Este registro foi atualizado em outro dispositivo. Recarregue os dados.", Map.of()));
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiError> handleUnexpectedException() {
     return ResponseEntity
       .internalServerError()
-      .body(new ApiError(Instant.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "Erro interno.", Map.of()));
+      .body(new ApiError(Instant.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "INTERNAL_ERROR", "Erro interno.", Map.of()));
   }
 }

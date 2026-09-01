@@ -5,6 +5,8 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   MessageResponse,
+  CaregiverRegistrationResponse,
+  RegistrationReviewResponse,
   RegisterRequest,
   RegisterResponsiblePayload,
   ResetPasswordRequest,
@@ -45,7 +47,7 @@ export const register = signup as (request: RegisterRequest) => Promise<AuthResp
 export function registerResponsible(payload: RegisterResponsiblePayload) {
   const assistedPerson = payload.assistedPersons[0];
 
-  return apiRequest<AuthResponse>('/api/auth/register/responsible', {
+  return apiRequest<RegistrationReviewResponse>('/api/auth/register/responsible', {
     auth: false,
     method: 'POST',
     body: {
@@ -125,10 +127,10 @@ export function registerCaregiver(payload: RegisterCaregiverPayload) {
     const form = new FormData();
     form.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
     appendProfilePhoto(form, payload.profilePhoto);
-    return apiRequest<AuthResponse>('/api/auth/register/caregiver', { auth: false, method: 'POST', body: form });
+    return apiRequest<CaregiverRegistrationResponse>('/api/auth/register/caregiver', { auth: false, method: 'POST', body: form });
   }
 
-  return apiRequest<AuthResponse>('/api/auth/register/caregiver', {
+  return apiRequest<CaregiverRegistrationResponse>('/api/auth/register/caregiver', {
     auth: false,
     method: 'POST',
     body: data,

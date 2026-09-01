@@ -48,7 +48,7 @@ public class UserService {
     user.setEmail(email);
     user.setPhone(UserService.onlyDigits(request.phone()));
     user.setBirthDate(parseBirthDate(request.birthDate()));
-    user.setUserType(request.userType());
+    // O papel é definido no cadastro e nunca pode ser promovido por uma edição de perfil.
 
     return userMapper.toResponse(user);
   }

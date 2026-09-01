@@ -51,6 +51,7 @@ public class SecurityConfig {
           "/api/auth/reset-password"
         ).permitAll()
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers("/api/admin/**").hasRole("ADMIN")
         .anyRequest().authenticated()
       )
       .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -172,3 +172,6 @@ export type ResetPasswordRequest = {
 export type MessageResponse = {
   message: string;
 };
+
+export type RegistrationReviewResponse = MessageResponse;
+export type CaregiverRegistrationResponse = RegistrationReviewResponse;
