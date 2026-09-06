@@ -17,10 +17,11 @@ const labels: Record<ProfileType, string> = {
 
 export function ProfileTypeBadge({ type, label }: Props) {
   const isCaregiver = type === 'CUIDADOR';
+  const isAdmin = type === 'ADMIN';
 
   return (
-    <View style={[styles.badge, isCaregiver ? styles.caregiverBadge : styles.responsibleBadge]}>
-      <Text style={[styles.text, isCaregiver ? styles.caregiverText : styles.responsibleText]}>
+    <View style={[styles.badge, isAdmin ? styles.adminBadge : isCaregiver ? styles.caregiverBadge : styles.responsibleBadge]}>
+      <Text style={[styles.text, isAdmin ? styles.adminText : isCaregiver ? styles.caregiverText : styles.responsibleText]}>
         {label ?? labels[type]}
       </Text>
     </View>
@@ -43,6 +44,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mint,
     borderColor: colors.sage,
   },
+  adminBadge: {
+    backgroundColor: colors.adminBackground,
+    borderColor: colors.adminBorder,
+  },
   text: {
     fontFamily: fontFamily.semiBold,
     fontSize: 12,
@@ -53,5 +58,8 @@ const styles = StyleSheet.create({
   },
   responsibleText: {
     color: colors.mintForeground,
+  },
+  adminText: {
+    color: colors.adminForeground,
   },
 });

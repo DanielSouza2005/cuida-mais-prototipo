@@ -34,7 +34,7 @@ export function ScreenContainer({
   scrollViewProps,
 }: Props) {
   const segments = useSegments();
-  const insideTabs = (segments as string[])[0] === '(tabs)';
+  const insideTabs = (segments as string[]).includes('(tabs)');
   const resolvedEdges = safeAreaEdges ?? (insideTabs ? ['top', 'right', 'left'] : ['top', 'right', 'bottom', 'left']);
   const content = scroll ? (
     <ScrollView

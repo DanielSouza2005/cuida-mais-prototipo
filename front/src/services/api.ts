@@ -129,6 +129,17 @@ function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
   return 'Não foi possível concluir a solicitação.';
 }
 
+function diagnosticEndpoint(path: string) {
+  const [pathname, rawQuery] = path.split('?', 2);
+  if (!rawQuery) return pathname;
+  const safeKeys = new Set(['status', 'page', 'size', 'type', 'caregiverStatus', 'responsibleStatus']);
+  const params = new URLSearchParams(rawQuery);
+  params.forEach((_, key) => {
+    if (!safeKeys.has(key)) params.set(key, '[redacted]');
+  });
+  return `${pathname}?${params.toString()}`;
+}
+
 async function readJson(response: Response) {
   const text = await response.text();
   if (!text) return null;
@@ -176,6 +187,18 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     const errorPayload = payload as ApiErrorPayload | null;
+    if (__DEV__) {
+      console.warn('[API] Falha na requisição', {
+        method: requestOptions.method ?? 'GET',
+        endpoint: diagnosticEndpoint(path),
+        status: response.status,
+        response: {
+          code: errorPayload?.code,
+          message: errorPayload?.message,
+          fields: Object.keys(errorPayload?.fields ?? {}),
+        },
+      });
+    }
     throw new ApiError(
       getErrorMessage(errorPayload, response.status),
       response.status,

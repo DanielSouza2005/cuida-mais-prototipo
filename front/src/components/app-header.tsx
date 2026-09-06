@@ -9,18 +9,20 @@ type Props = {
   title?: string;
   subtitle?: string;
   showBack?: boolean;
+  onBackPress?: () => void;
+  compact?: boolean;
 };
 
-export function AppHeader({ backDisabled = false, title, subtitle, showBack = false }: Props) {
+export function AppHeader({ backDisabled = false, title, subtitle, showBack = false, onBackPress, compact = false }: Props) {
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, compact && styles.compactWrapper]}>
       <View style={styles.topRow}>
-        {showBack ? <BackButton disabled={backDisabled} /> : <BrandMark />}
+        {showBack ? <BackButton disabled={backDisabled} onPress={onBackPress} /> : <BrandMark />}
         {showBack ? <BrandMark /> : null}
       </View>
       {title ? (
         <View style={styles.copy}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, compact && styles.compactTitle]}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
       ) : null}
@@ -31,6 +33,9 @@ export function AppHeader({ backDisabled = false, title, subtitle, showBack = fa
 const styles = StyleSheet.create({
   wrapper: {
     gap: spacing.xxl,
+  },
+  compactWrapper: {
+    gap: spacing.lg,
   },
   topRow: {
     minHeight: 44,
@@ -47,6 +52,11 @@ const styles = StyleSheet.create({
     lineHeight: 37,
     letterSpacing: -0.9,
     color: colors.foreground,
+  },
+  compactTitle: {
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: fontFamily.regular,

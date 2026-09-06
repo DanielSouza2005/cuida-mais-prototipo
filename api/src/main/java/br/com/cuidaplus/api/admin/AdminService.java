@@ -17,8 +17,10 @@ import java.text.Normalizer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -220,7 +222,7 @@ public class AdminService {
     AddressFields address = profile.getEnderecoAtendimento();
     return new AdminDtos.CaregiverSummary(profile.getId(), profile.getUser().getId(), profile.getUser().getFullName(),
       profile.getUser().getEmail(), address == null ? null : address.getCidade(), profile.getTempoExperiencia(),
-      profile.getFormacoes(), profile.getSituacaoAprovacao(), approvalLabel(profile.getSituacaoAprovacao()), profile.getCreatedAt());
+      materialize(profile.getFormacoes()), profile.getSituacaoAprovacao(), approvalLabel(profile.getSituacaoAprovacao()), profile.getCreatedAt());
   }
   private AdminDtos.CaregiverDetails caregiverDetails(CaregiverProfile profile) {
     User user = profile.getUser(); AddressFields address = profile.getEnderecoAtendimento();
@@ -229,8 +231,9 @@ public class AdminService {
         item.getMotivo(), item.getAdministrator().getId(), item.getAdministrator().getFullName(), item.getCriadoEm())).toList();
     return new AdminDtos.CaregiverDetails(profile.getId(), user.getId(), user.getFullName(), user.getEmail(),
       formatCpf(user.getCpf()), user.getPhone(), user.getProfilePhotoUrl(), profile.getBiografia(), profile.getTempoExperiencia(),
-      profile.getFormacoes(), profile.getFormacaoOutro(), profile.getModalidades(), profile.getModalidadeOutro(),
-      profile.getServicosOferecidos(), profile.getServicoOutro(), address == null ? null : address.getCidade(),
+      materialize(profile.getFormacoes()), profile.getFormacaoOutro(),
+      materialize(profile.getModalidades()), profile.getModalidadeOutro(),
+      materialize(profile.getServicosOferecidos()), profile.getServicoOutro(), address == null ? null : address.getCidade(),
       address == null ? null : address.getBairro(), address == null ? null : address.getEstado(),
       profile.getDisponibilidade().getDiasSemana().stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()),
       profile.getDisponibilidade().getPeriodos().stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()),
@@ -258,6 +261,9 @@ public class AdminService {
     String q = normalize(query), digits = query == null ? "" : query.replaceAll("\\D", "");
     return q.isBlank() || normalize(user.getFullName()).contains(q) || normalize(user.getEmail()).contains(q)
       || (!digits.isBlank() && user.getCpf().contains(digits));
+  }
+  private <T> Set<T> materialize(Set<T> values) {
+    return new LinkedHashSet<>(values);
   }
   private String normalize(String value) { return Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).trim(); }
   private String cleanReason(String value) { if (value == null || value.isBlank()) throw new BusinessException("Informe o motivo."); return value.trim(); }

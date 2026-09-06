@@ -153,5 +153,36 @@ class AdminServiceTest {
       .isInstanceOf(BusinessException.class).hasMessageContaining("bloqueados");
   }
 
+  @Test void inactiveAccountCannotBeUnblocked(){
+    User admin=user(UserType.ADMIN), target=user(UserType.RESPONSAVEL); target.setAccountStatus(AccountStatus.INATIVO);
+    when(users.findById(admin.getId())).thenReturn(Optional.of(admin));
+    when(users.findByIdForUpdate(target.getId())).thenReturn(Optional.of(target));
+    assertThatThrownBy(()->service.unblockUser(admin.getId(),target.getId()))
+      .isInstanceOf(BusinessException.class).hasMessageContaining("bloqueados");
+    verify(emails,never()).sendAccountStatusEmail(any(),any(),any(),any());
+  }
+
+  @Test void blockedCaregiverAccountCanBeUnblockedWithoutChangingProfessionalApproval(){
+    User admin=user(UserType.ADMIN), target=user(UserType.CUIDADOR); target.setAccountStatus(AccountStatus.BLOQUEADO);
+    target.setMotivoBloqueio("Bloqueio administrativo");
+    CaregiverProfile caregiver=new CaregiverProfile(); caregiver.setUser(target);
+    caregiver.setSituacaoAprovacao(CaregiverApprovalStatus.PENDENTE);
+    when(users.findById(admin.getId())).thenReturn(Optional.of(admin));
+    when(users.findByIdForUpdate(target.getId())).thenReturn(Optional.of(target));
+    when(users.findById(target.getId())).thenReturn(Optional.of(target));
+    when(caregivers.findByUser(target)).thenReturn(Optional.of(caregiver));
+    when(responsibles.findByUser(target)).thenReturn(Optional.empty());
+    when(histories.findByCaregiverOrderByCriadoEmDesc(caregiver)).thenReturn(List.of());
+
+    var result=service.unblockUser(admin.getId(),target.getId());
+
+    assertThat(result.accountStatus()).isEqualTo(AccountStatus.ATIVO);
+    assertThat(result.caregiver().status()).isEqualTo(CaregiverApprovalStatus.PENDENTE);
+    assertThat(target.getDesbloqueadoEm()).isNotNull();
+    assertThat(target.getDesbloqueadoPorUsuarioId()).isEqualTo(admin.getId());
+    assertThat(target.getMotivoBloqueio()).isNull();
+    verify(emails).sendAccountStatusEmail(target.getEmail(),target.getFullName(),AccountStatus.ATIVO,null);
+  }
+
   private User user(UserType type){User user=new User();ReflectionTestUtils.setField(user,"id",UUID.randomUUID());user.setUserType(type);user.setFullName("Pessoa Teste");user.setEmail(type.name().toLowerCase()+"@example.com");user.setCpf("12345678901");user.setAccountStatus(AccountStatus.ATIVO);return user;}
 }
