@@ -116,7 +116,6 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
 };
 
 function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
-  if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
   if (status >= 500) return 'Não foi possível concluir agora. Tente novamente em instantes.';
 
   if (payload?.fields) {
@@ -125,6 +124,8 @@ function getErrorMessage(payload: ApiErrorPayload | null, status: number) {
   }
 
   if (payload?.message) return payload.message;
+
+  if (status === 401) return 'Sua sessão expirou. Faça login novamente.';
 
   return 'Não foi possível concluir a solicitação.';
 }

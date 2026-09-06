@@ -10,4 +10,9 @@ public record LoginRequest(
 
   @NotBlank(message = "Informe sua senha.")
   String password
-) {}
+) {
+  @Override
+  public String toString() {
+    return "LoginRequest[email=[PROTEGIDO], password=[PROTEGIDA]]";
+  }
+}

@@ -60,6 +60,7 @@ public class AdminService {
     CaregiverApprovalStatus caregiverStatus, ResponsibleApprovalStatus responsibleStatus, int page, int size) {
     int safePage = Math.max(page, 0), safeSize = Math.min(Math.max(size, 1), 50);
     List<AdminDtos.UserSummary> values = users.findAll().stream()
+      .filter(user -> user.getAccountStatus() != AccountStatus.EXCLUIDO || status == AccountStatus.EXCLUIDO)
       .filter(user -> type == null || canonicalType(user.getUserType()) == canonicalType(type))
       .filter(user -> status == null || user.getAccountStatus() == status)
       .filter(user -> matches(user, query))
@@ -113,6 +114,7 @@ public class AdminService {
   public AdminDtos.CaregiverPage caregivers(String query, CaregiverApprovalStatus status, int page, int size) {
     int safePage = Math.max(page, 0), safeSize = Math.min(Math.max(size, 1), 50);
     List<AdminDtos.CaregiverSummary> values = caregivers.findAll().stream()
+      .filter(profile -> profile.getUser().getAccountStatus() != AccountStatus.EXCLUIDO)
       .filter(profile -> status == null || profile.getSituacaoAprovacao() == status)
       .filter(profile -> matches(profile.getUser(), query))
       .sorted(Comparator.comparing(CaregiverProfile::getCreatedAt).reversed())
@@ -148,6 +150,7 @@ public class AdminService {
   public AdminDtos.ResponsiblePage responsibles(String query, ResponsibleApprovalStatus status, int page, int size) {
     int safePage = Math.max(page, 0), safeSize = Math.min(Math.max(size, 1), 50);
     List<AdminDtos.ResponsibleSummary> values = responsibles.findAll().stream()
+      .filter(profile -> profile.getUser().getAccountStatus() != AccountStatus.EXCLUIDO)
       .filter(profile -> status == null || profile.getSituacaoAprovacao() == status)
       .filter(profile -> matches(profile.getUser(), query))
       .sorted(Comparator.comparing(ResponsibleProfile::getCreatedAt).reversed())
@@ -260,7 +263,7 @@ public class AdminService {
   private boolean matches(User user, String query) {
     String q = normalize(query), digits = query == null ? "" : query.replaceAll("\\D", "");
     return q.isBlank() || normalize(user.getFullName()).contains(q) || normalize(user.getEmail()).contains(q)
-      || (!digits.isBlank() && user.getCpf().contains(digits));
+      || (!digits.isBlank() && user.getCpf() != null && user.getCpf().contains(digits));
   }
   private <T> Set<T> materialize(Set<T> values) {
     return new LinkedHashSet<>(values);
@@ -276,7 +279,7 @@ public class AdminService {
   private int pages(int total, int size) { return total == 0 ? 0 : (int) Math.ceil((double) total / size); }
   private UserType canonicalType(UserType value) { return value == UserType.FAMILY ? UserType.RESPONSAVEL : value == UserType.CAREGIVER ? UserType.CUIDADOR : value; }
   private String profileLabel(UserType value) { return switch (canonicalType(value)) { case ADMIN -> "Administrador"; case CUIDADOR -> "Cuidador"; default -> "Responsável"; }; }
-  private String accountLabel(AccountStatus value) { return switch (value) { case ATIVO -> "Ativo"; case BLOQUEADO -> "Bloqueado"; case INATIVO -> "Inativo"; }; }
+  private String accountLabel(AccountStatus value) { return switch (value) { case ATIVO -> "Ativo"; case BLOQUEADO -> "Bloqueado"; case INATIVO -> "Inativo"; case EXCLUIDO -> "Excluído"; }; }
   private String approvalLabel(CaregiverApprovalStatus value) { return switch (value) { case PENDENTE -> "Pendente"; case APROVADO -> "Aprovado"; case REPROVADO -> "Reprovado"; case BLOQUEADO -> "Bloqueado"; }; }
   private String approvalLabel(ResponsibleApprovalStatus value) { return switch (value) { case PENDENTE -> "Pendente"; case APROVADO -> "Aprovado"; case REPROVADO -> "Reprovado"; case BLOQUEADO -> "Bloqueado"; }; }
   private String formatCpf(String cpf) { return cpf == null || cpf.length() != 11 ? cpf : cpf.substring(0,3)+"."+cpf.substring(3,6)+"."+cpf.substring(6,9)+"-"+cpf.substring(9); }

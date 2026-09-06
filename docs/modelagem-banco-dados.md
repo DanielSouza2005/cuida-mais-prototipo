@@ -2,9 +2,9 @@
 
 ## 1. Visão geral
 
-O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações e administração. Este documento descreve o schema `public` após a V046 e foi conferido nas migrations V001–V046, entidades JPA, enums, repositories e serviços.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações, administração e exclusão de conta. Este documento descreve o schema `public` após a V047 e foi conferido nas migrations V001–V047, entidades JPA, enums, repositories e serviços.
 
-O modelo vigente possui 37 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
+O modelo vigente possui 39 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
 ## 2. Padrão de nomenclatura
 
@@ -12,7 +12,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 ## 3. Organização por domínios
 
-- **Usuários e perfis:** `usuario`, `usuario_token_redefinicao_senha`, `responsavel`, `cuidador`, suas cinco coleções e os históricos de situação de responsável e cuidador.
+- **Usuários e perfis:** `usuario`, `usuario_token_redefinicao_senha`, `usuario_confirmacao_exclusao`, `usuario_exclusao_auditoria`, `responsavel`, `cuidador`, suas cinco coleções e os históricos de situação de responsável e cuidador.
 - **Pessoas assistidas:** `pessoa_assistida`, alergias, restrições alimentares e contato de emergência.
 - **Solicitações e contratações:** `solicitacao_servico`, suas seis tabelas filhas, `contratacao` e histórico de status.
 - **Planejamento e cuidado:** rotinas, tarefas, ocorrências, fotos, lembretes, auditoria e diário.
@@ -23,15 +23,15 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 ## 4.1 `usuario`
 
-**Nome lógico:** Usuários. **Finalidade:** identidade, autenticação e controle administrativo da conta. **Entidade:** `User`. **Requisitos relacionados:** RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20 e RF21.
+**Nome lógico:** Usuários. **Finalidade:** identidade, autenticação e controle administrativo da conta. **Entidade:** `User`. **Requisitos relacionados:** RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20, RF21 e RF22.
 
 **Papel nos requisitos:** principal em cadastro, autenticação e perfis; apoio na recuperação de senha e nos fluxos que identificam participantes.
 
 | Coluna | Tipo | Obrigatório | Chave | Descrição |
 |---|---|---:|---|---|
 | `id` | uuid | Sim | PK | Identificador do usuário. |
-| `data_nascimento` | date | Sim | — | Data de nascimento. |
-| `cpf` | varchar(11) | Sim | Unique | CPF normalizado e único. |
+| `data_nascimento` | date | Não | — | Data de nascimento; removida na anonimização. |
+| `cpf` | varchar(11) | Não | Unique | CPF normalizado e único; removido na anonimização. |
 | `criado_em` | timestamptz | Sim | — | Criação da conta. |
 | `email` | varchar(180) | Sim | Unique | E-mail de acesso e comunicação. |
 | `nome_completo` | varchar(140) | Sim | — | Nome completo. |
@@ -39,7 +39,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `atualizado_em` | timestamptz | Sim | — | Última atualização. |
 | `tipo_usuario` | varchar(20) | Sim | Check/Enum | Papel do usuário. |
 | `telefone` | varchar(20) | Não | — | Telefone de contato. |
-| `situacao_conta` | varchar(30) | Sim | Check/Enum | Situação geral: `ATIVO`, `BLOQUEADO` ou `INATIVO`. |
+| `situacao_conta` | varchar(30) | Sim | Check/Enum | Situação geral: `ATIVO`, `BLOQUEADO`, `INATIVO` ou `EXCLUIDO`. |
 | `motivo_bloqueio` | varchar(1000) | Não | — | Justificativa administrativa do bloqueio. |
 | `bloqueado_em` | timestamptz | Não | — | Data e hora do bloqueio. |
 | `bloqueado_por_usuario_id` | uuid | Não | FK | Administrador que bloqueou a conta. |
@@ -47,8 +47,11 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `desbloqueado_por_usuario_id` | uuid | Não | FK | Administrador que desbloqueou a conta. |
 | `ultimo_login_em` | timestamptz | Não | — | Último login bem-sucedido. |
 | `url_foto_perfil` | varchar(500) | Não | — | Local da foto de perfil. |
+| `exclusao_solicitada_em` | timestamptz | Não | — | Início confirmado do processo de exclusão. |
+| `excluido_em` | timestamptz | Não | — | Encerramento definitivo da conta. |
+| `dados_anonimizados_em` | timestamptz | Não | — | Conclusão da anonimização dos dados elegíveis. |
 
-**Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem. Cada conta pode ter no máximo um perfil de cada tipo. O check de papel aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. Somente conta `ATIVO` autentica; apenas contas `ATIVO` podem ser bloqueadas e apenas contas `BLOQUEADO` podem ser desbloqueadas. Bloqueio e desbloqueio não alteram a aprovação do perfil e solicitam a comunicação por e-mail somente após a confirmação da transação. A V046 cria, apenas quando ainda não existe nenhum administrador, a conta inicial necessária para acessar a área administrativa; a senha inicial deve ser alterada após o primeiro acesso.
+**Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem enquanto presentes. Cada conta pode ter no máximo um perfil de cada tipo. O check de papel aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. Somente conta `ATIVO` autentica; `EXCLUIDO` invalida também JWTs emitidos anteriormente porque o filtro consulta a situação vigente a cada requisição. Apenas contas `ATIVO` podem ser bloqueadas e apenas contas `BLOQUEADO` podem ser desbloqueadas. Bloqueio e desbloqueio não alteram a aprovação do perfil e solicitam a comunicação por e-mail somente após a confirmação da transação. A V046 cria, apenas quando ainda não existe nenhum administrador, a conta inicial necessária para acessar a área administrativa; a senha inicial deve ser alterada após o primeiro acesso.
 
 ## 4.2 `usuario_token_redefinicao_senha`
 
@@ -66,6 +69,37 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `usuario_id` | uuid | Sim | FK | Dono do token. |
 
 **Relacionamentos e regras:** `usuario_id` → `usuario.id`; token expirado ou já usado é recusado.
+
+### 4.2.1 `usuario_confirmacao_exclusao`
+
+**Finalidade:** reautenticação de uso único para o RF22. **Entidade:** `AccountDeletionConfirmation`. **Requisito relacionado:** RF22.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador técnico. |
+| `usuario_id` | uuid | Sim | FK | Conta que confirmou a senha. |
+| `hash_token` | varchar(64) | Sim | Unique | SHA-256 do token; o valor entregue ao cliente não é persistido. |
+| `expira_em` | timestamptz | Sim | — | Validade de cinco minutos. |
+| `usado_em` | timestamptz | Não | — | Consumo ou invalidação do token. |
+| `criado_em` | timestamptz | Sim | — | Emissão. |
+
+**Regras:** exige JWT de uma conta ativa e nova conferência da senha. Uma nova reautenticação ou o logout invalida confirmações anteriores. O token só autoriza a exclusão da mesma conta, não autentica outras rotas e é consumido uma única vez.
+
+### 4.2.2 `usuario_exclusao_auditoria`
+
+**Finalidade:** comprovação mínima da execução do RF22. **Entidade:** `AccountDeletionAudit`. **Requisito relacionado:** RF22.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do evento. |
+| `usuario_referencia` | uuid | Sim | — | Referência interna sem FK, preservada para auditoria. |
+| `perfil` | varchar(30) | Sim | Enum | Papel técnico da conta no momento da exclusão. |
+| `solicitado_em` | timestamptz | Sim | — | Início do processamento confirmado. |
+| `concluido_em` | timestamptz | Sim | — | Conclusão atômica da anonimização. |
+| `resultado` | varchar(30) | Sim | Check | Resultado `SUCESSO`. |
+| `criado_em` | timestamptz | Sim | — | Criação do evento. |
+
+**Regras:** não armazena nome, CPF, e-mail, telefone, endereço, IP, agente do usuário, token ou dado de saúde. Tentativas recusadas não geram trilha com dados pessoais; os erros permanecem respostas operacionais controladas.
 
 ## 4.3 `responsavel`
 
@@ -286,8 +320,8 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 |---|---|---:|---|---|
 | `id` | uuid | Sim | PK | Identificador. |
 | `pessoa_assistida_id` | uuid | Sim | FK, Unique | Pessoa vinculada. |
-| `nome` | varchar(140) | Sim | — | Nome do contato. |
-| `telefone` | varchar(20) | Sim | — | Telefone. |
+| `nome` | varchar(140) | Não | — | Nome do contato; removido se era cópia do responsável excluído. |
+| `telefone` | varchar(20) | Não | — | Telefone; removido se era cópia do responsável excluído. |
 | `vinculo` | varchar(120) | Sim | — | Relação com a pessoa. |
 | `contato_responsavel` | boolean | Sim | — | Indica se é o responsável. |
 | `criado_em` | timestamptz | Sim | — | Criação. |
@@ -998,6 +1032,16 @@ Desbloquear uma conta não altera a situação de aprovação do perfil. Os bot�
 - Históricos e notificações possuem referências polimórficas sem FK física; a aplicação deve garantir que tipo e UUID correspondam.
 - Índices cobrem consultas por participante/status/data, agenda, ocorrências vencidas, lembretes devidos, entrega de e-mail e linhas do tempo.
 
+## 7.1 Exclusão, anonimização e retenção (RF22)
+
+A exclusão de conta no Cuidar+ não representa exclusão física imediata de todos os registros relacionados. O processo encerra o acesso do usuário, invalida credenciais e elimina ou anonimiza dados pessoais elegíveis, preservando somente registros necessários para integridade operacional, segurança, cumprimento de obrigações ou exercício de direitos.
+
+Antes da exclusão, o backend bloqueia contas com contratação `AGENDADA`, `ATIVA` ou `ENCERRAMENTO_AGENDADO`; esses serviços devem ser cancelados ou encerrados pelo fluxo próprio. Na execução aceita, nome passa a um rótulo genérico conforme o papel, e-mail recebe endereço técnico baseado no UUID, CPF, telefone, nascimento e foto são removidos, a senha se torna inutilizável, o perfil público e a disponibilidade do cuidador são esvaziados, notificações, preferências e tokens de recuperação são removidos, e a situação passa a `EXCLUIDO`. A foto física é removida após a confirmação da transação; falha isolada do armazenamento não restaura acesso nem dados no banco.
+
+Contratações encerradas, solicitações, tarefas, ocorrências, diário, atendimentos e relatórios são históricos compartilhados e permanecem referenciando a conta anonimizada. Não foram definidos prazos jurídicos arbitrários: a duração da retenção depende de política organizacional e fundamento aplicável a ser formalizado. Dados clínicos da pessoa assistida são tratados como dados pessoais, inclusive sensíveis, de terceiro e não são apagados automaticamente pela exclusão do responsável. Quando o contato de emergência copiava os dados do próprio responsável, somente essa cópia de nome e telefone é eliminada.
+
+Na administração, contas excluídas ficam fora das listagens por padrão e aparecem somente quando o filtro explícito `EXCLUIDO` é usado; perfis excluídos não aparecem nas filas funcionais. Como os identificadores e os registros históricos permanecem, esta é exclusão lógica com anonimização, distinta tanto de remoção física quanto de retenção irrestrita.
+
 ## 8. Critérios de rastreabilidade
 
 As matrizes classificam a participação como **Principal** quando a persistência é indispensável à execução do requisito, **Apoio** quando complementa uma tabela principal, **Indireta** quando participa apenas por encadeamento e **Infraestrutura** quando não implementa funcionalidade de usuário. Estruturas removidas não integram as matrizes do schema vigente; a seção 12 aponta o relatório histórico correspondente.
@@ -1027,6 +1071,7 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF19 | Relatório de atendimento e anotações de enfermagem | Geração, edição, finalização e envio do relatório. |
 | RF20 | Gerenciamento administrativo de usuários | Consulta, detalhamento, bloqueio e desbloqueio de contas por administrador. |
 | RF21 | Aprovação e reprovação de perfis | Análise de cuidadores e responsáveis, histórico, restrição de acesso e comunicação por e-mail. |
+| RF22 | Exclusão de conta | Reautenticação, impedimentos operacionais, anonimização, revogação de acesso, retenção restrita e auditoria mínima. |
 
 ## 10. Rastreabilidade: requisitos funcionais para tabelas
 
@@ -1053,6 +1098,7 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF19 | Relatório de atendimento e anotações de enfermagem | `relatorio_atendimento` | `registro_atendimento`, `ocorrencia_cuidado`, `registro_diario_cuidado`, `ocorrencia_cuidado_foto`, `notificacao`, `notificacao_preferencia` | Consolida presença e cuidados, finaliza o texto e controla o envio assíncrono na própria tabela. |
 | RF20 | Gerenciamento administrativo de usuários | `usuario` | — | Mantém situação da conta, motivo, datas e administradores responsáveis por bloqueio e desbloqueio. |
 | RF21 | Aprovação e reprovação de perfis | `responsavel`, `responsavel_historico_situacao`, `cuidador`, `cuidador_historico_situacao` | `usuario`, `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo` | Persiste as decisões, suas auditorias e os dados analisados; somente perfis aprovados e ativos acessam os fluxos funcionais. |
+| RF22 | Exclusão de conta | `usuario`, `usuario_confirmacao_exclusao`, `usuario_exclusao_auditoria` | `responsavel`, `cuidador`, coleções do perfil, `pessoa_assistida_contato_emergencia`, `usuario_token_redefinicao_senha`, `notificacao`, `notificacao_preferencia`, `contratacao` | Confirma novamente a identidade, bloqueia exclusão com serviço operacional, anonimiza dados elegíveis e preserva o histórico compartilhado. |
 
 Não existe tabela separada para envio de e-mail: `status_email`, datas, tentativas, próxima tentativa e mensagem de erro ficam em `relatorio_atendimento`.
 
@@ -1060,11 +1106,13 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 | Tabela | Requisitos relacionados | Tipo de participação | Justificativa |
 |---|---|---|---|
-| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20, RF21 | Principal/Apoio | Base de identidade, autenticação e situação da conta; identifica participantes e administradores. |
-| `usuario_token_redefinicao_senha` | RF03 | Principal | Persiste o token, sua validade e consumo. |
-| `responsavel` | RF01, RF04, RF21 | Principal | Especializa a conta do responsável e mantém sua situação de aprovação. |
+| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20, RF21, RF22 | Principal/Apoio | Base de identidade, autenticação e situação da conta; identifica participantes e administradores. |
+| `usuario_token_redefinicao_senha` | RF03, RF22 | Principal/Apoio | Persiste o token de recuperação; tokens da conta são removidos na exclusão. |
+| `usuario_confirmacao_exclusao` | RF22 | Principal | Persiste somente o hash, a validade e o consumo da confirmação de identidade. |
+| `usuario_exclusao_auditoria` | RF22 | Principal | Audita a execução sem copiar dados pessoais ou sensíveis. |
+| `responsavel` | RF01, RF04, RF21, RF22 | Principal/Apoio | Especializa a conta do responsável; complementos pessoais são anonimizados no RF22. |
 | `responsavel_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o responsável. |
-| `cuidador` | RF01, RF04, RF05, RF06, RF07, RF21 | Principal/Apoio | Mantém o perfil profissional, sua situação de aprovação e dados analisados. |
+| `cuidador` | RF01, RF04, RF05, RF06, RF07, RF21, RF22 | Principal/Apoio | Mantém o perfil profissional; conteúdo público e disponibilidade são removidos no RF22. |
 | `cuidador_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o cuidador. |
 | `cuidador_disponibilidade_dia` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
 | `cuidador_disponibilidade_periodo` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
@@ -1073,7 +1121,7 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 | `cuidador_servico` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém serviços oferecidos. |
 | `pessoa_assistida` | RF01, RF04, RF08, RF10, RF17, RF18 | Principal/Apoio | Centraliza a pessoa, necessidades e endereço do cuidado. |
 | `pessoa_assistida_alergia` | RF01, RF04 | Apoio | Complementa o cadastro clínico. |
-| `pessoa_assistida_contato_emergencia` | RF01, RF04 | Apoio | Complementa o cadastro com contato emergencial. |
+| `pessoa_assistida_contato_emergencia` | RF01, RF04, RF22 | Apoio | Complementa o cadastro; remove a cópia dos dados do responsável excluído. |
 | `pessoa_assistida_restricao_alimentar` | RF01, RF04 | Apoio | Complementa o cadastro clínico e alimentar. |
 | `solicitacao_servico` | RF08, RF09, RF10, RF17 | Principal/Apoio | Unifica pedido direto, publicação, candidatura e origem do contrato. |
 | `solicitacao_servico_agenda_dia` | RF08, RF12 | Principal | Define a grade semanal solicitada e agendada. |
@@ -1082,7 +1130,7 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 | `solicitacao_servico_contratacao_historico_status` | RF09, RF10, RF11 | Principal | Registra a linha do tempo de solicitações e contratos. |
 | `solicitacao_servico_item_cuidado_copia` | RF08, RF13 | Apoio | Preserva o item de rotina acordado e origina tarefa. |
 | `solicitacao_servico_item_cuidado_copia_dia_semana` | RF08, RF13 | Apoio | Preserva os dias do item acordado. |
-| `contratacao` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18 | Principal/Apoio | Materializa o vínculo aceito e autoriza operações posteriores. |
+| `contratacao` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18, RF22 | Principal/Apoio | Materializa o vínculo aceito, impede exclusão durante operação e preserva o histórico anonimizado. |
 | `rotina_cuidado` | RF08, RF13 | Principal/Apoio | Modelo reutilizável selecionado na solicitação. |
 | `rotina_cuidado_item` | RF13 | Principal | Define cada cuidado planejado. |
 | `rotina_cuidado_item_dia_semana` | RF13 | Apoio | Define recorrência semanal do item. |
@@ -1095,8 +1143,8 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 | `registro_diario_cuidado` | RF15, RF16, RF19 | Principal/Apoio | Linha cronológica usada no diário e relatório. |
 | `registro_atendimento` | RF12, RF16, RF18, RF19 | Principal/Apoio | Registra presença e delimita atendimento válido. |
 | `relatorio_atendimento` | RF19 | Principal | Armazena relatório, finalização e entrega por e-mail. |
-| `notificacao` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Comunica eventos desses requisitos. |
-| `notificacao_preferencia` | RF09, RF11, RF14, RF17, RF18, RF19 | Apoio | Controla quais eventos são recebidos. |
+| `notificacao` | RF09, RF11, RF14, RF17, RF18, RF19, RF22 | Apoio | Comunica eventos e é removida com a conta excluída. |
+| `notificacao_preferencia` | RF09, RF11, RF14, RF17, RF18, RF19, RF22 | Apoio | Controla eventos e é removida com a conta excluída. |
 | `flyway_schema_history` | Nenhum RF funcional | Infraestrutura | Versiona a evolução técnica do schema. |
 
 ## 13. Pontos de atenção

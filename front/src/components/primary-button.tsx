@@ -15,12 +15,13 @@ type Props = PressableProps & {
   label: string;
   icon?: LucideIcon;
   loading?: boolean;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
 };
 
 export const PrimaryButton = forwardRef<React.ElementRef<typeof Pressable>, Props>(
   ({ label, icon: Icon, loading, variant = 'primary', disabled, accessibilityState, onPress, style, ...props }, ref) => {
     const secondary = variant === 'secondary';
+    const danger = variant === 'danger';
     const isDisabled = Boolean(disabled || loading);
     const foregroundColor = secondary ? colors.primary : colors.primaryForeground;
 
@@ -34,6 +35,7 @@ export const PrimaryButton = forwardRef<React.ElementRef<typeof Pressable>, Prop
         style={(state) => [
           styles.button,
           secondary && styles.secondary,
+          danger && styles.danger,
           isDisabled && styles.disabled,
           state.pressed && !isDisabled && styles.pressed,
           typeof style === 'function' ? style(state) : style,
@@ -76,6 +78,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     ...shadows.card,
+  },
+  danger: {
+    backgroundColor: colors.destructive,
+    shadowColor: colors.destructive,
   },
   pressed: {
     opacity: 0.86,

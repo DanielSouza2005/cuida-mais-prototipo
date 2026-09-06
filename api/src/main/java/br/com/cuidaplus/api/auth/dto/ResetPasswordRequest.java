@@ -66,4 +66,9 @@ public class ResetPasswordRequest {
     String resolved = resolvedPassword();
     return resolved == null || resolved.isBlank() || resolved.length() >= 6;
   }
+
+  @Override
+  public String toString() {
+    return "ResetPasswordRequest[token=[PROTEGIDO], password=[PROTEGIDA]]";
+  }
 }

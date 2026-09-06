@@ -225,6 +225,7 @@ public class AuthService {
   public MessageResponse requestPasswordReset(ForgotPasswordRequest request, String origin) {
     String email = UserService.normalizeEmail(request.email());
     userRepository.findByEmail(email).ifPresent(user -> {
+      if (!user.isActive()) return;
       invalidateUnusedTokens(user);
       String token = generateResetToken();
 
@@ -298,6 +299,9 @@ public class AuthService {
   }
 
   private void validateLoginStatus(User user) {
+    if (user.getAccountStatus() == AccountStatus.EXCLUIDO) {
+      throw new BusinessException("Sua conta foi excluída e não pode mais acessar o sistema.", HttpStatus.FORBIDDEN, "ACCOUNT_DELETED");
+    }
     if (user.getAccountStatus() == AccountStatus.BLOQUEADO) {
       throw new BusinessException("Sua conta está bloqueada. Entre em contato com o suporte para mais informações.", HttpStatus.FORBIDDEN, "ACCOUNT_BLOCKED");
     }

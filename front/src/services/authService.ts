@@ -10,6 +10,7 @@ import type {
   RegisterRequest,
   RegisterResponsiblePayload,
   ResetPasswordRequest,
+  ReauthenticateResponse,
   SignupRequest,
   User,
 } from '@/types/auth';
@@ -165,6 +166,22 @@ export function logout(token: string | null) {
   return apiRequest<MessageResponse>('/api/auth/logout', {
     method: 'POST',
     token,
+  });
+}
+
+export function reauthenticateForAccountDeletion(password: string, token?: string | null) {
+  return apiRequest<ReauthenticateResponse>('/api/auth/reauthenticate', {
+    method: 'POST',
+    token,
+    body: { senha: password },
+  });
+}
+
+export function deleteAccount(confirmationToken: string, token?: string | null) {
+  return apiRequest<MessageResponse>('/api/account', {
+    method: 'DELETE',
+    token,
+    body: { confirmationToken },
   });
 }
 

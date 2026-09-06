@@ -26,10 +26,10 @@ public class EmergencyContact {
   @JoinColumn(name = "assisted_person_id", nullable = false, unique = true)
   private AssistedPerson assistedPerson;
 
-  @Column(nullable = false, length = 140)
+  @Column(length = 140)
   private String nome;
 
-  @Column(nullable = false, length = 20)
+  @Column(length = 20)
   private String telefone;
 
   @Column(nullable = false, length = 120)

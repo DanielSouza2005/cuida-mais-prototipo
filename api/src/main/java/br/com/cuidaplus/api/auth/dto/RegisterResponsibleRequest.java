@@ -30,6 +30,11 @@ public record RegisterResponsibleRequest(
   @NotNull(message = "Informe a pessoa assistida.")
   AssistedPersonRequest assistedPerson
 ) {
+  @Override
+  public String toString() {
+    return "RegisterResponsibleRequest[dados=[PROTEGIDOS]]";
+  }
+
   public record ResponsibleProfileRequest(
     @NotNull(message = "Informe o parentesco.")
     Parentesco parentesco,

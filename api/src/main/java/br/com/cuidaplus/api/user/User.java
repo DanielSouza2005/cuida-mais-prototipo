@@ -32,7 +32,7 @@ public class User {
   @Column(nullable = false, length = 140)
   private String fullName;
 
-  @Column(nullable = false, length = 11)
+  @Column(length = 11)
   private String cpf;
 
   @Column(nullable = false, length = 180)
@@ -41,7 +41,7 @@ public class User {
   @Column(nullable = false)
   private String passwordHash;
 
-  @Column(nullable = false)
+  @Column
   private LocalDate birthDate;
 
   @Column(length = 20)
@@ -70,6 +70,12 @@ public class User {
   private UUID desbloqueadoPorUsuarioId;
 
   private Instant ultimoLoginEm;
+
+  private Instant exclusaoSolicitadaEm;
+
+  private Instant excluidoEm;
+
+  private Instant dadosAnonimizadosEm;
 
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
@@ -177,6 +183,12 @@ public class User {
   public void setDesbloqueadoPorUsuarioId(UUID value) { desbloqueadoPorUsuarioId = value; }
   public Instant getUltimoLoginEm() { return ultimoLoginEm; }
   public void setUltimoLoginEm(Instant value) { ultimoLoginEm = value; }
+  public Instant getExclusaoSolicitadaEm() { return exclusaoSolicitadaEm; }
+  public void setExclusaoSolicitadaEm(Instant value) { exclusaoSolicitadaEm = value; }
+  public Instant getExcluidoEm() { return excluidoEm; }
+  public void setExcluidoEm(Instant value) { excluidoEm = value; }
+  public Instant getDadosAnonimizadosEm() { return dadosAnonimizadosEm; }
+  public void setDadosAnonimizadosEm(Instant value) { dadosAnonimizadosEm = value; }
   public Instant getCreatedAt() { return createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }
   public boolean isActive() { return accountStatus == AccountStatus.ATIVO; }

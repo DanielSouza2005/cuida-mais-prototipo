@@ -173,5 +173,10 @@ export type MessageResponse = {
   message: string;
 };
 
+export type ReauthenticateResponse = {
+  confirmationToken: string;
+  expiresInSeconds: number;
+};
+
 export type RegistrationReviewResponse = MessageResponse;
 export type CaregiverRegistrationResponse = RegistrationReviewResponse;

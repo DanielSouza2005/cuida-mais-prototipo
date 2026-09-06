@@ -1,4 +1,4 @@
-import { router, type Href } from 'expo-router';
+import { router, type Href, useLocalSearchParams } from 'expo-router';
 import { Check, Lock, Mail, Wifi } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -41,6 +41,7 @@ function getLoginFeedback(error: unknown) {
 }
 
 export default function LoginScreen() {
+  const { accountDeleted } = useLocalSearchParams<{ accountDeleted?: string }>();
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
@@ -85,6 +86,16 @@ export default function LoginScreen() {
       hideSubscription.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (accountDeleted !== '1') return;
+    setConnectionToast({
+      description: 'Sua sessão foi encerrada e seus dados pessoais elegíveis foram tratados.',
+      id: Date.now(),
+      title: 'Conta excluída com sucesso',
+      variant: 'success',
+    });
+  }, [accountDeleted]);
 
   function handleEmailChange(value: string) {
     hasEditedEmail.current = true;

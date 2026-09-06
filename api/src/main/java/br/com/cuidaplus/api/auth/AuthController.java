@@ -1,5 +1,8 @@
 package br.com.cuidaplus.api.auth;
 
+import br.com.cuidaplus.api.account.AccountDeletionService;
+import br.com.cuidaplus.api.account.dto.ReauthenticateRequest;
+import br.com.cuidaplus.api.account.dto.ReauthenticateResponse;
 import br.com.cuidaplus.api.auth.dto.AuthResponse;
 import br.com.cuidaplus.api.auth.dto.ForgotPasswordRequest;
 import br.com.cuidaplus.api.auth.dto.LoginRequest;
@@ -8,6 +11,7 @@ import br.com.cuidaplus.api.auth.dto.RegisterRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterResponsibleRequest;
 import br.com.cuidaplus.api.auth.dto.ResetPasswordRequest;
 import br.com.cuidaplus.api.common.MessageResponse;
+import br.com.cuidaplus.api.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,9 +27,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class AuthController {
 
   private final AuthService authService;
+  private final AccountDeletionService accountDeletionService;
 
-  public AuthController(AuthService authService) {
+  public AuthController(AuthService authService, AccountDeletionService accountDeletionService) {
     this.authService = authService;
+    this.accountDeletionService = accountDeletionService;
   }
 
   @PostMapping("/register")
@@ -56,6 +62,11 @@ public class AuthController {
     return authService.login(request);
   }
 
+  @PostMapping("/reauthenticate")
+  public ReauthenticateResponse reauthenticate(@Valid @RequestBody ReauthenticateRequest request) {
+    return accountDeletionService.reauthenticate(AuthenticatedUser.id(), request.senha());
+  }
+
   @PostMapping("/forgot-password")
   public MessageResponse forgotPassword(
     @Valid @RequestBody ForgotPasswordRequest request,
@@ -71,6 +82,7 @@ public class AuthController {
 
   @PostMapping("/logout")
   public MessageResponse logout() {
+    accountDeletionService.invalidateConfirmations(AuthenticatedUser.id());
     return authService.logout();
   }
 }

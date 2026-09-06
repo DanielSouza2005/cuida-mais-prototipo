@@ -1,4 +1,4 @@
-export type AccountStatus = 'ATIVO' | 'BLOQUEADO' | 'INATIVO';
+export type AccountStatus = 'ATIVO' | 'BLOQUEADO' | 'INATIVO' | 'EXCLUIDO';
 export type CaregiverApprovalStatus = 'PENDENTE' | 'APROVADO' | 'REPROVADO' | 'BLOQUEADO';
 export type ResponsibleApprovalStatus = 'PENDENTE' | 'APROVADO' | 'REPROVADO' | 'BLOQUEADO';
 export type AdminDashboardSummary = { pendingCaregivers:number; pendingResponsibles:number; totalUsers:number;

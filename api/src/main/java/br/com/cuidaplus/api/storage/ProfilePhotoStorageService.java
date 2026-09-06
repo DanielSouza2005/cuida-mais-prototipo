@@ -65,6 +65,19 @@ public class ProfilePhotoStorageService {
     return file.getParent().equals(uploadDirectory) && Files.isRegularFile(file) ? file : null;
   }
 
+  public void delete(String publicUrl) {
+    if (publicUrl == null || !publicUrl.startsWith(publicBaseUrl + "/")) return;
+    String filename = publicUrl.substring(publicBaseUrl.length() + 1);
+    if (!filename.matches("[0-9a-fA-F-]{36}\\.(jpg|png|webp)")) return;
+    Path file = uploadDirectory.resolve(filename).normalize();
+    if (!file.getParent().equals(uploadDirectory)) return;
+    try {
+      Files.deleteIfExists(file);
+    } catch (IOException ignored) {
+      // A conta já foi anonimizada; uma falha de armazenamento não reabre o acesso.
+    }
+  }
+
   private String detectContentType(MultipartFile photo) {
     try {
       byte[] header = photo.getInputStream().readNBytes(12);

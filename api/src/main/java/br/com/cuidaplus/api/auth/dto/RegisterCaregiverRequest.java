@@ -27,6 +27,11 @@ public record RegisterCaregiverRequest(
   @NotNull(message = "Informe o perfil profissional do cuidador.")
   CaregiverProfileRequest caregiverProfile
 ) {
+  @Override
+  public String toString() {
+    return "RegisterCaregiverRequest[dados=[PROTEGIDOS]]";
+  }
+
   public record CaregiverProfileRequest(
     @NotNull(message = "Informe seu tempo de experiência.")
     TempoExperiencia tempoExperiencia,

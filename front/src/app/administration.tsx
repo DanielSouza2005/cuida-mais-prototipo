@@ -17,7 +17,7 @@ import { caregiverEducationOptions, caregiverExperienceRangeOptions, caregiverSe
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 export type AdministrationArea='users'|'caregivers'|'responsibles';
-const accountFilters:{value?:AccountStatus;label:string}[]=[{label:'Todas'},{value:'ATIVO',label:'Ativas'},{value:'BLOQUEADO',label:'Bloqueadas'},{value:'INATIVO',label:'Inativas'}];
+const accountFilters:{value?:AccountStatus;label:string}[]=[{label:'Todas'},{value:'ATIVO',label:'Ativas'},{value:'BLOQUEADO',label:'Bloqueadas'},{value:'INATIVO',label:'Inativas'},{value:'EXCLUIDO',label:'Excluídas'}];
 const approvalFilters:{value?:CaregiverApprovalStatus;label:string}[]=[{label:'Todos'},{value:'PENDENTE',label:'Pendentes'},{value:'APROVADO',label:'Aprovados'},{value:'REPROVADO',label:'Reprovados'},{value:'BLOQUEADO',label:'Bloqueados'}];
 const date=(value?:string|null)=>value?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value)):'Não informado';
 const labelOf=(value:string|undefined|null,options:readonly {value:string;label:string}[])=>options.find(item=>item.value===value)?.label??'Não informado';

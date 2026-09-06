@@ -33,4 +33,9 @@ public record RegisterUserDataRequest(
   @NotNull(message = "Informe a data de nascimento.")
   @PastOrPresent(message = "A data de nascimento não pode ser futura.")
   LocalDate dataNascimento
-) {}
+) {
+  @Override
+  public String toString() {
+    return "RegisterUserDataRequest[dados=[PROTEGIDOS]]";
+  }
+}

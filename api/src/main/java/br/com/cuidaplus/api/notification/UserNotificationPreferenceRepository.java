@@ -9,4 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface UserNotificationPreferenceRepository extends JpaRepository<UserNotificationPreference, UUID> {
   Optional<UserNotificationPreference> findByUserAndNotificationType(User user, NotificationType notificationType);
   List<UserNotificationPreference> findByUser(User user);
+  void deleteByUser(User user);
 }

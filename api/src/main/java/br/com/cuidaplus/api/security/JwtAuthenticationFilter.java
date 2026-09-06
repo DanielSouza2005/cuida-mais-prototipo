@@ -73,6 +73,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   }
 
   private void validateAccess(User user) {
+    if (user.getAccountStatus() == AccountStatus.EXCLUIDO) {
+      throw new BusinessException("Sua conta foi excluída e não pode mais acessar o sistema.", HttpStatus.FORBIDDEN, "ACCOUNT_DELETED");
+    }
     if (user.getAccountStatus() != AccountStatus.ATIVO) {
       throw new BusinessException("Sua conta está bloqueada. Entre em contato com o suporte para mais informações.", HttpStatus.FORBIDDEN, "ACCOUNT_BLOCKED");
     }

@@ -14,6 +14,8 @@ public interface CareContractRepository extends JpaRepository<CareContract, UUID
   List<CareContract> findByCaregiverUserOrderByUpdatedAtDesc(User caregiver);
   Optional<CareContract> findFirstByCaregiverUserAndServiceRequestSourceOpportunityId(User caregiver, UUID sourceOpportunityId);
   Optional<CareContract> findByIdAndResponsibleUser(UUID id, User responsible);
+  @Query("select (count(contract) > 0) from CareContract contract where contract.status in :statuses and (contract.responsibleUser = :user or contract.caregiverUser = :user)")
+  boolean existsOperationalContract(@Param("user") User user, @Param("statuses") Collection<CareContractStatus> statuses);
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select contract from CareContract contract where contract.id = :id")
   Optional<CareContract> findForUpdateById(@Param("id") UUID id);

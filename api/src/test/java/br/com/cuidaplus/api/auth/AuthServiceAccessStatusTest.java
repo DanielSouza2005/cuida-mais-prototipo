@@ -50,6 +50,13 @@ class AuthServiceAccessStatusTest {
       .isInstanceOfSatisfying(BusinessException.class, error -> assertThat(error.getCode()).isEqualTo("ACCOUNT_BLOCKED"));
   }
 
+  @Test void deletedAccountDoesNotReceiveToken() {
+    User user = user("deleted@example.com", UserType.RESPONSAVEL);
+    user.setAccountStatus(AccountStatus.EXCLUIDO); users.save(user);
+    assertThatThrownBy(() -> authService.login(new LoginRequest(user.getEmail(), "secret123")))
+      .isInstanceOfSatisfying(BusinessException.class, error -> assertThat(error.getCode()).isEqualTo("ACCOUNT_DELETED"));
+  }
+
   @Test void pendingCaregiverDoesNotReceiveToken() {
     User user = user("pending@example.com", UserType.CUIDADOR);
     CaregiverProfile profile = new CaregiverProfile(); profile.setUser(user);
