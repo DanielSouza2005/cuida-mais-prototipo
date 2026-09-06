@@ -9,20 +9,23 @@ type Props = {
   description?: string;
   icon: LucideIcon;
   onPress?: () => void;
+  variant?: 'default' | 'danger';
 };
 
-export function SettingsRow({ title, description, icon: Icon, onPress }: Props) {
+export function SettingsRow({ title, description, icon: Icon, onPress, variant = 'default' }: Props) {
+  const danger = variant === 'danger';
+
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}
+      style={({ pressed }) => [styles.row, danger && styles.dangerRow, pressed && onPress && styles.pressed]}
     >
-      <View style={styles.iconBox}>
-        <Icon color={colors.primary} size={20} />
+      <View style={[styles.iconBox, danger && styles.dangerIconBox]}>
+        <Icon color={danger ? colors.destructive : colors.primary} size={20} />
       </View>
       <View style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, danger && styles.dangerTitle]}>{title}</Text>
         {description ? <Text style={styles.description}>{description}</Text> : null}
       </View>
       <ChevronRight color={colors.mutedForeground} size={18} />
@@ -45,6 +48,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.76,
   },
+  dangerRow: {
+    borderColor: '#F1C8C3',
+  },
   iconBox: {
     width: 42,
     height: 42,
@@ -52,6 +58,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dangerIconBox: {
+    backgroundColor: colors.coralBackground,
   },
   copy: {
     flex: 1,
@@ -61,6 +70,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     fontSize: 14,
     color: colors.foreground,
+  },
+  dangerTitle: {
+    color: colors.destructive,
   },
   description: {
     fontFamily: fontFamily.regular,

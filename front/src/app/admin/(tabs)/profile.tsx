@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, Shield } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -39,6 +39,12 @@ export default function AdminProfileScreen() {
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Conta</Text>
+        <SettingsRow
+          title="Privacidade"
+          description="Dados tratados, direitos e opções da conta"
+          icon={Shield}
+          onPress={() => router.push('/profile-privacy')}
+        />
         <SettingsRow
           title={isLoggingOut ? 'Saindo...' : 'Sair'}
           description="Encerrar sessão neste aparelho"

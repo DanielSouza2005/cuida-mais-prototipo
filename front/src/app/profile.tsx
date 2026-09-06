@@ -147,7 +147,7 @@ export default function ProfileScreen() {
         />
         {!isCaregiver ? <SettingsRow title="Rotina de Cuidados" description="Cadastre rotinas para reutilizar nas solicitações de serviço" icon={ClipboardCheck} onPress={() => router.push('/care-tasks' as Href)} /> : null}
         <SettingsRow title="Notificações" description="Preferências de comunicação" icon={Bell} onPress={() => router.push('/profile-notifications')} />
-        <SettingsRow title="Privacidade" description="Segurança da conta e dados pessoais" icon={Shield} onPress={() => router.push('/profile-privacy')} />
+        <SettingsRow title="Privacidade" description="Uso de dados, direitos e opções da conta" icon={Shield} onPress={() => router.push('/profile-privacy')} />
         <SettingsRow
           title={isLoggingOut ? 'Saindo...' : 'Sair'}
           description="Encerrar sessão neste aparelho"

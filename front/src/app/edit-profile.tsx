@@ -39,7 +39,7 @@ export default function EditProfileScreen() {
           </>
         ) : null}
         <SettingsRow title="Notificações" description="Funcionalidade em desenvolvimento" icon={Bell} onPress={() => router.push('/profile-notifications')} />
-        <SettingsRow title="Privacidade" description="Segurança da conta e exclusão de dados" icon={Shield} onPress={() => router.push('/profile-privacy')} />
+        <SettingsRow title="Privacidade" description="Uso de dados, direitos e opções da conta" icon={Shield} onPress={() => router.push('/profile-privacy')} />
       </View>
     </ScreenContainer>
   );

@@ -1042,6 +1042,12 @@ Contratações encerradas, solicitações, tarefas, ocorrências, diário, atend
 
 Na administração, contas excluídas ficam fora das listagens por padrão e aparecem somente quando o filtro explícito `EXCLUIDO` é usado; perfis excluídos não aparecem nas filas funcionais. Como os identificadores e os registros históricos permanecem, esta é exclusão lógica com anonimização, distinta tanto de remoção física quanto de retenção irrestrita.
 
+## 7.2 Consulta de informações de privacidade (RF23)
+
+O RF23 apresenta conteúdo institucional estático na interface sobre categorias de dados tratados, finalidades, dados pessoais sensíveis, compartilhamento, retenção, segurança e direitos dos titulares. A área também oferece acesso à Política de Privacidade e reutiliza o fluxo de exclusão de conta do RF22.
+
+O requisito não exige tabela própria nesta versão. Ele se relaciona indiretamente a `usuario`, `cuidador`, `responsavel`, `pessoa_assistida`, `contratacao`, `ocorrencia_cuidado`, `registro_diario_cuidado` e `relatorio_atendimento`, pois essas estruturas representam as categorias de informação explicadas ao usuário. Caso o conteúdo precise ser administrado ou versionado futuramente, poderá ser avaliada uma estrutura específica para documentos institucionais, sem antecipá-la no schema atual.
+
 ## 8. Critérios de rastreabilidade
 
 As matrizes classificam a participação como **Principal** quando a persistência é indispensável à execução do requisito, **Apoio** quando complementa uma tabela principal, **Indireta** quando participa apenas por encadeamento e **Infraestrutura** quando não implementa funcionalidade de usuário. Estruturas removidas não integram as matrizes do schema vigente; a seção 12 aponta o relatório histórico correspondente.
@@ -1072,6 +1078,7 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF20 | Gerenciamento administrativo de usuários | Consulta, detalhamento, bloqueio e desbloqueio de contas por administrador. |
 | RF21 | Aprovação e reprovação de perfis | Análise de cuidadores e responsáveis, histórico, restrição de acesso e comunicação por e-mail. |
 | RF22 | Exclusão de conta | Reautenticação, impedimentos operacionais, anonimização, revogação de acesso, retenção restrita e auditoria mínima. |
+| RF23 | Consulta de informações de privacidade | Consulta das categorias de dados tratados, finalidades, direitos, Política de Privacidade e acesso ao fluxo de exclusão de conta. |
 
 ## 10. Rastreabilidade: requisitos funcionais para tabelas
 
@@ -1099,6 +1106,7 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF20 | Gerenciamento administrativo de usuários | `usuario` | — | Mantém situação da conta, motivo, datas e administradores responsáveis por bloqueio e desbloqueio. |
 | RF21 | Aprovação e reprovação de perfis | `responsavel`, `responsavel_historico_situacao`, `cuidador`, `cuidador_historico_situacao` | `usuario`, `cuidador_formacao`, `cuidador_modalidade`, `cuidador_servico`, `cuidador_disponibilidade_dia`, `cuidador_disponibilidade_periodo` | Persiste as decisões, suas auditorias e os dados analisados; somente perfis aprovados e ativos acessam os fluxos funcionais. |
 | RF22 | Exclusão de conta | `usuario`, `usuario_confirmacao_exclusao`, `usuario_exclusao_auditoria` | `responsavel`, `cuidador`, coleções do perfil, `pessoa_assistida_contato_emergencia`, `usuario_token_redefinicao_senha`, `notificacao`, `notificacao_preferencia`, `contratacao` | Confirma novamente a identidade, bloqueia exclusão com serviço operacional, anonimiza dados elegíveis e preserva o histórico compartilhado. |
+| RF23 | Consulta de informações de privacidade | — | `usuario`, `cuidador`, `responsavel`, `pessoa_assistida`, `contratacao`, `ocorrencia_cuidado`, `registro_diario_cuidado`, `relatorio_atendimento` | Não exige tabela própria: o conteúdo institucional estático explica ao usuário as categorias de dados representadas indiretamente por essas estruturas. |
 
 Não existe tabela separada para envio de e-mail: `status_email`, datas, tentativas, próxima tentativa e mensagem de erro ficam em `relatorio_atendimento`.
 
@@ -1106,20 +1114,20 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 | Tabela | Requisitos relacionados | Tipo de participação | Justificativa |
 |---|---|---|---|
-| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20, RF21, RF22 | Principal/Apoio | Base de identidade, autenticação e situação da conta; identifica participantes e administradores. |
+| `usuario` | RF01, RF02, RF03, RF04, RF05, RF06, RF07, RF10, RF17, RF18, RF20, RF21, RF22, RF23 | Principal/Apoio/Indireta | Base de identidade, autenticação e situação da conta; identifica participantes e administradores e representa dados de cadastro explicados no RF23. |
 | `usuario_token_redefinicao_senha` | RF03, RF22 | Principal/Apoio | Persiste o token de recuperação; tokens da conta são removidos na exclusão. |
 | `usuario_confirmacao_exclusao` | RF22 | Principal | Persiste somente o hash, a validade e o consumo da confirmação de identidade. |
 | `usuario_exclusao_auditoria` | RF22 | Principal | Audita a execução sem copiar dados pessoais ou sensíveis. |
-| `responsavel` | RF01, RF04, RF21, RF22 | Principal/Apoio | Especializa a conta do responsável; complementos pessoais são anonimizados no RF22. |
+| `responsavel` | RF01, RF04, RF21, RF22, RF23 | Principal/Apoio/Indireta | Especializa a conta do responsável; complementos pessoais são anonimizados no RF22 e integram as categorias explicadas no RF23. |
 | `responsavel_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o responsável. |
-| `cuidador` | RF01, RF04, RF05, RF06, RF07, RF21, RF22 | Principal/Apoio | Mantém o perfil profissional; conteúdo público e disponibilidade são removidos no RF22. |
+| `cuidador` | RF01, RF04, RF05, RF06, RF07, RF21, RF22, RF23 | Principal/Apoio/Indireta | Mantém o perfil profissional; conteúdo público e disponibilidade são removidos no RF22 e explicados como categoria no RF23. |
 | `cuidador_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o cuidador. |
 | `cuidador_disponibilidade_dia` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
 | `cuidador_disponibilidade_periodo` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
 | `cuidador_formacao` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém múltiplas qualificações. |
 | `cuidador_modalidade` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém modalidades de atendimento. |
 | `cuidador_servico` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém serviços oferecidos. |
-| `pessoa_assistida` | RF01, RF04, RF08, RF10, RF17, RF18 | Principal/Apoio | Centraliza a pessoa, necessidades e endereço do cuidado. |
+| `pessoa_assistida` | RF01, RF04, RF08, RF10, RF17, RF18, RF23 | Principal/Apoio/Indireta | Centraliza a pessoa, necessidades e endereço do cuidado, incluindo categorias assistenciais explicadas no RF23. |
 | `pessoa_assistida_alergia` | RF01, RF04 | Apoio | Complementa o cadastro clínico. |
 | `pessoa_assistida_contato_emergencia` | RF01, RF04, RF22 | Apoio | Complementa o cadastro; remove a cópia dos dados do responsável excluído. |
 | `pessoa_assistida_restricao_alimentar` | RF01, RF04 | Apoio | Complementa o cadastro clínico e alimentar. |
@@ -1130,19 +1138,19 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 | `solicitacao_servico_contratacao_historico_status` | RF09, RF10, RF11 | Principal | Registra a linha do tempo de solicitações e contratos. |
 | `solicitacao_servico_item_cuidado_copia` | RF08, RF13 | Apoio | Preserva o item de rotina acordado e origina tarefa. |
 | `solicitacao_servico_item_cuidado_copia_dia_semana` | RF08, RF13 | Apoio | Preserva os dias do item acordado. |
-| `contratacao` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18, RF22 | Principal/Apoio | Materializa o vínculo aceito, impede exclusão durante operação e preserva o histórico anonimizado. |
+| `contratacao` | RF09, RF10, RF11, RF12, RF15, RF16, RF17, RF18, RF22, RF23 | Principal/Apoio/Indireta | Materializa o vínculo aceito, impede exclusão durante operação, preserva o histórico anonimizado e representa dados de contratação explicados no RF23. |
 | `rotina_cuidado` | RF08, RF13 | Principal/Apoio | Modelo reutilizável selecionado na solicitação. |
 | `rotina_cuidado_item` | RF13 | Principal | Define cada cuidado planejado. |
 | `rotina_cuidado_item_dia_semana` | RF13 | Apoio | Define recorrência semanal do item. |
 | `tarefa_cuidado` | RF13, RF14, RF15 | Principal/Apoio | Série operacional exibida, lembrada e executada. |
 | `tarefa_cuidado_dia_semana` | RF13 | Apoio | Materializa a recorrência semanal. |
 | `tarefa_cuidado_auditoria` | RF13, RF15 | Principal/Apoio | Preserva mudanças e ações de execução. |
-| `ocorrencia_cuidado` | RF12, RF14, RF15, RF16, RF19 | Principal/Apoio | Representa cada execução em data e horário. |
+| `ocorrencia_cuidado` | RF12, RF14, RF15, RF16, RF19, RF23 | Principal/Apoio/Indireta | Representa cada execução em data e horário e integra os registros assistenciais explicados no RF23. |
 | `ocorrencia_cuidado_foto` | RF15, RF16, RF19 | Apoio | Evidência de cuidados planejados ou avulsos. |
 | `ocorrencia_cuidado_lembrete` | RF14 | Principal | Agenda e deduplica os lembretes. |
-| `registro_diario_cuidado` | RF15, RF16, RF19 | Principal/Apoio | Linha cronológica usada no diário e relatório. |
+| `registro_diario_cuidado` | RF15, RF16, RF19, RF23 | Principal/Apoio/Indireta | Linha cronológica usada no diário e relatório e integra os registros assistenciais explicados no RF23. |
 | `registro_atendimento` | RF12, RF16, RF18, RF19 | Principal/Apoio | Registra presença e delimita atendimento válido. |
-| `relatorio_atendimento` | RF19 | Principal | Armazena relatório, finalização e entrega por e-mail. |
+| `relatorio_atendimento` | RF19, RF23 | Principal/Indireta | Armazena relatório, finalização e entrega por e-mail e representa uma categoria assistencial explicada no RF23. |
 | `notificacao` | RF09, RF11, RF14, RF17, RF18, RF19, RF22 | Apoio | Comunica eventos e é removida com a conta excluída. |
 | `notificacao_preferencia` | RF09, RF11, RF14, RF17, RF18, RF19, RF22 | Apoio | Controla eventos e é removida com a conta excluída. |
 | `flyway_schema_history` | Nenhum RF funcional | Infraestrutura | Versiona a evolução técnica do schema. |
