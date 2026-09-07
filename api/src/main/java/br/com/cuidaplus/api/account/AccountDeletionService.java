@@ -213,9 +213,7 @@ public class AccountDeletionService {
   private void anonymizeUser(User user, Instant now) {
     user.setFullName(user.isCaregiver() ? "Cuidador removido" : user.isResponsible() ? "Responsável removido" : "Usuário removido");
     user.setEmail("excluido_" + user.getId() + "@anon.local");
-    user.setCpf(null);
     user.setPhone(null);
-    user.setBirthDate(null);
     user.setProfilePhotoUrl(null);
     user.setPasswordHash("!conta-excluida:" + user.getId());
     user.setMotivoBloqueio(null);

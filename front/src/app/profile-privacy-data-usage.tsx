@@ -10,8 +10,9 @@ const categories = [
   {
     title: 'Informações de cadastro',
     icon: UserRound,
-    data: ['Nome', 'E-mail', 'CPF', 'Telefone', 'Data de nascimento', 'Endereço'],
-    purpose: 'Usamos essas informações para identificar o usuário, possibilitar o funcionamento da conta, proteger o acesso e viabilizar os recursos da plataforma.',
+    data: ['Nome', 'E-mail', 'Senha', 'Confirmação de faixa etária', 'Telefone, quando informado', 'Foto de perfil, quando informada'],
+    purpose: 'Usamos essas informações para criar e proteger sua conta, identificar seu perfil na plataforma e permitir o uso das funcionalidades do Cuidar+.',
+    note: 'Em vez de coletar sua data completa de nascimento, solicitamos apenas a confirmação de que você está na faixa etária permitida para usar a plataforma. O telefone é opcional e pode ser utilizado somente quando necessário para contato relacionado ao serviço.',
   },
   {
     title: 'Localização',

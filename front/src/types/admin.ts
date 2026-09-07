@@ -11,14 +11,14 @@ export type AdminUserSummary = { id:string; name:string; email:string; profileTy
 export type AdminUserPage = { content:AdminUserSummary[]; page:number; size:number; totalElements:number; totalPages:number };
 export type AdminHistoryItem = { previousStatus?:CaregiverApprovalStatus|null; newStatus:CaregiverApprovalStatus;
   newStatusLabel:string; reason?:string|null; administratorId:string; administratorName:string; createdAt:string };
-export type AdminCaregiverDetails = { id:string; userId:string; name:string; email:string; cpf:string; phone?:string|null;
+export type AdminCaregiverDetails = { id:string; userId:string; name:string; email:string; phone?:string|null;
   profilePhotoUrl?:string|null; biography?:string|null; experience?:string|null; formations:string[]; otherFormation?:string|null;
   modalities:string[]; otherModality?:string|null; services:string[]; otherService?:string|null; city?:string|null;
   neighborhood?:string|null; state?:string|null; availabilityDays:string[]; availabilityPeriods:string[];
   availabilityStart?:string|null; availabilityEnd?:string|null; availabilityNotes?:string|null;
   status:CaregiverApprovalStatus; statusLabel:string;
   rejectionReason?:string|null; professionalBlockReason?:string|null; analyzedAt?:string|null; createdAt:string; history:AdminHistoryItem[] };
-export type AdminUserDetails = { id:string; name:string; email:string; cpf:string; phone?:string|null; birthDate:string;
+export type AdminUserDetails = { id:string; name:string; email:string; phone?:string|null;
   profileType:string; profileLabel:string; accountStatus:AccountStatus; accountStatusLabel:string; accountBlockReason?:string|null;
   blockedAt?:string|null; unblockedAt?:string|null; lastLoginAt?:string|null; createdAt:string;
   caregiver?:AdminCaregiverDetails|null; responsible?:AdminResponsibleDetails|null };
@@ -27,8 +27,8 @@ export type AdminCaregiverSummary = { id:string; userId:string; name:string; ema
 export type AdminCaregiverPage = { content:AdminCaregiverSummary[]; page:number; size:number; totalElements:number; totalPages:number };
 export type AdminResponsibleHistoryItem = { previousStatus?:ResponsibleApprovalStatus|null; newStatus:ResponsibleApprovalStatus;
   newStatusLabel:string; reason?:string|null; administratorId:string; administratorName:string; createdAt:string };
-export type AdminResponsibleDetails = { id:string; userId:string; name:string; email:string; cpf:string; phone?:string|null;
-  relationship:string; otherRelationship?:string|null; contactPreference:string; status:ResponsibleApprovalStatus;
+export type AdminResponsibleDetails = { id:string; userId:string; name:string; email:string; phone?:string|null;
+  relationship:string; otherRelationship?:string|null; contactPreference?:string|null; status:ResponsibleApprovalStatus;
   statusLabel:string; rejectionReason?:string|null; blockReason?:string|null; analyzedAt?:string|null; createdAt:string;
   history:AdminResponsibleHistoryItem[] };
 export type AdminResponsibleSummary = { id:string; userId:string; name:string; email:string; relationship:string;

@@ -14,7 +14,6 @@ import br.com.cuidaplus.api.security.TokenService;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserType;
-import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,8 +37,8 @@ class AdminAuthorizationTest {
   User administrator; User responsible;
 
   @BeforeEach void setup(){
-    caregivers.deleteAll(); users.deleteAll(); administrator=save("admin@example.com","12345678901",UserType.ADMIN);
-    responsible=save("responsible@example.com","10987654321",UserType.RESPONSAVEL);
+    caregivers.deleteAll(); users.deleteAll(); administrator=save("admin@example.com",UserType.ADMIN);
+    responsible=save("responsible@example.com",UserType.RESPONSAVEL);
   }
 
   @Test void commonUserCannotAccessAdministrativeEndpoint() throws Exception {
@@ -58,10 +57,10 @@ class AdminAuthorizationTest {
   }
 
   @Test void administratorCanListCaregiversWithAllSupportedApprovalFilters() throws Exception {
-    saveCaregiver("pending@example.com","11122233344",CaregiverApprovalStatus.PENDENTE);
-    saveCaregiver("approved@example.com","22233344455",CaregiverApprovalStatus.APROVADO);
-    saveCaregiver("rejected@example.com","33344455566",CaregiverApprovalStatus.REPROVADO);
-    saveCaregiver("blocked@example.com","44455566677",CaregiverApprovalStatus.BLOQUEADO);
+    saveCaregiver("pending@example.com",CaregiverApprovalStatus.PENDENTE);
+    saveCaregiver("approved@example.com",CaregiverApprovalStatus.APROVADO);
+    saveCaregiver("rejected@example.com",CaregiverApprovalStatus.REPROVADO);
+    saveCaregiver("blocked@example.com",CaregiverApprovalStatus.BLOQUEADO);
     String authorization="Bearer "+tokens.generate(administrator.getId());
 
     mvc.perform(get("/api/admin/caregivers").header("Authorization",authorization))
@@ -103,6 +102,6 @@ class AdminAuthorizationTest {
       .andExpect(status().isForbidden());
   }
 
-  private User save(String email,String cpf,UserType type){User user=new User();user.setFullName("Pessoa Teste");user.setCpf(cpf);user.setEmail(email);user.setBirthDate(LocalDate.of(1990,1,1));user.setPasswordHash("not-used");user.setUserType(type);return users.save(user);}
-  private CaregiverProfile saveCaregiver(String email,String cpf,CaregiverApprovalStatus status){User caregiver=save(email,cpf,UserType.CUIDADOR);CaregiverProfile profile=new CaregiverProfile();profile.setUser(caregiver);profile.getFormacoes().add(FormacaoCuidador.CURSO_CUIDADOR_IDOSOS);profile.setSituacaoAprovacao(status);return caregivers.save(profile);}
+  private User save(String email,UserType type){User user=new User();user.setFullName("Pessoa Teste");user.setEmail(email);user.setMaiorDeIdadeConfirmado(true);user.setPasswordHash("not-used");user.setUserType(type);return users.save(user);}
+  private CaregiverProfile saveCaregiver(String email,CaregiverApprovalStatus status){User caregiver=save(email,UserType.CUIDADOR);CaregiverProfile profile=new CaregiverProfile();profile.setUser(caregiver);profile.getFormacoes().add(FormacaoCuidador.CURSO_CUIDADOR_IDOSOS);profile.setSituacaoAprovacao(status);return caregivers.save(profile);}
 }

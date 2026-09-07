@@ -5,7 +5,6 @@ import {
   Calendar,
   Check,
   HeartPulse,
-  IdCard,
   Lock,
   Mail,
   MapPin,
@@ -59,11 +58,10 @@ import type { Address, AssistedPerson, CaregiverProfile, SelectedProfilePhoto, U
 import { MAX_PROFILE_PHOTO_SIZE, toSelectedProfilePhoto } from '@/utils/profilePhoto';
 import {
   formatCep,
-  formatCpf,
   formatPhone,
   isValidEmailFormat,
+  isValidPhoneFormat,
   unformatCep,
-  unformatCpf,
   unformatPhone,
 } from '@/utils/masks';
 
@@ -113,19 +111,17 @@ export default function SignupScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(true);
 
   const [fullName, setFullName] = useState('');
-  const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [phone, setPhone] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  const [maiorDeIdadeConfirmado, setMaiorDeIdadeConfirmado] = useState(false);
 
   const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [relationshipCustom, setRelationshipCustom] = useState('');
   const [contactPreference, setContactPreference] = useState<ContactPreference | null>(null);
   const [assistedName, setAssistedName] = useState('');
   const [assistedBirthDate, setAssistedBirthDate] = useState('');
-  const [assistedCpf, setAssistedCpf] = useState('');
   const [dependencyLevel, setDependencyLevel] = useState<DependencyLevel | null>(null);
   const [mobility, setMobility] = useState<Mobility | null>(null);
   const [mobilityCustom, setMobilityCustom] = useState('');
@@ -341,21 +337,19 @@ export default function SignupScreen() {
 
   function validatePersonalData() {
     if (!fullName.trim()) return 'Informe seu nome completo.';
-    if (!cpf.trim()) return 'Informe seu CPF.';
     if (!email.trim()) return 'Informe seu e-mail.';
     if (!isValidEmailFormat(email)) return 'Informe um e-mail válido.';
     if (!password) return 'Informe uma senha.';
     if (!passwordConfirmation) return 'Confirme sua senha.';
     if (passwordConfirmation !== password) return 'A confirmação de senha deve ser igual à senha.';
-    if (!phone.trim()) return 'Informe seu telefone.';
-    if (!birthDate.trim()) return 'Informe sua data de nascimento.';
+    if (phone.trim() && !isValidPhoneFormat(phone)) return 'Informe um telefone válido com DDD.';
+    if (!maiorDeIdadeConfirmado) return 'Para continuar, confirme que você tem 18 anos ou mais.';
     return null;
   }
 
   function validateResponsibleRelationship() {
     if (!relationship) return 'Informe o vínculo com a pessoa assistida.';
     if (relationship === 'OUTRO' && !relationshipCustom.trim()) return 'Informe o parentesco personalizado.';
-    if (!contactPreference) return 'Informe a preferência de contato.';
     return null;
   }
 
@@ -380,7 +374,9 @@ export default function SignupScreen() {
     if (!careAddress.bairro.trim()) return 'Informe o bairro do cuidado.';
     if (!careAddress.cidade.trim()) return 'Informe a cidade do cuidado.';
     if (!careAddress.estado.trim()) return 'Informe o estado do cuidado.';
-    if (useResponsibleAsEmergencyContact) return null;
+    if (useResponsibleAsEmergencyContact) {
+      return phone.trim() ? null : 'Informe o telefone da conta ou cadastre outro contato de emergência.';
+    }
     if (!emergencyName.trim() || !emergencyPhone.trim() || !emergencyRelation.trim()) {
       return 'Informe nome, telefone e vínculo do contato de emergência.';
     }
@@ -434,10 +430,9 @@ export default function SignupScreen() {
   function buildUser(tipoUsuario: UserBase['tipoUsuario']): UserBase {
     return {
       nome: fullName.trim(),
-      cpf: unformatCpf(cpf),
       email: email.trim(),
-      telefone: unformatPhone(phone),
-      dataNascimento: birthDate.trim(),
+      telefone: phone.trim() ? unformatPhone(phone) : null,
+      maiorDeIdadeConfirmado,
       tipoUsuario,
       status: 'ACTIVE',
     };
@@ -447,7 +442,6 @@ export default function SignupScreen() {
     return {
       nome: assistedName.trim(),
       dataNascimento: assistedBirthDate.trim(),
-      cpf: assistedCpf.trim() ? unformatCpf(assistedCpf) : undefined,
       grauDependencia: dependencyLevel ?? 'NAO_SEI_INFORMAR',
       mobilidade: mobility ?? 'OUTRO',
       mobilidadePersonalizada: mobility === 'OUTRO' ? mobilityCustom.trim() : undefined,
@@ -563,10 +557,20 @@ export default function SignupScreen() {
         {step === 1 ? (
           <>
             <AppTextInput required label="Nome completo" icon={User} placeholder="Maria da Silva" value={fullName} onChangeText={setFullName} autoCapitalize="words" disabled={formDisabled} />
-            <AppTextInput required label="CPF" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" disabled={formDisabled} />
             <AppTextInput required label="E-mail" icon={Mail} placeholder="seu@email.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} visualState={email && !isValidEmailFormat(email) ? 'error' : 'default'} disabled={formDisabled} />
-            <AppTextInput required label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={(value) => setPhone(formatPhone(value))} keyboardType="phone-pad" disabled={formDisabled} />
-            <DatePickerField required label="Data de nascimento" value={birthDate} onChange={setBirthDate} maxDate={today} disabled={formDisabled} />
+            <AppTextInput optional label="Telefone" icon={Phone} placeholder="(00) 00000-0000" value={phone} onChangeText={(value) => setPhone(formatPhone(value))} keyboardType="phone-pad" visualState={phone && !isValidPhoneFormat(phone) ? 'error' : 'default'} disabled={formDisabled} />
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: maiorDeIdadeConfirmado }}
+              disabled={formDisabled}
+              onPress={() => setMaiorDeIdadeConfirmado((value) => !value)}
+              style={({ pressed }) => [styles.termsRow, formDisabled && styles.disabled, pressed && styles.pressed]}
+            >
+              <View style={[styles.checkbox, maiorDeIdadeConfirmado && styles.checkboxChecked]}>
+                {maiorDeIdadeConfirmado ? <Check color={colors.primaryForeground} size={14} strokeWidth={3} /> : null}
+              </View>
+              <Text style={styles.termsText}>Confirmo que tenho 18 anos ou mais.</Text>
+            </Pressable>
             <AppTextInput required label="Senha" icon={Lock} placeholder="********" value={password} onChangeText={setPassword} secureTextEntry disabled={formDisabled} />
             <AppTextInput required label="Confirmar senha" icon={Lock} placeholder="********" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry disabled={formDisabled} />
             {role === 'caregiver' ? (
@@ -586,7 +590,7 @@ export default function SignupScreen() {
             {relationship === 'OUTRO' ? (
               <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} disabled={formDisabled} />
             ) : null}
-            <OptionGroup required label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} disabled={formDisabled} />
+            <OptionGroup clearable optional label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference | null)} disabled={formDisabled} />
           </>
         ) : null}
 
@@ -594,7 +598,6 @@ export default function SignupScreen() {
           <>
             <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={assistedName} onChangeText={setAssistedName} disabled={formDisabled} />
             <DatePickerField required label="Data de nascimento" value={assistedBirthDate} onChange={setAssistedBirthDate} maxDate={today} disabled={formDisabled} />
-            <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={assistedCpf} onChangeText={(value) => setAssistedCpf(formatCpf(value))} keyboardType="number-pad" disabled={formDisabled} />
             <OptionGroup required label="Grau de dependência" options={dependencyLevelOptions} value={dependencyLevel} onChange={(value) => setDependencyLevel(value as DependencyLevel)} disabled={formDisabled} />
             <OptionGroup required label="Mobilidade" options={mobilityOptions} value={mobility} onChange={(value) => setMobility(value as Mobility)} disabled={formDisabled} />
             {mobility === 'OUTRO' ? (

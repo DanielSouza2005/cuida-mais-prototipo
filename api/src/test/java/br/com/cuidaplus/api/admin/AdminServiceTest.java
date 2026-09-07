@@ -184,5 +184,5 @@ class AdminServiceTest {
     verify(emails).sendAccountStatusEmail(target.getEmail(),target.getFullName(),AccountStatus.ATIVO,null);
   }
 
-  private User user(UserType type){User user=new User();ReflectionTestUtils.setField(user,"id",UUID.randomUUID());user.setUserType(type);user.setFullName("Pessoa Teste");user.setEmail(type.name().toLowerCase()+"@example.com");user.setCpf("12345678901");user.setAccountStatus(AccountStatus.ATIVO);return user;}
+  private User user(UserType type){User user=new User();ReflectionTestUtils.setField(user,"id",UUID.randomUUID());user.setUserType(type);user.setFullName("Pessoa Teste");user.setEmail(type.name().toLowerCase()+"@example.com");user.setMaiorDeIdadeConfirmado(true);user.setAccountStatus(AccountStatus.ATIVO);return user;}
 }

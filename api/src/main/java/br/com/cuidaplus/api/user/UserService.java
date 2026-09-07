@@ -3,9 +3,6 @@ package br.com.cuidaplus.api.user;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.user.dto.UpdateProfileRequest;
 import br.com.cuidaplus.api.user.dto.UserResponse;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,8 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
-
-  private static final DateTimeFormatter FRONT_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
   private final UserRepository userRepository;
   private final UserMapper userMapper;
@@ -33,21 +28,14 @@ public class UserService {
   public UserResponse updateProfile(UUID userId, UpdateProfileRequest request) {
     User user = findById(userId);
     String email = normalizeEmail(request.email());
-    String cpf = onlyDigits(request.cpf());
 
     if (userRepository.existsByEmailAndIdNot(email, userId)) {
       throw new BusinessException("E-mail já cadastrado.");
     }
 
-    if (userRepository.existsByCpfAndIdNot(cpf, userId)) {
-      throw new BusinessException("CPF já cadastrado.");
-    }
-
     user.setFullName(request.fullName().trim());
-    user.setCpf(cpf);
     user.setEmail(email);
-    user.setPhone(UserService.onlyDigits(request.phone()));
-    user.setBirthDate(parseBirthDate(request.birthDate()));
+    user.setPhone(optionalDigits(request.phone()));
     // O papel é definido no cadastro e nunca pode ser promovido por uma edição de perfil.
 
     return userMapper.toResponse(user);
@@ -67,11 +55,8 @@ public class UserService {
     return value == null ? "" : value.replaceAll("\\D", "");
   }
 
-  public static LocalDate parseBirthDate(String value) {
-    try {
-      return LocalDate.parse(value, FRONT_DATE);
-    } catch (DateTimeParseException exception) {
-      throw new BusinessException("Informe a data no formato dd/mm/aaaa.");
-    }
+  public static String optionalDigits(String value) {
+    String digits = onlyDigits(value);
+    return digits.isBlank() ? null : digits;
   }
 }

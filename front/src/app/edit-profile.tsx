@@ -29,7 +29,7 @@ export default function EditProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <SettingsRow title="Informações pessoais" description="Nome, CPF, e-mail, telefone e nascimento" icon={User} onPress={() => router.push('/profile-personal-info')} />
+        <SettingsRow title="Informações pessoais" description="Nome, e-mail e telefone opcional" icon={User} onPress={() => router.push('/profile-personal-info')} />
         {isCaregiver ? (
           <>
             <SettingsRow title="Endereço" description="Localização e dados de endereço" icon={Home} onPress={() => router.push('/profile-caregiver-address')} />

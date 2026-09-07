@@ -129,7 +129,7 @@ public class ProfileService {
     User user = userService.findById(userId);
 
     user.setFullName(request.nome().trim());
-    user.setPhone(UserService.onlyDigits(request.telefone()));
+    user.setPhone(UserService.optionalDigits(request.telefone()));
 
     return updated();
   }
@@ -147,7 +147,6 @@ public class ProfileService {
   public MessageResponse updateAssistedPerson(UUID userId, UUID assistedPersonId, AssistedPersonUpdateRequest request) {
     AssistedPerson assistedPerson = findResponsibleAssistedPerson(userId, assistedPersonId);
     assistedPerson.setNome(request.nome().trim());
-    assistedPerson.setCpf(optionalDigits(request.cpf()));
     assistedPerson.setDataNascimento(request.dataNascimento());
     assistedPerson.setGrauDependencia(request.grauDependencia());
     assistedPerson.setMobilidade(request.mobilidade());
@@ -175,6 +174,9 @@ public class ProfileService {
     AssistedPerson assistedPerson = findResponsibleAssistedPerson(userId, assistedPersonId);
     ResponsibleProfile responsibleProfile = findResponsibleProfile(userId);
     User user = responsibleProfile.getUser();
+    if (request.isResponsibleContact() && user.getPhone() == null) {
+      throw new BusinessException("Informe o telefone da conta ou cadastre outro contato de emergência.");
+    }
     EmergencyContact contact = emergencyContactRepository
       .findByAssistedPerson(assistedPerson)
       .orElseGet(() -> {
@@ -285,7 +287,6 @@ public class ProfileService {
     Map<String, Object> response = new LinkedHashMap<>();
     response.put("id", assistedPerson.getId());
     response.put("nome", assistedPerson.getNome());
-    response.put("cpf", assistedPerson.getCpf());
     response.put("dataNascimento", assistedPerson.getDataNascimento());
     response.put("grauDependencia", assistedPerson.getGrauDependencia());
     response.put("mobilidade", assistedPerson.getMobilidade());
@@ -359,11 +360,6 @@ public class ProfileService {
 
   private BigDecimal toCoordinate(Double value) {
     return value == null ? null : BigDecimal.valueOf(value);
-  }
-
-  private String optionalDigits(String value) {
-    String digits = UserService.onlyDigits(value);
-    return digits.isBlank() ? null : digits;
   }
 
   private String resolveResponsibleRelationship(ResponsibleProfile profile) {

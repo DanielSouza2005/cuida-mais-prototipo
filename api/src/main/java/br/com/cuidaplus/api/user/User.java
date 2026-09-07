@@ -12,16 +12,12 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
 @Table(
   name = "users",
-  uniqueConstraints = {
-    @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
-    @UniqueConstraint(name = "uk_users_cpf", columnNames = "cpf")
-  }
+  uniqueConstraints = @UniqueConstraint(name = "uk_users_email", columnNames = "email")
 )
 public class User {
 
@@ -32,17 +28,14 @@ public class User {
   @Column(nullable = false, length = 140)
   private String fullName;
 
-  @Column(length = 11)
-  private String cpf;
-
   @Column(nullable = false, length = 180)
   private String email;
 
   @Column(nullable = false)
   private String passwordHash;
 
-  @Column
-  private LocalDate birthDate;
+  @Column(nullable = false)
+  private boolean maiorDeIdadeConfirmado;
 
   @Column(length = 20)
   private String phone;
@@ -107,14 +100,6 @@ public class User {
     this.fullName = fullName;
   }
 
-  public String getCpf() {
-    return cpf;
-  }
-
-  public void setCpf(String cpf) {
-    this.cpf = cpf;
-  }
-
   public String getEmail() {
     return email;
   }
@@ -131,13 +116,8 @@ public class User {
     this.passwordHash = passwordHash;
   }
 
-  public LocalDate getBirthDate() {
-    return birthDate;
-  }
-
-  public void setBirthDate(LocalDate birthDate) {
-    this.birthDate = birthDate;
-  }
+  public boolean isMaiorDeIdadeConfirmado() { return maiorDeIdadeConfirmado; }
+  public void setMaiorDeIdadeConfirmado(boolean value) { maiorDeIdadeConfirmado = value; }
 
   public String getPhone() {
     return phone;

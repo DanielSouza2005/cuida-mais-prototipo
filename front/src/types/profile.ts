@@ -52,7 +52,6 @@ export type ProfileEmergencyContact = {
 export type ProfileAssistedPerson = {
   id: string;
   nome: string;
-  cpf?: string | null;
   dataNascimento: string;
   grauDependencia?: DependencyLevel | null;
   mobilidade?: Mobility | null;
@@ -78,18 +77,17 @@ export type MyProfile = {
 
 export type PersonalInfoUpdatePayload = {
   nome: string;
-  telefone: string;
+  telefone?: string | null;
 };
 
 export type ResponsibleProfileUpdatePayload = {
   parentesco: Relationship;
   parentescoOutro?: string | null;
-  preferenciaContato: ContactPreference;
+  preferenciaContato?: ContactPreference | null;
 };
 
 export type AssistedPersonUpdatePayload = {
   nome: string;
-  cpf?: string | null;
   dataNascimento: string;
   grauDependencia: DependencyLevel;
   mobilidade: Mobility;

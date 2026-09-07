@@ -53,7 +53,7 @@ export default function ServiceOpportunityDetailsScreen() {
     <Section title="Dias e horários">{item.scheduleDays.map((schedule) => <Text key={`${schedule.weekday}-${schedule.startTime}`} style={styles.text}>{weekdayLabels[schedule.weekday]} • {formatScheduleTime(schedule.startTime)} às {formatScheduleTime(schedule.endTime)}</Text>)}</Section>
     <Section title="Necessidades"><Text style={styles.text}>{item.needsDescription}</Text></Section>
     {item.careRoutine ? <Section title="Rotina de cuidados"><Info label="Rotina" value={item.careRoutine.name} />{item.careRoutine.items.map((care, index) => <View key={`${care.title}-${index}`} style={styles.careItem}><Text style={styles.careTitle}>{care.title}</Text>{care.description ? <Text style={styles.text}>{care.description}</Text> : null}{care.scheduledTime ? <Text style={styles.label}>Horário previsto: {formatScheduleTime(care.scheduledTime)}</Text> : null}</View>)}</Section> : null}
-    <View style={styles.privacy}><Text style={styles.privacyTitle}>Privacidade protegida</Text><Text style={styles.privacyText}>Endereço completo, telefone, e-mail e CPF não são exibidos antes do aceite.</Text></View>
+    <View style={styles.privacy}><Text style={styles.privacyTitle}>Privacidade protegida</Text><Text style={styles.privacyText}>Endereço completo, telefone e e-mail não são exibidos antes do aceite.</Text></View>
     {!item.applicationStatus && item.status === 'ABERTA' ? <PrimaryButton label={applying ? 'Enviando interesse...' : 'Tenho interesse'} loading={applying} disabled={applying} onPress={() => void apply()} /> : null}
   </ScreenContainer>;
 }

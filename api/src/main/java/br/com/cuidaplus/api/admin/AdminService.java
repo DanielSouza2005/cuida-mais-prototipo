@@ -77,8 +77,8 @@ public class AdminService {
   @Transactional(readOnly = true)
   public AdminDtos.UserDetails user(UUID id) {
     User value = requireUser(id);
-    return new AdminDtos.UserDetails(value.getId(), value.getFullName(), value.getEmail(), formatCpf(value.getCpf()),
-      value.getPhone(), value.getBirthDate(), value.getUserType(), profileLabel(value.getUserType()),
+    return new AdminDtos.UserDetails(value.getId(), value.getFullName(), value.getEmail(),
+      value.getPhone(), value.getUserType(), profileLabel(value.getUserType()),
       value.getAccountStatus(), accountLabel(value.getAccountStatus()), value.getMotivoBloqueio(),
       value.getBloqueadoEm(), value.getDesbloqueadoEm(), value.getUltimoLoginEm(), value.getCreatedAt(),
       caregivers.findByUser(value).map(this::caregiverDetails).orElse(null),
@@ -233,7 +233,7 @@ public class AdminService {
       .map(item -> new AdminDtos.HistoryItem(item.getPreviousStatus(), item.getNewStatus(), approvalLabel(item.getNewStatus()),
         item.getMotivo(), item.getAdministrator().getId(), item.getAdministrator().getFullName(), item.getCriadoEm())).toList();
     return new AdminDtos.CaregiverDetails(profile.getId(), user.getId(), user.getFullName(), user.getEmail(),
-      formatCpf(user.getCpf()), user.getPhone(), user.getProfilePhotoUrl(), profile.getBiografia(), profile.getTempoExperiencia(),
+      user.getPhone(), user.getProfilePhotoUrl(), profile.getBiografia(), profile.getTempoExperiencia(),
       materialize(profile.getFormacoes()), profile.getFormacaoOutro(),
       materialize(profile.getModalidades()), profile.getModalidadeOutro(),
       materialize(profile.getServicosOferecidos()), profile.getServicoOutro(), address == null ? null : address.getCidade(),
@@ -256,14 +256,13 @@ public class AdminService {
       .map(item -> new AdminDtos.ResponsibleHistoryItem(item.getPreviousStatus(), item.getNewStatus(), approvalLabel(item.getNewStatus()),
         item.getMotivo(), item.getAdministrator().getId(), item.getAdministrator().getFullName(), item.getCriadoEm())).toList();
     return new AdminDtos.ResponsibleDetails(profile.getId(), user.getId(), user.getFullName(), user.getEmail(),
-      formatCpf(user.getCpf()), user.getPhone(), profile.getParentesco(), profile.getParentescoOutro(),
+      user.getPhone(), profile.getParentesco(), profile.getParentescoOutro(),
       profile.getPreferenciaContato(), profile.getSituacaoAprovacao(), approvalLabel(profile.getSituacaoAprovacao()),
       profile.getMotivoReprovacao(), profile.getMotivoBloqueio(), profile.getAnalisadoEm(), profile.getCreatedAt(), history);
   }
   private boolean matches(User user, String query) {
-    String q = normalize(query), digits = query == null ? "" : query.replaceAll("\\D", "");
-    return q.isBlank() || normalize(user.getFullName()).contains(q) || normalize(user.getEmail()).contains(q)
-      || (!digits.isBlank() && user.getCpf() != null && user.getCpf().contains(digits));
+    String q = normalize(query);
+    return q.isBlank() || normalize(user.getFullName()).contains(q) || normalize(user.getEmail()).contains(q);
   }
   private <T> Set<T> materialize(Set<T> values) {
     return new LinkedHashSet<>(values);
@@ -282,5 +281,4 @@ public class AdminService {
   private String accountLabel(AccountStatus value) { return switch (value) { case ATIVO -> "Ativo"; case BLOQUEADO -> "Bloqueado"; case INATIVO -> "Inativo"; case EXCLUIDO -> "Excluído"; }; }
   private String approvalLabel(CaregiverApprovalStatus value) { return switch (value) { case PENDENTE -> "Pendente"; case APROVADO -> "Aprovado"; case REPROVADO -> "Reprovado"; case BLOQUEADO -> "Bloqueado"; }; }
   private String approvalLabel(ResponsibleApprovalStatus value) { return switch (value) { case PENDENTE -> "Pendente"; case APROVADO -> "Aprovado"; case REPROVADO -> "Reprovado"; case BLOQUEADO -> "Bloqueado"; }; }
-  private String formatCpf(String cpf) { return cpf == null || cpf.length() != 11 ? cpf : cpf.substring(0,3)+"."+cpf.substring(3,6)+"."+cpf.substring(6,9)+"-"+cpf.substring(9); }
 }

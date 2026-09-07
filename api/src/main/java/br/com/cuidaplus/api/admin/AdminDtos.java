@@ -13,7 +13,6 @@ import br.com.cuidaplus.api.user.UserType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
@@ -30,7 +29,7 @@ public final class AdminDtos {
     String caregiverApprovalStatusLabel, ResponsibleApprovalStatus responsibleApprovalStatus,
     String responsibleApprovalStatusLabel, Instant createdAt) {}
   public record UserPage(List<UserSummary> content, int page, int size, long totalElements, int totalPages) {}
-  public record UserDetails(UUID id, String name, String email, String cpf, String phone, LocalDate birthDate,
+  public record UserDetails(UUID id, String name, String email, String phone,
     UserType profileType, String profileLabel, AccountStatus accountStatus, String accountStatusLabel,
     String accountBlockReason, Instant blockedAt, Instant unblockedAt, Instant lastLoginAt, Instant createdAt,
     CaregiverDetails caregiver, ResponsibleDetails responsible) {}
@@ -40,7 +39,7 @@ public final class AdminDtos {
   public record CaregiverPage(List<CaregiverSummary> content, int page, int size, long totalElements, int totalPages) {}
   public record HistoryItem(CaregiverApprovalStatus previousStatus, CaregiverApprovalStatus newStatus,
     String newStatusLabel, String reason, UUID administratorId, String administratorName, Instant createdAt) {}
-  public record CaregiverDetails(UUID id, UUID userId, String name, String email, String cpf, String phone,
+  public record CaregiverDetails(UUID id, UUID userId, String name, String email, String phone,
     String profilePhotoUrl, String biography, TempoExperiencia experience, Set<FormacaoCuidador> formations,
     String otherFormation, Set<ModalidadeAtendimento> modalities, String otherModality,
     Set<ServicoOferecido> services, String otherService, String city, String neighborhood, String state,
@@ -53,7 +52,7 @@ public final class AdminDtos {
   public record ResponsiblePage(List<ResponsibleSummary> content, int page, int size, long totalElements, int totalPages) {}
   public record ResponsibleHistoryItem(ResponsibleApprovalStatus previousStatus, ResponsibleApprovalStatus newStatus,
     String newStatusLabel, String reason, UUID administratorId, String administratorName, Instant createdAt) {}
-  public record ResponsibleDetails(UUID id, UUID userId, String name, String email, String cpf, String phone,
+  public record ResponsibleDetails(UUID id, UUID userId, String name, String email, String phone,
     Parentesco relationship, String otherRelationship, PreferenciaContato contactPreference,
     ResponsibleApprovalStatus status, String statusLabel, String rejectionReason, String blockReason,
     Instant analyzedAt, Instant createdAt, List<ResponsibleHistoryItem> history) {}

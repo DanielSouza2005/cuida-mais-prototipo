@@ -21,7 +21,6 @@ import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -55,10 +54,9 @@ class AccountDeletionIntegrationTest {
     String originalEmail = "exclusao@example.com";
     User user = new User();
     user.setFullName("Titular dos Dados");
-    user.setCpf("12345678901");
     user.setEmail(originalEmail);
     user.setPhone("11999999999");
-    user.setBirthDate(LocalDate.of(1990, 1, 1));
+    user.setMaiorDeIdadeConfirmado(true);
     user.setUserType(UserType.RESPONSAVEL);
     user.setPasswordHash(passwords.encode("secret123"));
     user.setAccountStatus(AccountStatus.ATIVO);
@@ -91,9 +89,7 @@ class AccountDeletionIntegrationTest {
 
     User deleted = users.findById(user.getId()).orElseThrow();
     assertThat(deleted.getAccountStatus()).isEqualTo(AccountStatus.EXCLUIDO);
-    assertThat(deleted.getCpf()).isNull();
     assertThat(deleted.getPhone()).isNull();
-    assertThat(deleted.getBirthDate()).isNull();
     assertThat(audits.findAll()).singleElement().satisfies(audit -> {
       assertThat(audit.getUserReference()).isEqualTo(user.getId());
       assertThat(audit.getResult()).isEqualTo("SUCESSO");

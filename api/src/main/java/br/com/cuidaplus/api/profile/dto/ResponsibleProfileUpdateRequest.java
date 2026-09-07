@@ -13,7 +13,6 @@ public record ResponsibleProfileUpdateRequest(
   @Size(max = 120, message = "O parentesco personalizado deve ter no máximo 120 caracteres.")
   String parentescoOutro,
 
-  @NotNull(message = "Informe a preferência de contato.")
   PreferenciaContato preferenciaContato
 ) {
   @AssertTrue(message = "Informe o parentesco personalizado.")

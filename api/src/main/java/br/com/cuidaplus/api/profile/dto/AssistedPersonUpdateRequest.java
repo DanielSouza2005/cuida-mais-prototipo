@@ -9,7 +9,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.Set;
@@ -18,9 +17,6 @@ public record AssistedPersonUpdateRequest(
   @NotBlank(message = "Informe o nome da pessoa assistida.")
   @Size(max = 140, message = "O nome deve ter no máximo 140 caracteres.")
   String nome,
-
-  @Pattern(regexp = "|\\d{11}|\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}", message = "Informe um CPF com 11 dígitos.")
-  String cpf,
 
   @NotNull(message = "Informe a data de nascimento da pessoa assistida.")
   @PastOrPresent(message = "A data de nascimento não pode ser futura.")

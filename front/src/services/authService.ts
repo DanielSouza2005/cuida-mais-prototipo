@@ -13,6 +13,7 @@ import type {
   ReauthenticateResponse,
   SignupRequest,
   User,
+  ApiUserType,
 } from '@/types/auth';
 import { appendProfilePhoto } from '@/utils/profilePhoto';
 
@@ -54,11 +55,10 @@ export function registerResponsible(payload: RegisterResponsiblePayload) {
     body: {
       user: {
         nome: payload.user.nome,
-        cpf: payload.user.cpf,
         email: payload.user.email,
         senha: payload.senha,
-        telefone: payload.user.telefone,
-        dataNascimento: toIsoDate(payload.user.dataNascimento),
+        telefone: payload.user.telefone || null,
+        maiorDeIdadeConfirmado: payload.user.maiorDeIdadeConfirmado,
       },
       responsibleProfile: {
         parentesco: payload.responsibleProfile.parentescoPadrao,
@@ -67,7 +67,6 @@ export function registerResponsible(payload: RegisterResponsiblePayload) {
       },
       assistedPerson: {
         nome: assistedPerson.nome,
-        cpf: assistedPerson.cpf,
         dataNascimento: toIsoDate(assistedPerson.dataNascimento),
         grauDependencia: assistedPerson.grauDependencia,
         mobilidade: assistedPerson.mobilidade,
@@ -98,11 +97,10 @@ export function registerCaregiver(payload: RegisterCaregiverPayload) {
   const data = {
     user: {
       nome: payload.user.nome,
-      cpf: payload.user.cpf,
       email: payload.user.email,
       senha: payload.senha,
-      telefone: payload.user.telefone,
-      dataNascimento: toIsoDate(payload.user.dataNascimento),
+      telefone: payload.user.telefone || null,
+      maiorDeIdadeConfirmado: payload.user.maiorDeIdadeConfirmado,
     },
     address: toApiAddress(payload.caregiverProfile.enderecoAtendimento),
     caregiverProfile: {
@@ -192,7 +190,14 @@ export function getMe(token: string) {
   });
 }
 
-export function updateProfile(request: Omit<RegisterRequest, 'password' | 'acceptedTerms'>, token?: string | null) {
+type UpdateUserRequest = {
+  fullName: string;
+  email: string;
+  phone?: string;
+  userType: ApiUserType;
+};
+
+export function updateProfile(request: UpdateUserRequest, token?: string | null) {
   return apiRequest<User>('/api/users/me', {
     method: 'PUT',
     token,
@@ -203,22 +208,18 @@ export function updateProfile(request: Omit<RegisterRequest, 'password' | 'accep
 export function updateResponsibleProfile(payload: RegisterResponsiblePayload, token?: string | null) {
   return updateProfile({
     fullName: payload.user.nome,
-      cpf: payload.user.cpf,
-      email: payload.user.email,
-      phone: payload.user.telefone,
-      birthDate: payload.user.dataNascimento,
-      userType: 'family',
+    email: payload.user.email,
+    phone: payload.user.telefone ?? undefined,
+    userType: 'family',
   }, token);
 }
 
 export function updateCaregiverProfile(payload: RegisterCaregiverPayload, token?: string | null) {
   return updateProfile({
     fullName: payload.user.nome,
-      cpf: payload.user.cpf,
-      email: payload.user.email,
-      phone: payload.user.telefone,
-      birthDate: payload.user.dataNascimento,
-      userType: 'caregiver',
+    email: payload.user.email,
+    phone: payload.user.telefone ?? undefined,
+    userType: 'caregiver',
   }, token);
 }
 

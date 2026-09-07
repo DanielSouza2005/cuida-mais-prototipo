@@ -2,18 +2,6 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
 }
 
-export function unformatCpf(value: string) {
-  return onlyDigits(value).slice(0, 11);
-}
-
-export function formatCpf(value: string) {
-  const digits = unformatCpf(value);
-  return digits
-    .replace(/^(\d{3})(\d)/, '$1.$2')
-    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
-}
-
 export function unformatPhone(value: string) {
   return onlyDigits(value).slice(0, 11);
 }
@@ -30,6 +18,11 @@ export function formatPhone(value: string) {
   return digits
     .replace(/^(\d{2})(\d)/, '($1) $2')
     .replace(/(\d{5})(\d)/, '$1-$2');
+}
+
+export function isValidPhoneFormat(value: string) {
+  const length = onlyDigits(value).length;
+  return length === 10 || length === 11;
 }
 
 export function formatBirthDate(value: string) {

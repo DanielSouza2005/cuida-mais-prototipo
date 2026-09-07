@@ -20,10 +20,8 @@ export type ApiUserType = 'family' | 'caregiver' | 'admin';
 export type User = {
   id: string;
   fullName: string;
-  cpf: string;
   email: string;
   phone?: string | null;
-  birthDate: string;
   userType: ApiUserType;
   profilePhotoUrl?: string | null;
 };
@@ -44,10 +42,9 @@ export type AuthUser = User;
 export type UserBase = {
   id?: string;
   nome: string;
-  cpf: string;
   email: string;
-  telefone: string;
-  dataNascimento: string;
+  telefone?: string | null;
+  maiorDeIdadeConfirmado: boolean;
   tipoUsuario: UserType;
   status?: string;
 };
@@ -108,7 +105,6 @@ export type AssistedPerson = {
   responsibleUserId?: string;
   nome: string;
   dataNascimento: string;
-  cpf?: string;
   grauDependencia: DependencyLevel;
   mobilidade: Mobility;
   mobilidadePersonalizada?: string;
@@ -141,11 +137,10 @@ export type RegisterCaregiverPayload = {
 
 export type RegisterRequest = {
   fullName: string;
-  cpf: string;
   email: string;
   phone?: string;
   password: string;
-  birthDate: string;
+  maiorDeIdadeConfirmado: boolean;
   userType: ApiUserType;
   acceptedTerms: boolean;
 };

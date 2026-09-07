@@ -39,9 +39,6 @@ public class AssistedPerson {
   @Column(nullable = false, length = 140)
   private String nome;
 
-  @Column(length = 11)
-  private String cpf;
-
   @Column(nullable = false)
   private LocalDate dataNascimento;
 
@@ -128,14 +125,6 @@ public class AssistedPerson {
 
   public void setNome(String nome) {
     this.nome = nome;
-  }
-
-  public String getCpf() {
-    return cpf;
-  }
-
-  public void setCpf(String cpf) {
-    this.cpf = cpf;
   }
 
   public LocalDate getDataNascimento() {

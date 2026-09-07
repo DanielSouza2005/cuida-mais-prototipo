@@ -134,7 +134,6 @@ public class AuthService {
     AssistedPerson assistedPerson = new AssistedPerson();
     assistedPerson.setResponsibleUser(user);
     assistedPerson.setNome(assistedRequest.nome().trim());
-    assistedPerson.setCpf(optionalDigits(assistedRequest.cpf()));
     assistedPerson.setDataNascimento(assistedRequest.dataNascimento());
     assistedPerson.setGrauDependencia(assistedRequest.grauDependencia());
     assistedPerson.setMobilidade(assistedRequest.mobilidade());
@@ -151,6 +150,9 @@ public class AuthService {
     AssistedPerson savedAssistedPerson = assistedPersonRepository.save(assistedPerson);
 
     RegisterResponsibleRequest.EmergencyContactRequest contactRequest = assistedRequest.contatoEmergencia();
+    if (contactRequest.isResponsibleContact() && user.getPhone() == null) {
+      throw new BusinessException("Informe o telefone da conta ou cadastre outro contato de emergência.");
+    }
     EmergencyContact contact = new EmergencyContact();
     contact.setAssistedPerson(savedAssistedPerson);
     contact.setResponsibleContact(contactRequest.isResponsibleContact());
@@ -275,22 +277,16 @@ public class AuthService {
 
   private User createUser(RegisterUserDataRequest request, UserType userType) {
     String email = UserService.normalizeEmail(request.email());
-    String cpf = UserService.onlyDigits(request.cpf());
 
     if (userRepository.existsByEmail(email)) {
       throw new BusinessException("E-mail já cadastrado.");
     }
 
-    if (userRepository.existsByCpf(cpf)) {
-      throw new BusinessException("CPF já cadastrado.");
-    }
-
     User user = new User();
     user.setFullName(request.nome().trim());
-    user.setCpf(cpf);
     user.setEmail(email);
-    user.setBirthDate(request.dataNascimento());
-    user.setPhone(UserService.onlyDigits(request.telefone()));
+    user.setMaiorDeIdadeConfirmado(request.maiorDeIdadeConfirmado());
+    user.setPhone(UserService.optionalDigits(request.telefone()));
     user.setUserType(userType);
     user.setAccountStatus(AccountStatus.ATIVO);
     user.setPasswordHash(passwordEncoder.encode(request.senha()));
@@ -347,11 +343,6 @@ public class AuthService {
 
   private BigDecimal toCoordinate(Double value) {
     return value == null ? null : BigDecimal.valueOf(value);
-  }
-
-  private String optionalDigits(String value) {
-    String digits = UserService.onlyDigits(value);
-    return digits.isBlank() ? null : digits;
   }
 
   private String trimToNull(String value) {

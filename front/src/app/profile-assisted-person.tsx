@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { HeartPulse, IdCard, Save, User } from 'lucide-react-native';
+import { HeartPulse, Save, User } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
@@ -27,7 +27,6 @@ import {
 import { ApiError } from '@/services/api';
 import { getMyProfile, updateAssistedPerson, updateResponsibleProfile } from '@/services/profileService';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
-import { formatCpf, unformatCpf } from '@/utils/masks';
 
 function toDisplayDate(value?: string | null) {
   if (!value) return '';
@@ -55,7 +54,6 @@ export default function ProfileAssistedPersonScreen() {
   const [relationshipCustom, setRelationshipCustom] = useState('');
   const [contactPreference, setContactPreference] = useState<ContactPreference | null>(null);
   const [nome, setNome] = useState('');
-  const [cpf, setCpf] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [grauDependencia, setGrauDependencia] = useState<DependencyLevel | null>(null);
   const [mobilidade, setMobilidade] = useState<Mobility | null>(null);
@@ -97,7 +95,6 @@ export default function ProfileAssistedPersonScreen() {
         setRelationshipCustom(profile.responsibleProfile?.parentescoOutro ?? '');
         setContactPreference(profile.responsibleProfile?.preferenciaContato ?? null);
         setNome(assistedPerson.nome ?? '');
-        setCpf(formatCpf(assistedPerson.cpf ?? ''));
         setDataNascimento(toDisplayDate(assistedPerson.dataNascimento));
         setGrauDependencia(assistedPerson.grauDependencia ?? null);
         setMobilidade(assistedPerson.mobilidade ?? null);
@@ -126,7 +123,6 @@ export default function ProfileAssistedPersonScreen() {
     if (!assistedPersonId) return setFeedback('Pessoa assistida não encontrada.');
     if (!relationship) return setFeedback('Informe o parentesco ou vínculo.');
     if (relationship === 'OUTRO' && !relationshipCustom.trim()) return setFeedback('Informe o parentesco personalizado.');
-    if (!contactPreference) return setFeedback('Informe a preferência de contato.');
     if (!nome.trim()) return setFeedback('Informe o nome da pessoa assistida.');
     if (!dataNascimento.trim()) return setFeedback('Informe a data de nascimento.');
     if (!grauDependencia) return setFeedback('Informe o grau de dependencia.');
@@ -148,7 +144,6 @@ export default function ProfileAssistedPersonScreen() {
       });
       const response = await updateAssistedPerson(assistedPersonId, {
         nome: nome.trim(),
-        cpf: cpf.trim() ? unformatCpf(cpf) : null,
         dataNascimento,
         grauDependencia,
         mobilidade,
@@ -182,10 +177,9 @@ export default function ProfileAssistedPersonScreen() {
         {relationship === 'OUTRO' ? (
           <AppTextInput required label="Parentesco personalizado" icon={HeartPulse} placeholder="Informe o vínculo" value={relationshipCustom} onChangeText={setRelationshipCustom} disabled={formDisabled} />
         ) : null}
-        <OptionGroup required disabled={formDisabled} label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference)} />
+        <OptionGroup clearable optional disabled={formDisabled} label="Preferência de contato" options={contactPreferenceOptions} value={contactPreference} onChange={(value) => setContactPreference(value as ContactPreference | null)} />
         <AppTextInput required label="Nome da pessoa assistida" icon={User} placeholder="Nome completo" value={nome} onChangeText={setNome} disabled={formDisabled} />
         <DatePickerField required label="Data de nascimento" value={dataNascimento} onChange={setDataNascimento} maxDate={today} disabled={formDisabled} />
-        <AppTextInput optional label="CPF da pessoa assistida" icon={IdCard} placeholder="000.000.000-00" value={cpf} onChangeText={(value) => setCpf(formatCpf(value))} keyboardType="number-pad" disabled={formDisabled} />
         <OptionGroup required disabled={formDisabled} label="Grau de dependência" options={dependencyLevelOptions} value={grauDependencia} onChange={(value) => setGrauDependencia(value as DependencyLevel)} />
         <OptionGroup required disabled={formDisabled} label="Mobilidade" options={mobilityOptions} value={mobilidade} onChange={(value) => setMobilidade(value as Mobility)} />
         {mobilidade === 'OUTRO' ? (

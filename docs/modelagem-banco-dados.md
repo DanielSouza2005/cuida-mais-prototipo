@@ -2,9 +2,9 @@
 
 ## 1. Visão geral
 
-O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações, administração e exclusão de conta. Este documento descreve o schema `public` após a V047 e foi conferido nas migrations V001–V047, entidades JPA, enums, repositories e serviços.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações, administração e exclusão de conta. Este documento descreve o schema `public` após a V048 e foi conferido nas migrations V001–V048, entidades JPA, enums, repositories e serviços.
 
-O modelo vigente possui 39 tabelas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
+O modelo vigente possui 39 tabelas de domínio, 450 colunas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
 ## 2. Padrão de nomenclatura
 
@@ -30,11 +30,10 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | Coluna | Tipo | Obrigatório | Chave | Descrição |
 |---|---|---:|---|---|
 | `id` | uuid | Sim | PK | Identificador do usuário. |
-| `data_nascimento` | date | Não | — | Data de nascimento; removida na anonimização. |
-| `cpf` | varchar(11) | Não | Unique | CPF normalizado e único; removido na anonimização. |
 | `criado_em` | timestamptz | Sim | — | Criação da conta. |
 | `email` | varchar(180) | Sim | Unique | E-mail de acesso e comunicação. |
 | `nome_completo` | varchar(140) | Sim | — | Nome completo. |
+| `maior_de_idade_confirmado` | boolean | Sim | — | Confirma somente a faixa etária mínima, sem armazenar a data de nascimento. |
 | `senha_hash` | varchar(255) | Sim | — | Hash da senha; o valor original não é salvo. |
 | `atualizado_em` | timestamptz | Sim | — | Última atualização. |
 | `tipo_usuario` | varchar(20) | Sim | Check/Enum | Papel do usuário. |
@@ -51,7 +50,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `excluido_em` | timestamptz | Não | — | Encerramento definitivo da conta. |
 | `dados_anonimizados_em` | timestamptz | Não | — | Conclusão da anonimização dos dados elegíveis. |
 
-**Relacionamentos e regras:** raiz referenciada pelos demais domínios; e-mail e CPF não se repetem enquanto presentes. Cada conta pode ter no máximo um perfil de cada tipo. O check de papel aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. Somente conta `ATIVO` autentica; `EXCLUIDO` invalida também JWTs emitidos anteriormente porque o filtro consulta a situação vigente a cada requisição. Apenas contas `ATIVO` podem ser bloqueadas e apenas contas `BLOQUEADO` podem ser desbloqueadas. Bloqueio e desbloqueio não alteram a aprovação do perfil e solicitam a comunicação por e-mail somente após a confirmação da transação. A V046 cria, apenas quando ainda não existe nenhum administrador, a conta inicial necessária para acessar a área administrativa; a senha inicial deve ser alterada após o primeiro acesso.
+**Relacionamentos e regras:** raiz referenciada pelos demais domínios; o e-mail é único. Cada conta pode ter no máximo um perfil de cada tipo. Novos cadastros só são aceitos quando `maior_de_idade_confirmado = true`; a V048 marca os usuários preexistentes como confirmados para não bloquear contas já criadas. O telefone é opcional e, quando informado, é normalizado e validado. O check de papel aceita `RESPONSAVEL`, `CUIDADOR`, `ADMIN` e os legados `FAMILY`, `CAREGIVER`. Somente conta `ATIVO` autentica; `EXCLUIDO` invalida também JWTs emitidos anteriormente porque o filtro consulta a situação vigente a cada requisição. Apenas contas `ATIVO` podem ser bloqueadas e apenas contas `BLOQUEADO` podem ser desbloqueadas. Bloqueio e desbloqueio não alteram a aprovação do perfil e solicitam a comunicação por e-mail somente após a confirmação da transação. A V046 cria, apenas quando ainda não existe nenhum administrador, a conta inicial necessária para acessar a área administrativa; a V048 elimina do schema os antigos CPF e nascimento, de modo que a conta administrativa vigente não depende desses dados. A senha inicial deve ser alterada após o primeiro acesso.
 
 ## 4.2 `usuario_token_redefinicao_senha`
 
@@ -113,7 +112,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `usuario_id` | uuid | Sim | FK, Unique | Conta vinculada. |
 | `parentesco` | varchar(40) | Sim | Enum | Relação com a pessoa assistida. |
 | `parentesco_outro` | varchar(120) | Não | — | Complemento para `OUTRO`. |
-| `preferencia_contato` | varchar(30) | Sim | Enum | Canal preferencial. |
+| `preferencia_contato` | varchar(30) | Não | Enum | Canal preferencial opcional, usado apenas como indicação secundária nos fluxos de contato. |
 | `situacao_aprovacao` | varchar(30) | Sim | Check/Enum | `PENDENTE`, `APROVADO`, `REPROVADO` ou `BLOQUEADO`. |
 | `analisado_em` | timestamptz | Não | — | Data e hora da última análise. |
 | `analisado_por_usuario_id` | uuid | Não | FK | Administrador da última análise. |
@@ -271,7 +270,6 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `id` | uuid | Sim | PK | Identificador. |
 | `usuario_responsavel_id` | uuid | Sim | FK | Responsável proprietário. |
 | `nome` | varchar(140) | Sim | — | Nome completo. |
-| `cpf` | varchar(11) | Não | — | CPF opcional, sem unique. |
 | `data_nascimento` | date | Sim | — | Nascimento. |
 | `grau_dependencia` | varchar(30) | Sim | Enum | Nível de dependência. |
 | `mobilidade` | varchar(30) | Sim | Enum | Condição de mobilidade. |
@@ -1023,7 +1021,7 @@ As transições aceitas são:
 
 Desbloquear uma conta não altera a situação de aprovação do perfil. Os botões da interface acompanham o estado atual, mas a regra definitiva é aplicada transacionalmente no backend e uma tentativa incompatível retorna HTTP 409. Histórico e e-mail só são produzidos para mudanças válidas; a solicitação de e-mail ocorre após a confirmação da transação para não comunicar uma alteração que tenha sofrido rollback.
 
-- Uniques evitam duplicidade de e-mail, CPF, token, perfil por usuário, solicitação contratada, candidatura por cuidador, ocorrência por agenda, lembrete/notificação por chave, diário por ocorrência, marcação de presença por tipo e relatório por data.
+- Uniques evitam duplicidade de e-mail, token, perfil por usuário, solicitação contratada, candidatura por cuidador, ocorrência por agenda, lembrete/notificação por chave, diário por ocorrência, marcação de presença por tipo e relatório por data.
 - Cascades existem nas coleções e cópias dependentes, em registros de atendimento/relatórios ligados à contratação e nas fotos ligadas ao pai. Outras FKs não definem cascade e exigem exclusão coordenada.
 - Checks físicos validam tipo e coordenadas do atendimento, status do relatório, datas/intervalo/lembrete da tarefa, papel do usuário e exclusividade do pai da foto.
 - `versao` em tarefas e ocorrências implementa bloqueio otimista contra atualizações concorrentes.
@@ -1036,13 +1034,21 @@ Desbloquear uma conta não altera a situação de aprovação do perfil. Os bot�
 
 A exclusão de conta no Cuidar+ não representa exclusão física imediata de todos os registros relacionados. O processo encerra o acesso do usuário, invalida credenciais e elimina ou anonimiza dados pessoais elegíveis, preservando somente registros necessários para integridade operacional, segurança, cumprimento de obrigações ou exercício de direitos.
 
-Antes da exclusão, o backend bloqueia contas com contratação `AGENDADA`, `ATIVA` ou `ENCERRAMENTO_AGENDADO`; esses serviços devem ser cancelados ou encerrados pelo fluxo próprio. Na execução aceita, nome passa a um rótulo genérico conforme o papel, e-mail recebe endereço técnico baseado no UUID, CPF, telefone, nascimento e foto são removidos, a senha se torna inutilizável, o perfil público e a disponibilidade do cuidador são esvaziados, notificações, preferências e tokens de recuperação são removidos, e a situação passa a `EXCLUIDO`. A foto física é removida após a confirmação da transação; falha isolada do armazenamento não restaura acesso nem dados no banco.
+Antes da exclusão, o backend bloqueia contas com contratação `AGENDADA`, `ATIVA` ou `ENCERRAMENTO_AGENDADO`; esses serviços devem ser cancelados ou encerrados pelo fluxo próprio. Na execução aceita, nome passa a um rótulo genérico conforme o papel, e-mail recebe endereço técnico baseado no UUID, telefone e foto são removidos, a senha se torna inutilizável, o perfil público e a disponibilidade do cuidador são esvaziados, notificações, preferências e tokens de recuperação são removidos, e a situação passa a `EXCLUIDO`. A foto física é removida após a confirmação da transação; falha isolada do armazenamento não restaura acesso nem dados no banco.
 
 Contratações encerradas, solicitações, tarefas, ocorrências, diário, atendimentos e relatórios são históricos compartilhados e permanecem referenciando a conta anonimizada. Não foram definidos prazos jurídicos arbitrários: a duração da retenção depende de política organizacional e fundamento aplicável a ser formalizado. Dados clínicos da pessoa assistida são tratados como dados pessoais, inclusive sensíveis, de terceiro e não são apagados automaticamente pela exclusão do responsável. Quando o contato de emergência copiava os dados do próprio responsável, somente essa cópia de nome e telefone é eliminada.
 
 Na administração, contas excluídas ficam fora das listagens por padrão e aparecem somente quando o filtro explícito `EXCLUIDO` é usado; perfis excluídos não aparecem nas filas funcionais. Como os identificadores e os registros históricos permanecem, esta é exclusão lógica com anonimização, distinta tanto de remoção física quanto de retenção irrestrita.
 
-## 7.2 Consulta de informações de privacidade (RF23)
+## 7.2 Minimização de dados pessoais (RNF08)
+
+A V048 aplica a decisão de minimização de identidade. O Cuidar+ deixou de coletar e armazenar CPF do usuário, CPF da pessoa assistida e data completa de nascimento do usuário. Para a validação etária, o cadastro coleta somente a confirmação de que o usuário possui 18 anos ou mais. O nascimento da pessoa assistida permanece porque é necessário para idade e contexto de cuidado.
+
+O telefone da conta e a preferência de contato do responsável passaram a ser opcionais. Quando o telefone é preenchido, frontend e backend validam o formato; valor vazio é normalizado para `NULL`. O telefone e o vínculo do contato de emergência permanecem obrigatórios quando um terceiro é cadastrado, pois não fazem parte da decisão de remoção e apoiam o cuidado. A preferência de contato foi mantida porque ainda aparece no perfil, na administração e na solicitação recebida pelo cuidador, mas não controla notificações nem impede cadastro ou edição.
+
+O impacto funcional concentra-se em RF01, RF04, RF05, RF07, RF20, RF21 e RF23. Login (RF02) e recuperação de senha (RF03) continuam baseados em e-mail e senha; busca, contratação, agenda, cuidado, administração, aprovação e exclusão continuam usando seus identificadores e dados próprios. Nome, e-mail, hash de senha, dados profissionais, dados assistenciais, nascimento da pessoa assistida, endereços necessários, localização operacional e contato de emergência permanecem por suas finalidades funcionais.
+
+## 7.3 Consulta de informações de privacidade (RF23)
 
 O RF23 apresenta conteúdo institucional estático na interface sobre categorias de dados tratados, finalidades, dados pessoais sensíveis, compartilhamento, retenção, segurança e direitos dos titulares. A área também oferece acesso à Política de Privacidade e reutiliza o fluxo de exclusão de conta do RF22.
 
@@ -1180,7 +1186,7 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 ### 13.4 Segurança e proteção de dados
 
-- CPF, saúde, endereço, coordenadas, relatórios e fotos são dados pessoais ou sensíveis e exigem autenticação, autorização, retenção adequada e acesso mínimo necessário.
+- Saúde, endereço, coordenadas, relatórios, telefone opcional e fotos são dados pessoais ou sensíveis e exigem autenticação, autorização, retenção adequada e acesso mínimo necessário.
 - Fotos e coordenadas devem ser disponibilizadas somente aos participantes autorizados da contratação.
 
 ### 13.5 Melhorias futuras

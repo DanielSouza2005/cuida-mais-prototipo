@@ -16,7 +16,6 @@ import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserType;
 import java.net.URI;
 import java.time.Instant;
-import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -148,9 +147,8 @@ class AuthServicePasswordResetTest {
   private User createUser(String email, String password) {
     User user = new User();
     user.setFullName("Maria Silva");
-    user.setCpf("12345678901");
     user.setEmail(email);
-    user.setBirthDate(LocalDate.of(1990, 1, 1));
+    user.setMaiorDeIdadeConfirmado(true);
     user.setUserType(UserType.RESPONSAVEL);
     user.setPasswordHash(passwordEncoder.encode(password));
     return userRepository.save(user);

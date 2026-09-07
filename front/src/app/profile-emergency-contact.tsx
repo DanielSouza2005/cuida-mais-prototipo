@@ -90,6 +90,9 @@ export default function ProfileEmergencyContactScreen() {
     setIsSuccess(false);
 
     if (!assistedPersonId) return setFeedback('Pessoa assistida não encontrada.');
+    if (isResponsibleContact && !responsiblePhone.trim()) {
+      return setFeedback('Informe o telefone da conta ou cadastre outro contato de emergência.');
+    }
     if (!isResponsibleContact && (!nome.trim() || !telefone.trim() || !vinculo)) {
       return setFeedback('Informe nome, telefone e vínculo do contato de emergência.');
     }

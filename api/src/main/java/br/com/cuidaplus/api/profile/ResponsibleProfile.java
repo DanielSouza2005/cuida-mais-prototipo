@@ -37,7 +37,7 @@ public class ResponsibleProfile {
   private String parentescoOutro;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false, length = 30)
+  @Column(length = 30)
   private PreferenciaContato preferenciaContato;
 
   @Enumerated(EnumType.STRING)

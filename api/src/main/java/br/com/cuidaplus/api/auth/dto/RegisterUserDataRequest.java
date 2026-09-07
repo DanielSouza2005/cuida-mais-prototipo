@@ -1,21 +1,15 @@
 package br.com.cuidaplus.api.auth.dto;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
 
 public record RegisterUserDataRequest(
   @NotBlank(message = "Informe seu nome completo.")
   @Size(max = 140, message = "O nome deve ter no máximo 140 caracteres.")
   String nome,
-
-  @NotBlank(message = "Informe seu CPF.")
-  @Pattern(regexp = "\\d{11}|\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}", message = "Informe um CPF com 11 dígitos.")
-  String cpf,
 
   @NotBlank(message = "Informe seu e-mail.")
   @Email(message = "Informe um e-mail válido.")
@@ -26,13 +20,12 @@ public record RegisterUserDataRequest(
   @Size(min = 6, message = "A senha deve ter pelo menos 6 caracteres.")
   String senha,
 
-  @NotBlank(message = "Informe seu telefone.")
   @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres.")
+  @Pattern(regexp = "^\\s*$|^\\d{10,11}$|^\\(?\\d{2}\\)?\\s?\\d{4,5}-?\\d{4}$", message = "Informe um telefone válido com DDD.")
   String telefone,
 
-  @NotNull(message = "Informe a data de nascimento.")
-  @PastOrPresent(message = "A data de nascimento não pode ser futura.")
-  LocalDate dataNascimento
+  @AssertTrue(message = "Para criar sua conta, confirme que você tem 18 anos ou mais.")
+  boolean maiorDeIdadeConfirmado
 ) {
   @Override
   public String toString() {

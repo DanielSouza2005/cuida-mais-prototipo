@@ -24,7 +24,6 @@ import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserType;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -158,9 +157,7 @@ class AccountDeletionServiceTest {
     assertThat(user.getAccountStatus()).isEqualTo(AccountStatus.EXCLUIDO);
     assertThat(user.getFullName()).isEqualTo("Responsável removido");
     assertThat(user.getEmail()).isEqualTo("excluido_" + user.getId() + "@anon.local");
-    assertThat(user.getCpf()).isNull();
     assertThat(user.getPhone()).isNull();
-    assertThat(user.getBirthDate()).isNull();
     assertThat(user.getProfilePhotoUrl()).isNull();
     assertThat(user.getPasswordHash()).startsWith("!conta-excluida:");
     assertThat(profile.getParentescoOutro()).isNull();
@@ -181,9 +178,8 @@ class AccountDeletionServiceTest {
     user.setUserType(type);
     user.setFullName("Pessoa Teste");
     user.setEmail("pessoa@example.com");
-    user.setCpf("12345678901");
     user.setPhone("11999999999");
-    user.setBirthDate(LocalDate.of(1990, 1, 1));
+    user.setMaiorDeIdadeConfirmado(true);
     user.setPasswordHash("hash");
     user.setAccountStatus(AccountStatus.ATIVO);
     return user;

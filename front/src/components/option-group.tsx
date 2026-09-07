@@ -4,6 +4,7 @@ import type { Option } from '@/constants/enums';
 import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 
 type Props<T extends string> = {
+  clearable?: boolean;
   disabled?: boolean;
   label: string;
   multiple?: boolean;
@@ -11,10 +12,11 @@ type Props<T extends string> = {
   options: readonly Option<T>[];
   required?: boolean;
   value: T | T[] | null;
-  onChange: (value: T | T[]) => void;
+  onChange: (value: T | T[] | null) => void;
 };
 
 export function OptionGroup<T extends string>({
+  clearable,
   disabled,
   label,
   multiple,
@@ -30,7 +32,7 @@ export function OptionGroup<T extends string>({
     if (disabled) return;
 
     if (!multiple) {
-      onChange(optionValue);
+      onChange(clearable && selectedValues.includes(optionValue) ? null : optionValue);
       return;
     }
 

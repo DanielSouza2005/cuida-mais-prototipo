@@ -18,7 +18,6 @@ import br.com.cuidaplus.api.user.AccountStatus;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserType;
-import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,8 +90,8 @@ class AuthServiceAccessStatusTest {
   }
 
   private User user(String email, UserType type) {
-    User user = new User(); user.setFullName("Pessoa Teste"); user.setCpf(type == UserType.CUIDADOR ? "12345678901" : "10987654321");
-    user.setEmail(email); user.setBirthDate(LocalDate.of(1990,1,1)); user.setUserType(type);
+    User user = new User(); user.setFullName("Pessoa Teste"); user.setMaiorDeIdadeConfirmado(true);
+    user.setEmail(email); user.setUserType(type);
     user.setPasswordHash(passwords.encode("secret123")); return users.save(user);
   }
 

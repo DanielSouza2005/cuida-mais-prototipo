@@ -5,17 +5,12 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
   @NotBlank(message = "Informe seu nome completo.")
   @Size(max = 140, message = "O nome deve ter no máximo 140 caracteres.")
   String fullName,
-
-  @NotBlank(message = "Informe seu CPF.")
-  @Pattern(regexp = "\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}", message = "Informe um CPF com 11 dígitos.")
-  String cpf,
 
   @NotBlank(message = "Informe seu e-mail.")
   @Email(message = "Informe um e-mail válido.")
@@ -26,9 +21,8 @@ public record RegisterRequest(
   @Size(min = 6, message = "A senha deve ter pelo menos 6 caracteres.")
   String password,
 
-  @NotBlank(message = "Informe a data no formato dd/mm/aaaa.")
-  @Pattern(regexp = "\\d{2}/\\d{2}/\\d{4}", message = "Informe a data no formato dd/mm/aaaa.")
-  String birthDate,
+  @AssertTrue(message = "Para criar sua conta, confirme que você tem 18 anos ou mais.")
+  boolean maiorDeIdadeConfirmado,
 
   @NotNull(message = "Informe o tipo de conta.")
   UserType userType,
