@@ -1229,22 +1229,46 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 Os históricos `usuario_exclusao_auditoria`, `responsavel_historico_situacao`, `cuidador_historico_situacao`, `solicitacao_servico_contratacao_historico_status` e `tarefa_cuidado_auditoria` foram mantidos porque atendem linhas do tempo específicas e regras dos RFs existentes. O RNF25 acrescenta a visão geral normalizada necessária à investigação, sem remover essas estruturas nem copiar seus payloads.
 
-## 13. Pontos de atenção
+## 13. Normalização do banco de dados
 
-### 13.1 Compatibilidade e legado
+A modelagem do Cuidar+ foi revisada conforme as três primeiras formas normais sobre o schema real no Flyway V049. Estruturas multivaloradas foram representadas por tabelas próprias, dependências parciais em tabelas associativas foram evitadas e dependências transitivas foram analisadas. Algumas duplicidades foram mantidas de forma intencional por representarem snapshots históricos, registros de auditoria ou preservação do contexto contratado. O relatório completo por tabela está em `docs/relatorio-normalizacao-1fn-2fn-3fn.md`.
+
+### 13.1 Primeira Forma Normal
+
+Foram verificados atomicidade, grupos repetidos, listas textuais, identificação das linhas e significado único das colunas. Formação, serviços, modalidades, disponibilidade, alergias, restrições alimentares, dias de recorrência, fotos, preferências e históricos já possuíam tabelas próprias. A V050 adiciona chaves primárias compostas às sete relações associativas que ainda não tinham PK, depois de confirmar colunas `NOT NULL` e ausência de duplicidades.
+
+O campo opcional `pessoa_assistida.medicamentos` permanece como resumo livre. Como a interface permite listar medicamentos e o dado é assistencial sensível, sua eventual decomposição exige decisão sobre granularidade, migração, contrato da API, retenção e apresentação; nenhuma alteração automática foi aplicada.
+
+### 13.2 Segunda Forma Normal
+
+Não foram encontradas dependências parciais. As tabelas associativas contêm somente valores que dependem da relação completa. Horários de `solicitacao_servico_agenda_dia`, por exemplo, dependem conjuntamente da solicitação e do dia. As PKs compostas da V050 formalizam essa identificação também nas coleções de perfil.
+
+### 13.3 Terceira Forma Normal
+
+Não foram encontradas dependências transitivas injustificadas. Referências e dados repetidos em solicitação, contratação, tarefa, ocorrência, atendimento e relatório foram mantidos quando preservam o contexto negociado, executado ou finalizado. Históricos específicos e `auditoria_acao_critica` também permanecem porque representam eventos, e não duplicação do estado operacional atual.
+
+### 13.4 Alterações e impactos
+
+A V050 não altera colunas, FKs, payloads JSON nem entidades JPA: apenas transforma os pares já `NOT NULL` das sete tabelas associativas em PKs compostas. A UNIQUE de `cuidador_formacao`, equivalente à nova PK, é removida depois da criação da chave para evitar índice redundante. Assim, RF01–RF23, RNF08 e RNF25 mantêm seus dados, contratos e fluxos.
+
+Snapshots assistenciais, contratuais e de auditoria não foram removidos. Também não foram criadas tabelas para enums simples, pois os `varchar` controlados por aplicação e, nos estados críticos, por `CHECK`, são suficientes ao escopo atual.
+
+## 14. Pontos de atenção
+
+### 14.1 Compatibilidade e legado
 
 - A V040 é condicional: uma instalação limpa e um banco evoluído vazio convergem para o mesmo catálogo sem as estruturas antigas.
 - A migração aborta se detectar qualquer dado legado, exigindo tratamento manual em vez de exclusão silenciosa.
 - V012 e V013 constam no histórico do banco evoluído, mas não no repositório atual; V038 e V039 permanecem imutáveis e a configuração aceita migrations ausentes.
 - Não foram encontrados seeds SQL ativos fora das migrations.
 
-### 13.2 Integridade referencial
+### 14.2 Integridade referencial
 
-- Coleções de alergias, restrições, disponibilidade, modalidades e serviços não têm PK/unique física; o `Set` da aplicação reduz duplicidades, mas inserções externas ainda podem repeti-las.
+- As coleções de alergias, restrições, disponibilidade, formação, modalidades e serviços possuem PKs compostas desde a V050, impedindo duplicidades também fora do JPA.
 - `entidade_id` do histórico e `entidade_relacionada_id` da notificação são referências polimórficas sem FK física.
 - Os estados administrativos possuem checks físicos; alguns códigos históricos do diário continuam como texto e devem acompanhar o código.
 
-### 13.3 Padronização de nomenclatura
+### 14.3 Padronização de nomenclatura
 
 - As annotations `@Table` usam nomes históricos em inglês; a correspondência com o schema depende da `PortuguesePhysicalNamingStrategy`.
 - A V041 conclui a tradução das colunas de domínio que ainda continham `snapshot`, usando `copia` sem alterar nomes Java ou contratos JSON.
@@ -1252,14 +1276,15 @@ Os históricos `usuario_exclusao_auditoria`, `responsavel_historico_situacao`, `
 - As coordenadas de `cuidador` e `pessoa_assistida` são mantidas porque alimentam as buscas por distância de RF06 e RF17.
 - Os fusos de tarefas, ocorrências e diário são mantidos porque preservam a data civil, a conversão UTC, os lembretes e a linha do tempo.
 
-### 13.4 Segurança e proteção de dados
+### 14.4 Segurança e proteção de dados
 
 - Saúde, endereço, coordenadas, relatórios, telefone opcional e fotos são dados pessoais ou sensíveis e exigem autenticação, autorização, retenção adequada e acesso mínimo necessário.
 - Fotos e coordenadas devem ser disponibilizadas somente aos participantes autorizados da contratação.
 - A auditoria central é consultável somente por administrador, não expõe IP/agente do cliente pela API e deve permanecer sujeita a controle de acesso, monitoração e política de retenção própria.
 
-### 13.5 Melhorias futuras
+### 14.5 Melhorias futuras
 
-- Avaliar constraints de unicidade nas coleções e checks para status textuais.
+- Avaliar checks adicionais para status textuais somente quando não limitarem compatibilidade histórica.
+- Decidir se `pessoa_assistida.medicamentos` é resumo narrativo ou coleção estruturada antes de qualquer migração de dado assistencial.
 - Documentar explicitamente a política de retenção de tokens, fotos, localização, notificações, relatórios e eventos de auditoria.
 - Manter as duas matrizes atualizadas quando um RF, enum, tabela ou relacionamento mudar.
