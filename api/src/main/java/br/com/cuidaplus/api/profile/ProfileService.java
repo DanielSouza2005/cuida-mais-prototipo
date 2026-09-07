@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.profile;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.auth.dto.AddressRequest;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.common.MessageResponse;
@@ -37,6 +38,7 @@ public class ProfileService {
   private final EmergencyContactRepository emergencyContactRepository;
   private final CaregiverProfileRepository caregiverProfileRepository;
   private final ProfilePhotoStorageService profilePhotoStorageService;
+  private final AuditService audit;
 
   public ProfileService(
     UserService userService,
@@ -45,7 +47,8 @@ public class ProfileService {
     AssistedPersonRepository assistedPersonRepository,
     EmergencyContactRepository emergencyContactRepository,
     CaregiverProfileRepository caregiverProfileRepository,
-    ProfilePhotoStorageService profilePhotoStorageService
+    ProfilePhotoStorageService profilePhotoStorageService,
+    AuditService audit
   ) {
     this.userService = userService;
     this.userMapper = userMapper;
@@ -54,6 +57,7 @@ public class ProfileService {
     this.emergencyContactRepository = emergencyContactRepository;
     this.caregiverProfileRepository = caregiverProfileRepository;
     this.profilePhotoStorageService = profilePhotoStorageService;
+    this.audit = audit;
   }
 
   @Transactional
@@ -64,6 +68,7 @@ public class ProfileService {
       throw new BusinessException("Selecione uma foto para enviar.", HttpStatus.BAD_REQUEST);
     }
     user.setProfilePhotoUrl(profilePhotoUrl);
+    auditProfile(user, "USUARIO", user.getId());
     return new ProfilePhotoResponse(profilePhotoUrl);
   }
 
@@ -71,6 +76,7 @@ public class ProfileService {
   public ProfilePhotoResponse deleteProfilePhoto(UUID userId) {
     User user = requireCaregiver(userId);
     user.setProfilePhotoUrl(null);
+    auditProfile(user, "USUARIO", user.getId());
     return new ProfilePhotoResponse(null);
   }
 
@@ -130,6 +136,7 @@ public class ProfileService {
 
     user.setFullName(request.nome().trim());
     user.setPhone(UserService.optionalDigits(request.telefone()));
+    auditProfile(user, "USUARIO", user.getId());
 
     return updated();
   }
@@ -140,6 +147,7 @@ public class ProfileService {
     profile.setParentesco(request.parentesco());
     profile.setParentescoOutro(trimToNull(request.parentescoOutro()));
     profile.setPreferenciaContato(request.preferenciaContato());
+    auditProfile(profile.getUser(), "RESPONSAVEL", profile.getId());
     return updated();
   }
 
@@ -159,6 +167,7 @@ public class ProfileService {
     assistedPerson.setRestricoesAlimentaresDetalhes(trimToNull(request.restricoesAlimentaresDetalhes()));
     assistedPerson.setMedicamentos(trimToNull(request.medicamentos()));
     assistedPerson.setObservacoes(trimToNull(request.observacoes()));
+    auditProfile(assistedPerson.getResponsibleUser(), "PESSOA_ASSISTIDA", assistedPerson.getId());
     return updated();
   }
 
@@ -166,6 +175,7 @@ public class ProfileService {
   public MessageResponse updateCareAddress(UUID userId, UUID assistedPersonId, AddressRequest request) {
     AssistedPerson assistedPerson = findResponsibleAssistedPerson(userId, assistedPersonId);
     assistedPerson.setEnderecoCuidado(toAddress(request));
+    auditProfile(assistedPerson.getResponsibleUser(), "PESSOA_ASSISTIDA", assistedPerson.getId());
     return updated();
   }
 
@@ -192,6 +202,7 @@ public class ProfileService {
       ? resolveResponsibleRelationship(responsibleProfile)
       : request.vinculo().trim());
     emergencyContactRepository.save(contact);
+    auditProfile(user, "CONTATO_EMERGENCIA", contact.getId());
     return updated();
   }
 
@@ -199,17 +210,20 @@ public class ProfileService {
   public MessageResponse updateCaregiverAddress(UUID userId, AddressRequest request) {
     CaregiverProfile profile = findCaregiverProfile(userId);
     profile.setEnderecoAtendimento(toAddress(request));
+    auditProfile(profile.getUser(), "CUIDADOR", profile.getId());
     return updated();
   }
 
   @Transactional
   public MessageResponse updateCaregiverExperience(UUID userId, CaregiverExperienceUpdateRequest request) {
     CaregiverProfile profile = findCaregiverProfile(userId);
-    LinkedHashSet<FormacaoCuidador> formacoes = new LinkedHashSet<>(request.formacoes());
+    LinkedHashSet<FormacaoCuidador> formacoes = CaregiverFormationPolicy.requireValid(
+      request.formacoes(), request.formacaoOutro());
     profile.setTempoExperiencia(request.tempoExperiencia());
     profile.setFormacoes(formacoes);
     profile.setFormacaoOutro(formacoes.contains(FormacaoCuidador.OUTRO) ? trimToNull(request.formacaoOutro()) : null);
     profile.setBiografia(trimToNull(request.biografia()));
+    auditProfile(profile.getUser(), "CUIDADOR", profile.getId());
     return updated();
   }
 
@@ -227,6 +241,7 @@ public class ProfileService {
     availability.setHorarioInicio(request.horarioInicio());
     availability.setHorarioFim(request.horarioFim());
     availability.setObservacao(trimToNull(request.observacao()));
+    auditProfile(profile.getUser(), "CUIDADOR", profile.getId());
     return updated();
   }
 
@@ -235,6 +250,7 @@ public class ProfileService {
     CaregiverProfile profile = findCaregiverProfile(userId);
     profile.setModalidades(new LinkedHashSet<>(request.modalidades()));
     profile.setModalidadeOutro(trimToNull(request.modalidadeOutro()));
+    auditProfile(profile.getUser(), "CUIDADOR", profile.getId());
     return updated();
   }
 
@@ -243,6 +259,7 @@ public class ProfileService {
     CaregiverProfile profile = findCaregiverProfile(userId);
     profile.setServicosOferecidos(new LinkedHashSet<>(request.servicosOferecidos()));
     profile.setServicoOutro(trimToNull(request.servicoOutro()));
+    auditProfile(profile.getUser(), "CUIDADOR", profile.getId());
     return updated();
   }
 
@@ -259,6 +276,10 @@ public class ProfileService {
         profile.setUser(user);
         return caregiverProfileRepository.save(profile);
       });
+  }
+
+  private void auditProfile(User actor, String entityType, UUID entityId) {
+    audit.success(AuditAction.PERFIL_ALTERADO, AuditCategory.ASSISTENCIAL, actor, entityType, entityId, null, null);
   }
 
   private ResponsibleProfile findResponsibleProfile(UUID userId) {

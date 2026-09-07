@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.admin;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.profile.AddressFields;
@@ -36,12 +37,13 @@ public class AdminService {
   private final ResponsibleProfileRepository responsibles;
   private final ResponsibleStatusHistoryRepository responsibleHistories;
   private final EmailService emails;
+  private final AuditService audit;
 
   public AdminService(UserRepository users, CaregiverProfileRepository caregivers,
     CaregiverStatusHistoryRepository histories, ResponsibleProfileRepository responsibles,
-    ResponsibleStatusHistoryRepository responsibleHistories, EmailService emails) {
+    ResponsibleStatusHistoryRepository responsibleHistories, EmailService emails, AuditService audit) {
     this.users = users; this.caregivers = caregivers; this.histories = histories;
-    this.responsibles = responsibles; this.responsibleHistories = responsibleHistories; this.emails = emails;
+    this.responsibles = responsibles; this.responsibleHistories = responsibleHistories; this.emails = emails; this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -74,9 +76,15 @@ public class AdminService {
     return new AdminDtos.UserPage(values.subList(from, to), safePage, safeSize, values.size(), pages(values.size(), safeSize));
   }
 
-  @Transactional(readOnly = true)
-  public AdminDtos.UserDetails user(UUID id) {
+  @Transactional
+  public AdminDtos.UserDetails user(UUID administratorId, UUID id) {
+    User administrator = requireAdmin(administratorId);
     User value = requireUser(id);
+    audit.success(AuditAction.CONSULTA_USUARIO, AuditCategory.ADMINISTRATIVO, administrator, "USUARIO", value.getId(), null, null);
+    return userDetails(value);
+  }
+
+  private AdminDtos.UserDetails userDetails(User value) {
     return new AdminDtos.UserDetails(value.getId(), value.getFullName(), value.getEmail(),
       value.getPhone(), value.getUserType(), profileLabel(value.getUserType()),
       value.getAccountStatus(), accountLabel(value.getAccountStatus()), value.getMotivoBloqueio(),
@@ -95,8 +103,10 @@ public class AdminService {
       throw new BusinessException("O último administrador ativo não pode ser bloqueado.", HttpStatus.CONFLICT);
     target.setAccountStatus(AccountStatus.BLOQUEADO); target.setMotivoBloqueio(cleanReason(reason));
     target.setBloqueadoEm(Instant.now()); target.setBloqueadoPorUsuarioId(administrator.getId());
+    audit.success(AuditAction.USUARIO_BLOQUEADO, AuditCategory.ADMINISTRATIVO, administrator, "USUARIO", target.getId(),
+      AuditService.state("situacaoConta", AccountStatus.ATIVO), AuditService.state("situacaoConta", AccountStatus.BLOQUEADO), target.getMotivoBloqueio());
     sendAfterCommit(() -> emails.sendAccountStatusEmail(target.getEmail(), target.getFullName(), AccountStatus.BLOQUEADO, target.getMotivoBloqueio()));
-    return user(target.getId());
+    return userDetails(target);
   }
 
   @Transactional
@@ -106,8 +116,10 @@ public class AdminService {
       throw new BusinessException("Somente usuários bloqueados podem ser desbloqueados.", HttpStatus.CONFLICT);
     target.setAccountStatus(AccountStatus.ATIVO); target.setDesbloqueadoEm(Instant.now());
     target.setDesbloqueadoPorUsuarioId(administrator.getId()); target.setMotivoBloqueio(null);
+    audit.success(AuditAction.USUARIO_DESBLOQUEADO, AuditCategory.ADMINISTRATIVO, administrator, "USUARIO", target.getId(),
+      AuditService.state("situacaoConta", AccountStatus.BLOQUEADO), AuditService.state("situacaoConta", AccountStatus.ATIVO), null);
     sendAfterCommit(() -> emails.sendAccountStatusEmail(target.getEmail(), target.getFullName(), AccountStatus.ATIVO, null));
-    return user(target.getId());
+    return userDetails(target);
   }
 
   @Transactional(readOnly = true)
@@ -123,8 +135,12 @@ public class AdminService {
     return new AdminDtos.CaregiverPage(values.subList(from, to), safePage, safeSize, values.size(), pages(values.size(), safeSize));
   }
 
-  @Transactional(readOnly = true)
-  public AdminDtos.CaregiverDetails caregiver(UUID id) { return caregiverDetails(requireCaregiver(id)); }
+  @Transactional
+  public AdminDtos.CaregiverDetails caregiver(UUID administratorId, UUID id) {
+    User administrator = requireAdmin(administratorId); CaregiverProfile profile = requireCaregiver(id);
+    audit.success(AuditAction.CONSULTA_CUIDADOR, AuditCategory.ADMINISTRATIVO, administrator, "CUIDADOR", profile.getId(), null, null);
+    return caregiverDetails(profile);
+  }
 
   @Transactional
   public AdminDtos.CaregiverDetails review(UUID administratorId, UUID caregiverId,
@@ -141,6 +157,8 @@ public class AdminService {
     CaregiverStatusHistory history = new CaregiverStatusHistory(); history.setCaregiver(caregiver);
     history.setPreviousStatus(previous); history.setNewStatus(newStatus); history.setMotivo(normalizedReason);
     history.setAdministrator(administrator); histories.save(history);
+    audit.success(caregiverAction(newStatus), AuditCategory.ADMINISTRATIVO, administrator, "CUIDADOR", caregiver.getId(),
+      AuditService.state("situacaoAprovacao", previous), AuditService.state("situacaoAprovacao", newStatus), normalizedReason);
     String caregiverEmail = caregiver.getUser().getEmail(), caregiverName = caregiver.getUser().getFullName();
     sendAfterCommit(() -> emails.sendCaregiverReviewEmail(caregiverEmail, caregiverName, newStatus, normalizedReason));
     return caregiverDetails(caregiver);
@@ -159,8 +177,12 @@ public class AdminService {
     return new AdminDtos.ResponsiblePage(values.subList(from, to), safePage, safeSize, values.size(), pages(values.size(), safeSize));
   }
 
-  @Transactional(readOnly = true)
-  public AdminDtos.ResponsibleDetails responsible(UUID id) { return responsibleDetails(requireResponsible(id)); }
+  @Transactional
+  public AdminDtos.ResponsibleDetails responsible(UUID administratorId, UUID id) {
+    User administrator = requireAdmin(administratorId); ResponsibleProfile profile = requireResponsible(id);
+    audit.success(AuditAction.CONSULTA_RESPONSAVEL, AuditCategory.ADMINISTRATIVO, administrator, "RESPONSAVEL", profile.getId(), null, null);
+    return responsibleDetails(profile);
+  }
 
   @Transactional
   public AdminDtos.ResponsibleDetails reviewResponsible(UUID administratorId, UUID responsibleId,
@@ -177,6 +199,8 @@ public class AdminService {
     ResponsibleStatusHistory history = new ResponsibleStatusHistory(); history.setResponsible(responsible);
     history.setPreviousStatus(previous); history.setNewStatus(newStatus); history.setMotivo(normalizedReason);
     history.setAdministrator(administrator); responsibleHistories.save(history);
+    audit.success(responsibleAction(newStatus), AuditCategory.ADMINISTRATIVO, administrator, "RESPONSAVEL", responsible.getId(),
+      AuditService.state("situacaoAprovacao", previous), AuditService.state("situacaoAprovacao", newStatus), normalizedReason);
     String responsibleEmail = responsible.getUser().getEmail(), responsibleName = responsible.getUser().getFullName();
     sendAfterCommit(() -> emails.sendResponsibleReviewEmail(responsibleEmail, responsibleName, newStatus, normalizedReason));
     return responsibleDetails(responsible);
@@ -186,6 +210,22 @@ public class AdminService {
     User user = requireUser(id);
     if (!user.isAdmin()) throw new BusinessException("Acesso permitido apenas para administradores.", HttpStatus.FORBIDDEN);
     return user;
+  }
+  private AuditAction caregiverAction(CaregiverApprovalStatus status) {
+    return switch (status) {
+      case APROVADO -> AuditAction.CUIDADOR_APROVADO;
+      case REPROVADO -> AuditAction.CUIDADOR_REPROVADO;
+      case BLOQUEADO -> AuditAction.CUIDADOR_BLOQUEADO;
+      case PENDENTE -> throw new IllegalArgumentException("Situação administrativa não auditável.");
+    };
+  }
+  private AuditAction responsibleAction(ResponsibleApprovalStatus status) {
+    return switch (status) {
+      case APROVADO -> AuditAction.RESPONSAVEL_APROVADO;
+      case REPROVADO -> AuditAction.RESPONSAVEL_REPROVADO;
+      case BLOQUEADO -> AuditAction.RESPONSAVEL_BLOQUEADO;
+      case PENDENTE -> throw new IllegalArgumentException("Situação administrativa não auditável.");
+    };
   }
   private User requireUser(UUID id) { return users.findById(id).orElseThrow(() -> new BusinessException("Usuário não encontrado.", HttpStatus.NOT_FOUND)); }
   private User requireUserForUpdate(UUID id) { return users.findByIdForUpdate(id).orElseThrow(() -> new BusinessException("Usuário não encontrado.", HttpStatus.NOT_FOUND)); }

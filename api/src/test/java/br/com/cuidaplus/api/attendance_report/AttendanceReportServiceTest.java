@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import br.com.cuidaplus.api.attendance_report.dto.UpdateAttendanceReportRequest;
+import br.com.cuidaplus.api.audit.AuditService;
 import br.com.cuidaplus.api.care_contract.*;
 import br.com.cuidaplus.api.care_task.*;
 import br.com.cuidaplus.api.common.BusinessException;
@@ -38,6 +39,7 @@ class AttendanceReportServiceTest {
   @Mock NotificationService notifications;
   @Mock EmailService email;
   @Mock ApplicationEventPublisher events;
+  @Mock AuditService audit;
   @Mock CareContract contract;
   @Mock User caregiver;
   @Mock User responsible;
@@ -75,7 +77,7 @@ class AttendanceReportServiceTest {
     end = record(AttendanceRecordType.END, Instant.parse("2026-08-24T20:00:00Z"));
     when(attendance.findByContractAndAttendanceDateAndRecordType(contract, date, AttendanceRecordType.START)).thenReturn(Optional.of(start));
     when(attendance.findByContractAndAttendanceDateAndRecordType(contract, date, AttendanceRecordType.END)).thenReturn(Optional.of(end));
-    service = new AttendanceReportService(reports, contracts, attendance, occurrences, activities, photos, users, notifications, events);
+    service = new AttendanceReportService(reports, contracts, attendance, occurrences, activities, photos, users, notifications, events, audit);
   }
 
   @Test

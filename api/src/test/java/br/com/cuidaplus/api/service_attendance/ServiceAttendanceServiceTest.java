@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import br.com.cuidaplus.api.care_contract.*;
+import br.com.cuidaplus.api.audit.AuditService;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
 import br.com.cuidaplus.api.notification.NotificationService;
@@ -36,6 +37,7 @@ class ServiceAttendanceServiceTest {
   @Mock User caregiver;
   @Mock User responsible;
   @Mock AssistedPerson assisted;
+  @Mock AuditService audit;
   final UUID caregiverId = UUID.randomUUID();
   final UUID contractId = UUID.randomUUID();
   final LocalDate date = LocalDate.of(2026, 8, 24);
@@ -163,7 +165,7 @@ class ServiceAttendanceServiceTest {
 
   private ServiceAttendanceService serviceAt(Instant now) {
     return new ServiceAttendanceService(contracts, records, users, statusProcessor, new AttendanceScheduleService(), notifications,
-      Clock.fixed(now, AttendanceTimeConfig.SERVICE_ZONE));
+      Clock.fixed(now, AttendanceTimeConfig.SERVICE_ZONE), audit);
   }
 
   private AttendanceActionRequest request(Instant capturedAt, boolean mocked) {

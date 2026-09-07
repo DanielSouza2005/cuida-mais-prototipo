@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router, Tabs } from 'expo-router';
-import { ClipboardCheck, Home, User, Users } from 'lucide-react-native';
+import { ClipboardCheck, FileClock, Home, User, Users } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { LoadingState } from '@/components/loading-state';
@@ -18,6 +18,7 @@ export default function AdminTabNavigator() {
     <Tabs.Screen name="index" options={{title:'Início',tabBarIcon:({color,focused})=><Home color={color} fill={focused?colors.adminBackground:'transparent'} size={20} strokeWidth={2.4}/>}}/>
     <Tabs.Screen name="users" options={{title:'Usuários',tabBarIcon:({color})=><Users color={color} size={20} strokeWidth={2.4}/>}}/>
     <Tabs.Screen name="approvals" options={{title:'Aprovações',tabBarIcon:({color})=><ClipboardCheck color={color} size={20} strokeWidth={2.4}/>}}/>
+    <Tabs.Screen name="audit" options={{title:'Auditoria',tabBarIcon:({color})=><FileClock color={color} size={20} strokeWidth={2.4}/>}}/>
     <Tabs.Screen name="profile" options={{title:'Perfil',tabBarIcon:({color})=><User color={color} size={20} strokeWidth={2.4}/>}}/>
   </Tabs>;
 }

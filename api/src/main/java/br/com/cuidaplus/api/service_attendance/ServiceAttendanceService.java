@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.service_attendance;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.care_contract.*;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.contract_termination.ContractStatusProcessorService;
@@ -29,10 +30,11 @@ public class ServiceAttendanceService {
     private final AttendanceScheduleService schedules;
     private final NotificationService notifications;
     private final Clock clock;
+    private final AuditService audit;
 
     public ServiceAttendanceService(CareContractRepository contracts, ServiceAttendanceRepository records, UserService users,
                                     ContractStatusProcessorService statusProcessor, AttendanceScheduleService schedules,
-                                    NotificationService notifications, Clock attendanceClock) {
+                                    NotificationService notifications, Clock attendanceClock, AuditService audit) {
         this.contracts = contracts;
         this.records = records;
         this.users = users;
@@ -40,6 +42,7 @@ public class ServiceAttendanceService {
         this.schedules = schedules;
         this.notifications = notifications;
         this.clock = attendanceClock;
+        this.audit = audit;
     }
 
     @Transactional
@@ -55,7 +58,9 @@ public class ServiceAttendanceService {
             throw new BusinessException("Este atendimento já foi iniciado.", HttpStatus.CONFLICT);
         }
         requireWindow(now, schedule.startWindowStart(), schedule.startWindowEnd(), true);
-        records.save(record(contract, request, schedule, AttendanceRecordType.START, now, schedule.startWindowStart(), schedule.startWindowEnd()));
+        ServiceAttendanceRecord saved = records.save(record(contract, request, schedule, AttendanceRecordType.START, now, schedule.startWindowStart(), schedule.startWindowEnd()));
+        audit.success(AuditAction.ATENDIMENTO_INICIADO, AuditCategory.ATENDIMENTO, caregiver,
+                "REGISTRO_ATENDIMENTO", saved.getId(), "CONTRATACAO", contract.getId());
         notifications.create(contract.getResponsibleUser(), NotificationType.SERVICE_ATTENDANCE_STARTED,
                 "Atendimento iniciado", "O cuidador iniciou o atendimento de hoje.", RelatedEntityType.CARE_CONTRACT, contract.getId(), schedule.scheduledStart());
         return summary(contract, request.attendanceDate(), now);
@@ -77,7 +82,9 @@ public class ServiceAttendanceService {
             throw new BusinessException("Este atendimento já foi encerrado.", HttpStatus.CONFLICT);
         }
         requireWindow(now, schedule.endWindowStart(), schedule.endWindowEnd(), false);
-        records.save(record(contract, request, schedule, AttendanceRecordType.END, now, schedule.endWindowStart(), schedule.endWindowEnd()));
+        ServiceAttendanceRecord saved = records.save(record(contract, request, schedule, AttendanceRecordType.END, now, schedule.endWindowStart(), schedule.endWindowEnd()));
+        audit.success(AuditAction.ATENDIMENTO_ENCERRADO, AuditCategory.ATENDIMENTO, caregiver,
+                "REGISTRO_ATENDIMENTO", saved.getId(), "CONTRATACAO", contract.getId());
         notifications.create(contract.getResponsibleUser(), NotificationType.SERVICE_ATTENDANCE_ENDED,
                 "Atendimento encerrado", "O cuidador encerrou o atendimento de hoje.", RelatedEntityType.CARE_CONTRACT, contract.getId(), schedule.scheduledStart());
         return summary(contract, request.attendanceDate(), now);

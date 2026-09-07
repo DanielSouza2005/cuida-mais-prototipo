@@ -34,3 +34,15 @@ export type AdminResponsibleDetails = { id:string; userId:string; name:string; e
 export type AdminResponsibleSummary = { id:string; userId:string; name:string; email:string; relationship:string;
   status:ResponsibleApprovalStatus; statusLabel:string; createdAt:string };
 export type AdminResponsiblePage = { content:AdminResponsibleSummary[]; page:number; size:number; totalElements:number; totalPages:number };
+
+export type AuditCategory = 'SEGURANCA'|'ADMINISTRATIVO'|'PRIVACIDADE'|'CONTRATACAO'|'ASSISTENCIAL'|'ATENDIMENTO'|'RELATORIO';
+export type AuditResult = 'SUCESSO'|'FALHA'|'BLOQUEADO_POR_REGRA';
+export type AuditSummary = { id:string; action:string; actionLabel:string; category:AuditCategory; categoryLabel:string;
+  result:AuditResult; resultLabel:string; responsibleUserId?:string|null; responsibleUserName:string;
+  affectedEntityType?:string|null; affectedEntityId?:string|null; createdAt:string };
+export type AuditPage = { content:AuditSummary[]; page:number; size:number; totalElements:number; totalPages:number };
+export type AuditDetails = AuditSummary & { responsibleUser?:{id:string;name:string}|null; relatedEntityType?:string|null;
+  relatedEntityId?:string|null; previousSummary?:Record<string,string>|null; newSummary?:Record<string,string>|null;
+  reason?:string|null; summaryMessage?:string|null };
+export type AuditFilters = { action?:string; category?:AuditCategory; result?:AuditResult; responsibleUserId?:string;
+  affectedEntityType?:string; affectedEntityId?:string; start?:string; end?:string; page?:number; size?:number };

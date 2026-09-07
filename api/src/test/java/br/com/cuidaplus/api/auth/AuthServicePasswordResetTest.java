@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import br.com.cuidaplus.api.auth.dto.ForgotPasswordRequest;
 import br.com.cuidaplus.api.auth.dto.ResetPasswordRequest;
+import br.com.cuidaplus.api.audit.CriticalActionAuditRepository;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.user.User;
@@ -52,11 +53,15 @@ class AuthServicePasswordResetTest {
   @Autowired
   private PasswordEncoder passwordEncoder;
 
+  @Autowired
+  private CriticalActionAuditRepository auditRepository;
+
   @MockBean
   private EmailService emailService;
 
   @BeforeEach
   void setUp() {
+    auditRepository.deleteAll();
     passwordResetTokenRepository.deleteAll();
     userRepository.deleteAll();
   }

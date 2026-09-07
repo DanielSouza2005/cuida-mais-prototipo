@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.account;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.account.dto.ReauthenticateResponse;
 import br.com.cuidaplus.api.auth.PasswordResetTokenRepository;
 import br.com.cuidaplus.api.care_contract.CareContractRepository;
@@ -57,6 +58,7 @@ public class AccountDeletionService {
   private final EmergencyContactRepository emergencyContacts;
   private final ProfilePhotoStorageService profilePhotos;
   private final PasswordEncoder passwordEncoder;
+  private final AuditService audit;
   private final SecureRandom secureRandom = new SecureRandom();
 
   public AccountDeletionService(
@@ -72,7 +74,8 @@ public class AccountDeletionService {
     AssistedPersonRepository assistedPeople,
     EmergencyContactRepository emergencyContacts,
     ProfilePhotoStorageService profilePhotos,
-    PasswordEncoder passwordEncoder
+    PasswordEncoder passwordEncoder,
+    AuditService audit
   ) {
     this.users = users;
     this.confirmations = confirmations;
@@ -87,6 +90,7 @@ public class AccountDeletionService {
     this.emergencyContacts = emergencyContacts;
     this.profilePhotos = profilePhotos;
     this.passwordEncoder = passwordEncoder;
+    this.audit = audit;
   }
 
   @Transactional
@@ -104,6 +108,7 @@ public class AccountDeletionService {
     confirmation.setTokenHash(hashToken(rawToken));
     confirmation.setExpiresAt(now.plusSeconds(CONFIRMATION_EXPIRATION_SECONDS));
     confirmations.save(confirmation);
+    audit.success(AuditAction.REAUTENTICACAO_EXCLUSAO, AuditCategory.PRIVACIDADE, user, "USUARIO", user.getId(), null, null);
     return new ReauthenticateResponse(rawToken, CONFIRMATION_EXPIRATION_SECONDS);
   }
 
@@ -155,6 +160,7 @@ public class AccountDeletionService {
     Instant now = Instant.now();
     confirmation.setUsedAt(now);
     user.setExclusaoSolicitadaEm(now);
+    audit.success(AuditAction.CONTA_EXCLUSAO_SOLICITADA, AuditCategory.PRIVACIDADE, user, "USUARIO", user.getId(), null, null);
     String photoUrl = user.getProfilePhotoUrl();
     anonymizeProfiles(user);
     anonymizeResponsibleEmergencyContacts(user);
@@ -162,7 +168,9 @@ public class AccountDeletionService {
     notifications.deleteByRecipient(user);
     notificationPreferences.deleteByUser(user);
     confirmations.findByUserAndUsedAtIsNull(user).forEach(token -> token.setUsedAt(now));
+    audit.success(AuditAction.SESSOES_REVOGADAS, AuditCategory.PRIVACIDADE, user, "USUARIO", user.getId(), null, null);
     anonymizeUser(user, now);
+    audit.success(AuditAction.DADOS_ANONIMIZADOS, AuditCategory.PRIVACIDADE, user, "USUARIO", user.getId(), null, null);
 
     AccountDeletionAudit audit = new AccountDeletionAudit();
     audit.setUserReference(user.getId());
@@ -171,6 +179,8 @@ public class AccountDeletionService {
     audit.setCompletedAt(now);
     audit.setResult("SUCESSO");
     audits.save(audit);
+    this.audit.success(AuditAction.CONTA_EXCLUIDA, AuditCategory.PRIVACIDADE, user, "USUARIO", user.getId(),
+      AuditService.state("situacaoConta", AccountStatus.ATIVO), AuditService.state("situacaoConta", AccountStatus.EXCLUIDO), null);
     deletePhotoAfterCommit(photoUrl);
     return new MessageResponse("Conta excluída com sucesso.");
   }

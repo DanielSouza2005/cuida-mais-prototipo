@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import br.com.cuidaplus.api.auth.PasswordResetTokenRepository;
+import br.com.cuidaplus.api.audit.AuditService;
 import br.com.cuidaplus.api.care_contract.CareContractRepository;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.notification.NotificationRepository;
@@ -50,13 +51,14 @@ class AccountDeletionServiceTest {
   @Mock EmergencyContactRepository emergencyContacts;
   @Mock ProfilePhotoStorageService profilePhotos;
   @Mock PasswordEncoder passwordEncoder;
+  @Mock AuditService criticalAudit;
   AccountDeletionService service;
 
   @BeforeEach
   void setup() {
     service = new AccountDeletionService(users, confirmations, audits, contracts, passwordResetTokens,
       notifications, notificationPreferences, caregivers, responsibles, assistedPeople,
-      emergencyContacts, profilePhotos, passwordEncoder);
+      emergencyContacts, profilePhotos, passwordEncoder, criticalAudit);
   }
 
   @Test

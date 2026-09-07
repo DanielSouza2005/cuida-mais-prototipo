@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.attendance_report;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.attendance_report.dto.*;
 import br.com.cuidaplus.api.care_contract.*;
 import br.com.cuidaplus.api.care_task.*;
@@ -29,11 +30,12 @@ public class AttendanceReportService {
   private final UserService users;
   private final NotificationService notifications;
   private final ApplicationEventPublisher events;
+  private final AuditService audit;
 
   public AttendanceReportService(AttendanceReportRepository reports, CareContractRepository contracts,
     ServiceAttendanceRepository attendanceRecords, TaskOccurrenceRepository occurrences,
     CareActivityRecordRepository activityRecords, CareOccurrencePhotoRepository photos, UserService users,
-    NotificationService notifications, ApplicationEventPublisher events) {
+    NotificationService notifications, ApplicationEventPublisher events, AuditService audit) {
     this.reports = reports;
     this.contracts = contracts;
     this.attendanceRecords = attendanceRecords;
@@ -43,6 +45,7 @@ public class AttendanceReportService {
     this.users = users;
     this.notifications = notifications;
     this.events = events;
+    this.audit = audit;
   }
 
   @Transactional
@@ -75,7 +78,10 @@ public class AttendanceReportService {
     report.setStatus(AttendanceReportStatus.DRAFT);
     report.setEmailStatus(AttendanceReportEmailStatus.NOT_SENT);
     report.setGeneratedAt(Instant.now());
-    return response(reports.saveAndFlush(report));
+    AttendanceReport saved = reports.saveAndFlush(report);
+    audit.success(AuditAction.RELATORIO_GERADO, AuditCategory.RELATORIO, caregiver,
+      "RELATORIO_ATENDIMENTO", saved.getId(), "CONTRATACAO", contract.getId());
+    return response(saved);
   }
 
   @Transactional(readOnly = true)
@@ -113,7 +119,10 @@ public class AttendanceReportService {
     report.setEditedText(request.editedText().trim());
     report.setAdditionalNotes(trimToNull(request.additionalNotes()));
     report.setEditedAt(Instant.now());
-    return response(reports.save(report));
+    AttendanceReport saved = reports.save(report);
+    audit.success(AuditAction.RELATORIO_EDITADO, AuditCategory.RELATORIO, report.getCaregiver(),
+      "RELATORIO_ATENDIMENTO", report.getId(), "CONTRATACAO", report.getContract().getId());
+    return response(saved);
   }
 
   @Transactional
@@ -135,6 +144,8 @@ public class AttendanceReportService {
     report.setEmailErrorMessage(null);
 
     AttendanceReport saved = reports.saveAndFlush(report);
+    audit.success(AuditAction.RELATORIO_FINALIZADO, AuditCategory.RELATORIO, report.getCaregiver(), "RELATORIO_ATENDIMENTO", report.getId(),
+      AuditService.state("status", AttendanceReportStatus.DRAFT), AuditService.state("status", AttendanceReportStatus.FINALIZED), null);
     notifications.create(report.getResponsible(), NotificationType.ATTENDANCE_REPORT_AVAILABLE,
       "Relatório de atendimento disponível", "O relatório do atendimento foi finalizado e já pode ser consultado.",
       RelatedEntityType.ATTENDANCE_REPORT, report.getId());

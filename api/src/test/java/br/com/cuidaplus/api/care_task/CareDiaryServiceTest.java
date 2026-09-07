@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import br.com.cuidaplus.api.care_contract.CareContract;
+import br.com.cuidaplus.api.audit.AuditService;
 import br.com.cuidaplus.api.care_contract.CareContractRepository;
 import br.com.cuidaplus.api.care_contract.CareContractStatus;
 import br.com.cuidaplus.api.care_task.dto.CreateManualCareRequest;
@@ -47,6 +48,7 @@ class CareDiaryServiceTest {
   @Mock AssistedPerson assisted;
   @Mock CareContract contract;
   @Mock ServiceRequest request;
+  @Mock AuditService audit;
 
   CareDiaryService service;
   UUID userId;
@@ -57,7 +59,7 @@ class CareDiaryServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new CareDiaryService(records, contracts, photos, photoService, authorization, occurrences, dateTimes, statusProcessor, mock(br.com.cuidaplus.api.service_attendance.ServiceAttendanceService.class));
+    service = new CareDiaryService(records, contracts, photos, photoService, authorization, occurrences, dateTimes, statusProcessor, mock(br.com.cuidaplus.api.service_attendance.ServiceAttendanceService.class), audit);
     userId = UUID.randomUUID(); caregiverId = UUID.randomUUID(); assistedId = UUID.randomUUID(); contractId = UUID.randomUUID();
     date = LocalDate.of(2026, 7, 29);
     lenient().when(authorization.requireCaregiver(userId)).thenReturn(caregiver);

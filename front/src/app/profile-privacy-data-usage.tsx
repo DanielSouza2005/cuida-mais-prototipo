@@ -38,6 +38,7 @@ const categories = [
     icon: ShieldCheck,
     data: ['Dados de autenticação', 'Registros de acesso', 'Tokens de recuperação de senha', 'Eventos de segurança'],
     purpose: 'Usamos esses dados para proteger a conta, prevenir acessos indevidos, recuperar senha e manter a segurança da plataforma.',
+    note: 'Também registramos algumas ações críticas, como mudanças de situação, bloqueios, exclusões, decisões administrativas e início ou encerramento de atendimento. Esses registros usam apenas as informações necessárias para segurança e rastreabilidade, sem copiar o conteúdo completo de dados assistenciais.',
   },
 ] as const;
 

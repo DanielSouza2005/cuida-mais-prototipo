@@ -54,6 +54,7 @@ export default function ProfileCaregiverExperienceScreen() {
     setIsSuccess(false);
 
     if (!tempoExperiencia) return setFeedback('Informe seu tempo de experiência.');
+    if (formacoes.length === 0) return setFeedback('Informe ao menos uma formação.');
     if (formacoes.includes('OUTRO') && !formacaoOutro.trim()) return setFeedback('Informe a formação personalizada.');
 
     try {
@@ -82,7 +83,7 @@ export default function ProfileCaregiverExperienceScreen() {
         ) : (
           <>
             <OptionGroup required label="Experiência" options={caregiverExperienceRangeOptions} value={tempoExperiencia} onChange={(value) => setTempoExperiencia(value as CaregiverExperienceRange)} disabled={formDisabled} />
-            <OptionGroup multiple optional label="Formação" options={caregiverEducationOptions} value={formacoes} onChange={(value) => setFormacoes(value as CaregiverEducation[])} disabled={formDisabled} />
+            <OptionGroup required multiple label="Formação" options={caregiverEducationOptions} value={formacoes} onChange={(value) => setFormacoes(value as CaregiverEducation[])} disabled={formDisabled} />
             {formacoes.includes('OUTRO') ? (
               <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={formacaoOutro} onChangeText={setFormacaoOutro} disabled={formDisabled} />
             ) : null}

@@ -1,5 +1,5 @@
 import { apiRequest } from '@/services/api';
-import type { AccountStatus, AdminCaregiverDetails, AdminCaregiverPage, AdminDashboardSummary, AdminResponsibleDetails, AdminResponsiblePage, AdminUserDetails, AdminUserPage, CaregiverApprovalStatus, ResponsibleApprovalStatus } from '@/types/admin';
+import type { AccountStatus, AdminCaregiverDetails, AdminCaregiverPage, AdminDashboardSummary, AdminResponsibleDetails, AdminResponsiblePage, AdminUserDetails, AdminUserPage, AuditDetails, AuditFilters, AuditPage, CaregiverApprovalStatus, ResponsibleApprovalStatus } from '@/types/admin';
 
 function query(params:Record<string,string|number|undefined|null>) {
   const entries = Object.entries(params).filter(([,value]) => value !== undefined && value !== null && value !== '');
@@ -20,3 +20,5 @@ export function getResponsible(id:string) { return apiRequest<AdminResponsibleDe
 export function approveResponsible(id:string) { return apiRequest<AdminResponsibleDetails>(`/api/admin/responsibles/${id}/approve`,{method:'PATCH'}); }
 export function rejectResponsible(id:string,reason:string) { return apiRequest<AdminResponsibleDetails>(`/api/admin/responsibles/${id}/reject`,{method:'PATCH',body:{reason}}); }
 export function blockResponsible(id:string,reason:string) { return apiRequest<AdminResponsibleDetails>(`/api/admin/responsibles/${id}/block`,{method:'PATCH',body:{reason}}); }
+export function listAudit(filters:AuditFilters) { return apiRequest<AuditPage>(`/api/admin/audit${query(filters)}`); }
+export function getAudit(id:string) { return apiRequest<AuditDetails>(`/api/admin/audit/${id}`); }

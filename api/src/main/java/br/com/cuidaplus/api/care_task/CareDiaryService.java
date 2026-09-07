@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.care_task;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.care_contract.CareContract;
 import br.com.cuidaplus.api.care_contract.CareContractRepository;
 import br.com.cuidaplus.api.care_contract.CareContractStatus;
@@ -44,11 +45,12 @@ public class CareDiaryService {
   private final TaskDateTimeService dateTimes;
   private final ContractStatusProcessorService statusProcessor;
   private final ServiceAttendanceService attendance;
+  private final AuditService audit;
 
   public CareDiaryService(CareActivityRecordRepository records, CareContractRepository contracts,
     CareOccurrencePhotoRepository photoRepository, CareOccurrencePhotoService photoService,
     TaskAuthorizationService authorization, TaskOccurrenceService occurrences, TaskDateTimeService dateTimes,
-    ContractStatusProcessorService statusProcessor, ServiceAttendanceService attendance) {
+    ContractStatusProcessorService statusProcessor, ServiceAttendanceService attendance, AuditService audit) {
     this.records = records;
     this.contracts = contracts;
     this.photoRepository = photoRepository;
@@ -58,6 +60,7 @@ public class CareDiaryService {
     this.dateTimes = dateTimes;
     this.statusProcessor = statusProcessor;
     this.attendance = attendance;
+    this.audit = audit;
   }
 
   @Transactional
@@ -110,6 +113,8 @@ public class CareDiaryService {
     record.setOccurredAt(dateTimes.toInstant(request.getEntryDate(), request.getOccurredTime(), request.getTimezone()));
     records.saveAndFlush(record);
     photoService.attach(record, caregiver, photos);
+    audit.success(AuditAction.REGISTRO_DIARIO_CRIADO, AuditCategory.ASSISTENCIAL, caregiver,
+      "REGISTRO_DIARIO_CUIDADO", record.getId(), "CONTRATACAO", contract.getId());
     return manualItem(record);
   }
 

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import br.com.cuidaplus.api.email.AttendanceReportEmailMessage;
+import br.com.cuidaplus.api.audit.AuditService;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.profile.AssistedPerson;
 import br.com.cuidaplus.api.service_attendance.ServiceAttendanceRecord;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class AttendanceReportEmailWorkerTest {
   @Mock AttendanceReportRepository reports;
   @Mock EmailService email;
+  @Mock AuditService audit;
   @Mock User responsible;
   @Mock User caregiver;
   @Mock AssistedPerson assistedPerson;
@@ -53,7 +55,7 @@ class AttendanceReportEmailWorkerTest {
     lenient().when(caregiver.getFullName()).thenReturn("Ana Cuidadora");
     lenient().when(assistedPerson.getNome()).thenReturn("Maria");
     when(reports.findForEmailDeliveryById(reportId)).thenReturn(Optional.of(report));
-    worker = new AttendanceReportEmailWorker(reports, email);
+    worker = new AttendanceReportEmailWorker(reports, email, audit);
   }
 
   @Test

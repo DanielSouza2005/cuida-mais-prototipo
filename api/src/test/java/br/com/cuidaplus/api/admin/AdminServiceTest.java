@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import br.com.cuidaplus.api.common.BusinessException;
+import br.com.cuidaplus.api.audit.AuditService;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.profile.CaregiverApprovalStatus;
 import br.com.cuidaplus.api.profile.CaregiverProfile;
@@ -35,9 +36,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 class AdminServiceTest {
   @Mock UserRepository users; @Mock CaregiverProfileRepository caregivers;
   @Mock CaregiverStatusHistoryRepository histories; @Mock ResponsibleProfileRepository responsibles;
-  @Mock ResponsibleStatusHistoryRepository responsibleHistories; @Mock EmailService emails;
+  @Mock ResponsibleStatusHistoryRepository responsibleHistories; @Mock EmailService emails; @Mock AuditService audit;
   AdminService service;
-  @BeforeEach void setup(){service=new AdminService(users,caregivers,histories,responsibles,responsibleHistories,emails);}
+  @BeforeEach void setup(){service=new AdminService(users,caregivers,histories,responsibles,responsibleHistories,emails,audit);}
 
   @Test void administratorCannotBlockOwnAccount(){
     User admin=user(UserType.ADMIN); when(users.findById(admin.getId())).thenReturn(Optional.of(admin));
@@ -169,7 +170,6 @@ class AdminServiceTest {
     caregiver.setSituacaoAprovacao(CaregiverApprovalStatus.PENDENTE);
     when(users.findById(admin.getId())).thenReturn(Optional.of(admin));
     when(users.findByIdForUpdate(target.getId())).thenReturn(Optional.of(target));
-    when(users.findById(target.getId())).thenReturn(Optional.of(target));
     when(caregivers.findByUser(target)).thenReturn(Optional.of(caregiver));
     when(responsibles.findByUser(target)).thenReturn(Optional.empty());
     when(histories.findByCaregiverOrderByCriadoEmDesc(caregiver)).thenReturn(List.of());

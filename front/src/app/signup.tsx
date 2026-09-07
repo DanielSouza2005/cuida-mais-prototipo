@@ -395,6 +395,7 @@ export default function SignupScreen() {
 
   function validateCaregiverProfessionalData() {
     if (!experienceRange) return 'Informe seu tempo de experiência.';
+    if (education.length === 0) return 'Informe ao menos uma formação.';
     if (education.includes('OUTRO') && !educationCustom.trim()) return 'Informe a formação personalizada.';
     return null;
   }
@@ -692,7 +693,7 @@ export default function SignupScreen() {
         {role === 'caregiver' && step === 3 ? (
           <>
             <OptionGroup required label="Experiência" options={caregiverExperienceRangeOptions} value={experienceRange} onChange={(value) => setExperienceRange(value as CaregiverExperienceRange)} disabled={formDisabled} />
-            <OptionGroup multiple optional label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation[])} disabled={formDisabled} />
+            <OptionGroup required multiple label="Formação" options={caregiverEducationOptions} value={education} onChange={(value) => setEducation(value as CaregiverEducation[])} disabled={formDisabled} />
             {education.includes('OUTRO') ? (
               <AppTextInput required label="Formação personalizada" icon={HeartPulse} placeholder="Informe sua formação" value={educationCustom} onChangeText={setEducationCustom} disabled={formDisabled} />
             ) : null}

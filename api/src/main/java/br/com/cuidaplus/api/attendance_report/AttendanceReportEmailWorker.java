@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.attendance_report;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.email.AttendanceReportEmailMessage;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.service_attendance.AttendanceTimeConfig;
@@ -20,10 +21,12 @@ public class AttendanceReportEmailWorker {
 
   private final AttendanceReportRepository reports;
   private final EmailService email;
+  private final AuditService audit;
 
-  public AttendanceReportEmailWorker(AttendanceReportRepository reports, EmailService email) {
+  public AttendanceReportEmailWorker(AttendanceReportRepository reports, EmailService email, AuditService audit) {
     this.reports = reports;
     this.email = email;
+    this.audit = audit;
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -37,6 +40,8 @@ public class AttendanceReportEmailWorker {
     String address = report.getResponsible().getEmail();
     if (address == null || address.isBlank() || !address.contains("@")) {
       fail(report, "O responsável não possui um e-mail válido cadastrado.", false, now);
+      audit.failure(AuditAction.RELATORIO_EMAIL_FALHOU, AuditCategory.RELATORIO, AuditResult.FALHA,
+        report.getCaregiver(), "RELATORIO_ATENDIMENTO", report.getId(), "Destinatário indisponível.");
       return;
     }
 
@@ -49,9 +54,13 @@ public class AttendanceReportEmailWorker {
       report.setEmailStatus(AttendanceReportEmailStatus.SENT);
       report.setEmailSentAt(now);
       report.setEmailErrorMessage(null);
+      audit.success(AuditAction.RELATORIO_EMAIL_ENVIADO, AuditCategory.RELATORIO, report.getCaregiver(),
+        "RELATORIO_ATENDIMENTO", report.getId(), null, null);
       return;
     }
     fail(report, "Não foi possível enviar o e-mail. O relatório permanece disponível no aplicativo.", true, now);
+    audit.failure(AuditAction.RELATORIO_EMAIL_FALHOU, AuditCategory.RELATORIO, AuditResult.FALHA,
+      report.getCaregiver(), "RELATORIO_ATENDIMENTO", report.getId(), "Envio não concluído.");
   }
 
   private boolean canAttempt(AttendanceReport report) {

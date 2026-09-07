@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import br.com.cuidaplus.api.auth.AuthService;
+import br.com.cuidaplus.api.audit.AuditAction;
+import br.com.cuidaplus.api.audit.CriticalActionAuditRepository;
 import br.com.cuidaplus.api.auth.dto.LoginRequest;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.profile.Parentesco;
@@ -46,6 +48,7 @@ class AccountDeletionIntegrationTest {
   @Autowired UserRepository users;
   @Autowired ResponsibleProfileRepository responsibles;
   @Autowired AccountDeletionAuditRepository audits;
+  @Autowired CriticalActionAuditRepository criticalAudits;
   @Autowired PasswordEncoder passwords;
   @MockBean EmailService emails;
 
@@ -94,6 +97,9 @@ class AccountDeletionIntegrationTest {
       assertThat(audit.getUserReference()).isEqualTo(user.getId());
       assertThat(audit.getResult()).isEqualTo("SUCESSO");
     });
+    assertThat(criticalAudits.findAll()).extracting(value -> value.getAction()).contains(
+      AuditAction.LOGIN_SUCESSO, AuditAction.REAUTENTICACAO_EXCLUSAO, AuditAction.CONTA_EXCLUSAO_SOLICITADA,
+      AuditAction.SESSOES_REVOGADAS, AuditAction.DADOS_ANONIMIZADOS, AuditAction.CONTA_EXCLUIDA);
 
     mvc.perform(get("/api/users/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt))
       .andExpect(status().isForbidden())

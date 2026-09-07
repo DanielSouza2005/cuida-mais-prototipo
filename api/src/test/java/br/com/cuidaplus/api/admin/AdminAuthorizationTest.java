@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import br.com.cuidaplus.api.email.EmailService;
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.profile.CaregiverApprovalStatus;
 import br.com.cuidaplus.api.profile.CaregiverProfile;
 import br.com.cuidaplus.api.profile.CaregiverProfileRepository;
@@ -14,6 +15,7 @@ import br.com.cuidaplus.api.security.TokenService;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserRepository;
 import br.com.cuidaplus.api.user.UserType;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,11 +35,13 @@ import org.springframework.test.web.servlet.MockMvc;
 class AdminAuthorizationTest {
   @Autowired MockMvc mvc; @Autowired UserRepository users; @Autowired CaregiverProfileRepository caregivers;
   @Autowired TokenService tokens;
+  @Autowired AuditService audit;
+  @Autowired CriticalActionAuditRepository auditRecords;
   @MockBean EmailService emails;
   User administrator; User responsible;
 
   @BeforeEach void setup(){
-    caregivers.deleteAll(); users.deleteAll(); administrator=save("admin@example.com",UserType.ADMIN);
+    auditRecords.deleteAll(); caregivers.deleteAll(); users.deleteAll(); administrator=save("admin@example.com",UserType.ADMIN);
     responsible=save("responsible@example.com",UserType.RESPONSAVEL);
   }
 
@@ -47,6 +51,31 @@ class AdminAuthorizationTest {
     mvc.perform(get("/api/admin/caregivers").param("status","APROVADO")
         .header("Authorization","Bearer "+tokens.generate(responsible.getId())))
       .andExpect(status().isForbidden());
+    mvc.perform(get("/api/admin/audit").header("Authorization","Bearer "+tokens.generate(responsible.getId())))
+      .andExpect(status().isForbidden());
+  }
+
+  @Test void administratorCanFilterAndOpenFriendlyAuditResponse() throws Exception {
+    var event = audit.success(AuditAction.USUARIO_BLOQUEADO, AuditCategory.ADMINISTRATIVO, administrator,
+      "USUARIO", responsible.getId(), AuditService.state("situacaoConta", "ATIVO"),
+      AuditService.state("situacaoConta", "BLOQUEADO"), "Violação das regras da plataforma");
+    String authorization="Bearer "+tokens.generate(administrator.getId());
+
+    mvc.perform(get("/api/admin/audit").param("action","USUARIO_BLOQUEADO")
+        .param("category","ADMINISTRATIVO").param("result","SUCESSO")
+        .param("responsibleUserId",administrator.getId().toString()).param("affectedEntityType","USUARIO")
+        .param("affectedEntityId",responsible.getId().toString())
+        .param("start",Instant.now().minusSeconds(60).toString()).param("end",Instant.now().plusSeconds(60).toString())
+        .param("page","0").param("size","1").header("Authorization",authorization))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+      .andExpect(jsonPath("$.page").value(0)).andExpect(jsonPath("$.size").value(1))
+      .andExpect(jsonPath("$.content[0].actionLabel").value("Usuário bloqueado"))
+      .andExpect(jsonPath("$.content[0].categoryLabel").value("Administrativo"))
+      .andExpect(jsonPath("$.content[0].resultLabel").value("Sucesso"));
+    mvc.perform(get("/api/admin/audit/{id}",event.getId()).header("Authorization",authorization))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.previousSummary.situacaoConta").value("ATIVO"))
+      .andExpect(jsonPath("$.newSummary.situacaoConta").value("BLOQUEADO"))
+      .andExpect(jsonPath("$.ip").doesNotExist()).andExpect(jsonPath("$.summarizedUserAgent").doesNotExist());
   }
 
   @Test void administratorCanAccessAdministrativeEndpoint() throws Exception {

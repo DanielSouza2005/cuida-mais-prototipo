@@ -1,10 +1,14 @@
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\account\AccountDeletionIntegrationTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\account\AccountDeletionServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\admin\AdminAuthorizationTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\admin\AdminServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\agenda\AgendaServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\attendance_report\AttendanceReportEmailWorkerTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\attendance_report\AttendanceReportServiceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\audit\AuditServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\auth\AuthServiceAccessStatusTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\auth\AuthServicePasswordResetTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\auth\UserDataMinimizationValidationTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\CareDiaryServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\ContractCareSchedulePolicyTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\care_task\ContractCareTaskProvisioningServiceTest.java
@@ -17,6 +21,7 @@ C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\jav
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationCatalogTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationPreferenceServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\notification\NotificationServicePreferenceTest.java
+C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\profile\CaregiverFormationValidationTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\service_attendance\ServiceAttendanceServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\service_request\ServiceOpportunityServiceTest.java
 C:\Users\danis\OneDrive\Documentos\FAM\TCC\cuida-mais-prototipo\api\src\test\java\br\com\cuidaplus\api\service_request\ServiceRequestDecisionServiceTest.java

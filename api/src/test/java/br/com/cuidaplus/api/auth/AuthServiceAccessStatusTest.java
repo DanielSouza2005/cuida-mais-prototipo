@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import br.com.cuidaplus.api.auth.dto.LoginRequest;
+import br.com.cuidaplus.api.audit.CriticalActionAuditRepository;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.email.EmailService;
 import br.com.cuidaplus.api.profile.CaregiverApprovalStatus;
@@ -38,9 +39,10 @@ class AuthServiceAccessStatusTest {
   @Autowired CaregiverProfileRepository caregivers;
   @Autowired ResponsibleProfileRepository responsibles;
   @Autowired PasswordEncoder passwords;
+  @Autowired CriticalActionAuditRepository audits;
   @MockBean EmailService emails;
 
-  @BeforeEach void clean() { caregivers.deleteAll(); responsibles.deleteAll(); users.deleteAll(); }
+  @BeforeEach void clean() { audits.deleteAll(); caregivers.deleteAll(); responsibles.deleteAll(); users.deleteAll(); }
 
   @Test void blockedAccountDoesNotReceiveToken() {
     User user = user("blocked@example.com", UserType.RESPONSAVEL);

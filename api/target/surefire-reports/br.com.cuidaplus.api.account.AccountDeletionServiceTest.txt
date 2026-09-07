@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.com.cuidaplus.api.account.AccountDeletionServiceTest
+-------------------------------------------------------------------------------
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.459 s -- in br.com.cuidaplus.api.account.AccountDeletionServiceTest

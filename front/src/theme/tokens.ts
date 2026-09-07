@@ -4,9 +4,9 @@ export const colors = {
   background: '#FCFBF7', foreground: '#1B2D40', card: '#FFFFFF', primary: '#2F8FC4',
   primaryForeground: '#F8FCFF', secondary: '#E7F3F5', secondaryForeground: '#31516D',
   muted: '#F1F4F5', mutedForeground: '#6C7A86', accent: '#79C9A8', mint: '#E1F4EC',
-  mintForeground: '#315E58', sage: '#79C9A8', coral: '#E58968', sunny: '#F4DE91',
+  mintForeground: '#315E58', sage: '#79C9A8', coral: '#E58968', sunny: '#F4DE91', sunnyForeground: '#76611B',
   coralBackground: '#FCE9E1', sunnyBackground: '#FAF1C9',
-  admin: '#7C3AED', adminBackground: '#EDE9FE', adminForeground: '#4C1D95', adminBorder: '#C4B5FD',
+  admin: '#2F8FC4', adminBackground: '#E7F3F5', adminForeground: '#236FA0', adminBorder: '#A9D3EB',
   border: '#E3E9EC', destructive: '#D64D45',
 } as const;
 

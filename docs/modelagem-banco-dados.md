@@ -2,9 +2,9 @@
 
 ## 1. Visão geral
 
-O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações, administração e exclusão de conta. Este documento descreve o schema `public` após a V048 e foi conferido nas migrations V001–V048, entidades JPA, enums, repositories e serviços.
+O PostgreSQL do Cuidar+ sustenta o cuidado domiciliar desde cadastro e autenticação até solicitação, contratação, rotina, execução dos cuidados, presença geolocalizada, relatório, notificações, administração, auditoria e exclusão de conta. Este documento descreve o schema `public` após a V049 e foi conferido nas migrations V001–V049, entidades JPA, enums, repositories e serviços.
 
-O modelo vigente possui 39 tabelas de domínio, 450 colunas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
+O modelo vigente possui 40 tabelas de domínio, 467 colunas de domínio e `flyway_schema_history`. **Sim** significa `NOT NULL`; **Não**, que aceita `NULL`. **PK**, **FK** e **Unique** indicam chave primária, estrangeira e unicidade. `timestamptz` abrevia `timestamp with time zone`. As chaves de domínio usam `uuid`.
 
 ## 2. Padrão de nomenclatura
 
@@ -13,6 +13,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 ## 3. Organização por domínios
 
 - **Usuários e perfis:** `usuario`, `usuario_token_redefinicao_senha`, `usuario_confirmacao_exclusao`, `usuario_exclusao_auditoria`, `responsavel`, `cuidador`, suas cinco coleções e os históricos de situação de responsável e cuidador.
+- **Auditoria transversal:** `auditoria_acao_critica`, com eventos mínimos de segurança, administração, privacidade, contratação, cuidado, atendimento e relatório.
 - **Pessoas assistidas:** `pessoa_assistida`, alergias, restrições alimentares e contato de emergência.
 - **Solicitações e contratações:** `solicitacao_servico`, suas seis tabelas filhas, `contratacao` e histórico de status.
 - **Planejamento e cuidado:** rotinas, tarefas, ocorrências, fotos, lembretes, auditoria e diário.
@@ -176,7 +177,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `motivo_reprovacao` | varchar(1000) | Não | — | Motivo informado na reprovação. |
 | `motivo_bloqueio_profissional` | varchar(1000) | Não | — | Motivo do bloqueio profissional. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuario.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidador_formacao` é a fonte oficial das qualificações profissionais. A V044 migra cuidadores anteriores como `APROVADO` para preservar os fluxos existentes; depois troca o padrão para `PENDENTE`. Somente cuidador aprovado e com conta ativa aparece em busca, perfil público ou solicitação.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; relação um para um. As cinco tabelas seguintes guardam coleções. `cuidador_formacao` é a fonte oficial das qualificações profissionais. Como parte do RF05, novos cadastros e atualizações do perfil profissional exigem ao menos uma formação; a regra é validada nos DTOs e nos serviços porque uma coleção relacional não garante “ao menos uma linha” com um simples `NOT NULL`. Cuidadores legados sem formação continuam legíveis, mas precisam informar uma formação antes de salvar essa área do perfil. A V044 migra cuidadores anteriores como `APROVADO` para preservar os fluxos existentes; depois troca o padrão para `PENDENTE`. Somente cuidador aprovado e com conta ativa aparece em busca, perfil público ou solicitação.
 
 ### 4.4.1 `cuidador_historico_situacao`
 
@@ -222,7 +223,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 ## 4.7 `cuidador_formacao`
 
-**Finalidade:** múltiplas qualificações. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06 e RF07.
+**Finalidade:** múltiplas qualificações. **Entidade:** coleção de `CaregiverProfile`. **Requisitos relacionados:** RF01, RF04, RF05, RF06, RF07 e RF21.
 
 **Papel nos requisitos:** apoio; qualifica o perfil profissional exibido e pesquisado.
 
@@ -231,7 +232,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `perfil_cuidador_id` | uuid | Sim | FK, Unique composto | Cuidador. |
 | `formacao` | varchar(40) | Sim | Enum, Unique composto | Qualificação. |
 
-**Relacionamentos e regras:** FK → `cuidador.id`; o par cuidador/formação é único.
+**Relacionamentos e regras:** FK → `cuidador.id`; o par cuidador/formação é único. Cadastro e atualização exigem pelo menos uma linha vinculada; `OUTRO` exige também a descrição da formação personalizada.
 
 ## 4.8 `cuidador_modalidade`
 
@@ -892,7 +893,35 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 **Relacionamentos e regras:** FK → `usuario.id`, `ON DELETE CASCADE`; o par usuário/tipo é único. Tipos antigos de tarefa foram normalizados para códigos de ocorrência pela V022.
 
-## 4.36 `flyway_schema_history`
+## 4.36 `auditoria_acao_critica`
+
+**Finalidade:** trilha transversal e persistente das ações críticas definidas no RNF25. **Entidade:** `CriticalActionAudit`. **Requisitos relacionados:** RF02–RF04, RF08–RF11, RF13, RF15–RF22 e RNF25.
+
+**Papel nos requisitos:** apoio de segurança e responsabilização; registra quem realizou a ação, quando, sobre qual entidade e com qual resultado, sem reproduzir o conteúdo sensível do domínio.
+
+| Coluna | Tipo | Obrigatório | Chave | Descrição |
+|---|---|---:|---|---|
+| `id` | uuid | Sim | PK | Identificador do evento. |
+| `tipo_acao` | varchar(80) | Sim | Enum lógico | Ação crítica executada. |
+| `categoria` | varchar(50) | Sim | Check/Enum | Segurança, administração, privacidade, contratação, assistencial, atendimento ou relatório. |
+| `resultado` | varchar(40) | Sim | Check/Enum | Sucesso, falha ou bloqueio por regra. |
+| `usuario_responsavel_id` | uuid | Não | FK | Autor autenticado; nulo para processo automático ou ator não autenticado. |
+| `tipo_usuario_responsavel` | varchar(40) | Não | Enum | Papel do autor no momento do evento. |
+| `entidade_afetada_tipo` | varchar(80) | Não | Referência lógica | Tipo técnico controlado do alvo. |
+| `entidade_afetada_id` | uuid | Não | Referência lógica | UUID do alvo, sem copiar seu conteúdo. |
+| `entidade_relacionada_tipo` | varchar(80) | Não | Referência lógica | Tipo de uma segunda entidade necessária ao contexto. |
+| `entidade_relacionada_id` | uuid | Não | Referência lógica | UUID da entidade relacionada. |
+| `valor_anterior_resumido` | jsonb | Não | — | Somente estado anterior permitido pela lista segura. |
+| `valor_novo_resumido` | jsonb | Não | — | Somente estado novo permitido pela lista segura. |
+| `motivo` | varchar(500) | Não | — | Motivo breve, higienizado e omitido se aparentar conter conteúdo proibido. |
+| `mensagem_resumida` | varchar(500) | Não | — | Descrição técnica curta e não sensível. |
+| `ip` | varchar(80) | Não | — | IP de origem para investigação de segurança; não é exposto pela API administrativa. |
+| `user_agent_resumido` | varchar(255) | Não | — | Agente do cliente truncado e higienizado; não é exposto pela API administrativa. |
+| `criado_em` | timestamptz | Sim | — | Instante autoritativo do backend. |
+
+**Relacionamentos e regras:** a única FK física aponta para `usuario` com `ON DELETE SET NULL`; as entidades de negócio são referências polimórficas. A aplicação aceita nos resumos apenas `status`, `situacaoConta`, `situacaoAprovacao` e `ativo`. A consulta paginada, ordenada do mais recente, permite filtrar por ação, categoria, resultado, autor, entidade e intervalo, e é autorizada somente para administrador. Índices atendem data, autor, ação e entidade. Falhas de segurança que precisam sobreviver ao rollback da operação usam transação própria.
+
+## 4.37 `flyway_schema_history`
 
 **Nome lógico:** Histórico de migrations. **Finalidade:** infraestrutura de versionamento do schema. **Entidade:** gerenciada pelo Flyway, sem entidade JPA. **Requisitos relacionados:** nenhum RF funcional.
 
@@ -924,6 +953,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 - Uma ocorrência concluída gera no máximo um `registro_diario_cuidado`; cuidados manuais usam o diário sem ocorrência. Fotos ligam-se exclusivamente a um desses dois pais.
 - Por contratação e data, `registro_atendimento` guarda `START` e `END`; ambos sustentam um `relatorio_atendimento` único.
 - `notificacao` aponta para entidades de negócio por tipo e UUID, mas somente o destinatário possui FK física.
+- `auditoria_acao_critica` referencia o autor por FK e os alvos de domínio por tipo e UUID, permitindo uma trilha transversal sem duplicar o conteúdo dessas entidades.
 
 ## 6. Status e tipos enumerados
 
@@ -1007,7 +1037,7 @@ As ações persistíveis de `TaskAuditAction` são `CRIADA`, `ALTERADA`, `PAUSAD
 
 ### Interface e transições administrativas (RF20/RF21)
 
-A navegação do administrador possui as áreas principais **Início**, **Usuários**, **Aprovações** e **Perfil**. O Início consulta `GET /api/admin/dashboard` para exibir cuidadores e responsáveis pendentes, total de usuários, contas bloqueadas e aprovações dos últimos sete dias. **Usuários** concentra pesquisa, filtros, detalhes, bloqueio e desbloqueio de contas. **Aprovações** abre em cuidadores pendentes e também permite alternar para responsáveis, preservando a mesma regra administrativa para os dois perfis.
+A navegação do administrador possui as áreas principais **Início**, **Usuários**, **Aprovações**, **Auditoria** e **Perfil**. A identidade administrativa usa o azul principal do Cuidar+, inclusive no badge `ADM` e no menu. O Início apresenta atalhos no mesmo grid de cards usado pelas telas iniciais de cuidador e responsável. O card **Todos os usuários** foi removido somente desse acesso rápido; a área **Usuários** continua no menu com pesquisa, filtros, detalhes, bloqueio e desbloqueio de contas. **Aprovações** abre em cuidadores pendentes e também permite alternar para responsáveis, preservando a mesma regra administrativa para os dois perfis.
 
 As transições aceitas são:
 
@@ -1048,7 +1078,36 @@ O telefone da conta e a preferência de contato do responsável passaram a ser o
 
 O impacto funcional concentra-se em RF01, RF04, RF05, RF07, RF20, RF21 e RF23. Login (RF02) e recuperação de senha (RF03) continuam baseados em e-mail e senha; busca, contratação, agenda, cuidado, administração, aprovação e exclusão continuam usando seus identificadores e dados próprios. Nome, e-mail, hash de senha, dados profissionais, dados assistenciais, nascimento da pessoa assistida, endereços necessários, localização operacional e contato de emergência permanecem por suas finalidades funcionais.
 
-## 7.3 Consulta de informações de privacidade (RF23)
+## 7.3 Auditoria de ações críticas (RNF25)
+
+O RNF25 cria uma trilha geral normalizada em `auditoria_acao_critica`. O backend é a fonte autoritativa do evento: a interface não informa autor, horário ou resultado. Cada registro contém o tipo e a categoria da ação, resultado, autor autenticado e seu papel, data/hora, referências por tipo e UUID, mudança de estado estritamente resumida e, quando aplicável, motivo ou mensagem curta. IP e agente do cliente são metadados de investigação protegidos e não são devolvidos pela API administrativa.
+
+### Matriz de ações auditadas
+
+| Domínio | Ações cobertas | Momento e resultado |
+|---|---|---|
+| Segurança e autenticação | login bem-sucedido ou bloqueado; solicitação e conclusão da redefinição de senha | Sucesso após autenticar ou alterar a senha; bloqueio somente para conta existente impedida por regra. Tokens e credenciais nunca entram no evento. |
+| Privacidade e exclusão | reautenticação, solicitação de exclusão, revogação de sessões, anonimização e conclusão da exclusão | Etapas confirmadas pelo backend; a auditoria específica de exclusão continua existindo para a finalidade restrita do RF22. |
+| Administração | consulta dos detalhes de usuário, cuidador ou responsável; bloqueio/desbloqueio; aprovação, reprovação ou bloqueio de perfil | Consultas sensíveis e decisões válidas; registra apenas o alvo, a transição de situação e motivo seguro. |
+| Solicitações e contratações | criação, aceite, rejeição, cancelamento e expiração da solicitação; criação, agendamento de encerramento, encerramento, cancelamento e mudança automática da contratação | Derivada da transição persistida no histórico de estados; processos automáticos podem não possuir usuário responsável. |
+| Rotinas e tarefas | criação, alteração, inativação e reativação de rotina ou tarefa | Após persistência válida; a auditoria específica da tarefa é preservada para sua linha do tempo detalhada. |
+| Execução assistencial | alteração, cancelamento, conclusão e não realização de ocorrência; criação de diário; envio de foto; alteração de perfil | Registra a existência da ação e seus identificadores, nunca observações de cuidado, conteúdo do diário, dados clínicos ou nome do arquivo. |
+| Atendimento | início e encerramento | Registra o atendimento e a contratação relacionada, sem copiar coordenadas. |
+| Relatório | geração, edição, finalização e envio ou falha de e-mail | Registra estado e resultado operacional, sem conteúdo do relatório, anotação clínica, endereço de e-mail ou corpo da mensagem. |
+
+Eventos meramente técnicos, navegação de telas, leitura comum de dados não sensíveis, criação interna de notificação e cancelamento interno de lembrete não geram auditoria central. Falhas de validação comuns também não são registradas para evitar ruído; falhas ou bloqueios de segurança relevantes usam `FALHA` ou `BLOQUEADO_POR_REGRA` quando é seguro persistir o evento.
+
+O envio de e-mail administrativo decorrente de bloqueio ou análise permanece como efeito pós-confirmação e log técnico do serviço de e-mail: a decisão que o originou já é auditada de modo transacional, e não é criado um segundo evento indistinguível sem confirmação de entrega. O relatório possui controle persistente de entrega e, por isso, gera eventos próprios de envio e falha.
+
+### Minimização, acesso e retenção
+
+A auditoria nunca armazena senha, hash de senha, token de acesso ou recuperação, CPF, endereço completo, coordenadas, dados de saúde, descrição integral do cuidado, relatório, diário, conteúdo de foto ou nome de arquivo. A lista segura de resumos aceita somente estados (`status`, `situacaoConta`, `situacaoAprovacao`) e o indicador `ativo`; qualquer outra chave é rejeitada. Textos livres são higienizados, limitados e omitidos quando aparentam conter categorias proibidas. A tela administrativa orienta o uso de motivos breves e sem dados pessoais ou assistenciais.
+
+Somente `ADMIN` consulta `GET /api/admin/audit` e `GET /api/admin/audit/{id}`. A listagem é paginada, ordenada do evento mais recente e filtrável por ação, categoria, resultado, autor, entidade e intervalo. Os rótulos exibidos são amigáveis em português; códigos técnicos permanecem apenas no contrato interno. A política organizacional ainda deve definir prazo de retenção e eventual anonimização ou descarte: o RNF25 não autoriza retenção indefinida nem inventa prazo jurídico.
+
+Exemplos mínimos: um bloqueio administrativo guarda `USUARIO_BLOQUEADO`, administrador, UUID do usuário, `ATIVO` → `BLOQUEADO`, instante e motivo breve; um check-in guarda `ATENDIMENTO_INICIADO`, cuidador, UUID do registro e da contratação, mas não latitude/longitude; uma finalização guarda `RELATORIO_FINALIZADO`, cuidador, UUID do relatório e `DRAFT` → `FINALIZED`, mas não o texto produzido.
+
+## 7.4 Consulta de informações de privacidade (RF23)
 
 O RF23 apresenta conteúdo institucional estático na interface sobre categorias de dados tratados, finalidades, dados pessoais sensíveis, compartilhamento, retenção, segurança e direitos dos titulares. A área também oferece acesso à Política de Privacidade e reutiliza o fluxo de exclusão de conta do RF22.
 
@@ -1130,7 +1189,7 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 | `cuidador_historico_situacao` | RF21 | Principal | Audita cada decisão administrativa sobre o cuidador. |
 | `cuidador_disponibilidade_dia` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os dias disponíveis. |
 | `cuidador_disponibilidade_periodo` | RF01, RF04, RF05, RF06, RF07 | Apoio | Detalha os períodos disponíveis. |
-| `cuidador_formacao` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém múltiplas qualificações. |
+| `cuidador_formacao` | RF01, RF04, RF05, RF06, RF07, RF21 | Apoio | Mantém uma ou mais qualificações obrigatórias para cadastro, perfil público e análise administrativa. |
 | `cuidador_modalidade` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém modalidades de atendimento. |
 | `cuidador_servico` | RF01, RF04, RF05, RF06, RF07 | Apoio | Mantém serviços oferecidos. |
 | `pessoa_assistida` | RF01, RF04, RF08, RF10, RF17, RF18, RF23 | Principal/Apoio/Indireta | Centraliza a pessoa, necessidades e endereço do cuidado, incluindo categorias assistenciais explicadas no RF23. |
@@ -1159,7 +1218,16 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 | `relatorio_atendimento` | RF19, RF23 | Principal/Indireta | Armazena relatório, finalização e entrega por e-mail e representa uma categoria assistencial explicada no RF23. |
 | `notificacao` | RF09, RF11, RF14, RF17, RF18, RF19, RF22 | Apoio | Comunica eventos e é removida com a conta excluída. |
 | `notificacao_preferencia` | RF09, RF11, RF14, RF17, RF18, RF19, RF22 | Apoio | Controla eventos e é removida com a conta excluída. |
+| `auditoria_acao_critica` | RF02–RF04, RF08–RF11, RF13, RF15–RF22 e RNF25 | Apoio transversal | Registra operação, autor, alvo, resultado e instante com minimização; complementa, sem substituir, históricos específicos do domínio. |
 | `flyway_schema_history` | Nenhum RF funcional | Infraestrutura | Versiona a evolução técnica do schema. |
+
+## 12. Rastreabilidade: requisito não funcional de auditoria
+
+| Requisito | Tabela principal | Entidades relacionadas indiretamente | Atendimento |
+|---|---|---|---|
+| RNF25 — Auditoria de ações críticas | `auditoria_acao_critica` | `usuario`, `cuidador`, `responsavel`, `solicitacao_servico`, `contratacao`, `rotina_cuidado`, `tarefa_cuidado`, `ocorrencia_cuidado`, `registro_diario_cuidado`, `registro_atendimento`, `relatorio_atendimento` | A tabela central guarda o evento mínimo. As entidades relacionadas mantêm o dado de negócio original e são referenciadas somente por tipo e UUID. |
+
+Os históricos `usuario_exclusao_auditoria`, `responsavel_historico_situacao`, `cuidador_historico_situacao`, `solicitacao_servico_contratacao_historico_status` e `tarefa_cuidado_auditoria` foram mantidos porque atendem linhas do tempo específicas e regras dos RFs existentes. O RNF25 acrescenta a visão geral normalizada necessária à investigação, sem remover essas estruturas nem copiar seus payloads.
 
 ## 13. Pontos de atenção
 
@@ -1188,9 +1256,10 @@ Não existe tabela separada para envio de e-mail: `status_email`, datas, tentati
 
 - Saúde, endereço, coordenadas, relatórios, telefone opcional e fotos são dados pessoais ou sensíveis e exigem autenticação, autorização, retenção adequada e acesso mínimo necessário.
 - Fotos e coordenadas devem ser disponibilizadas somente aos participantes autorizados da contratação.
+- A auditoria central é consultável somente por administrador, não expõe IP/agente do cliente pela API e deve permanecer sujeita a controle de acesso, monitoração e política de retenção própria.
 
 ### 13.5 Melhorias futuras
 
 - Avaliar constraints de unicidade nas coleções e checks para status textuais.
-- Documentar explicitamente a política de retenção de tokens, fotos, localização, notificações e relatórios.
+- Documentar explicitamente a política de retenção de tokens, fotos, localização, notificações, relatórios e eventos de auditoria.
 - Manter as duas matrizes atualizadas quando um RF, enum, tabela ou relacionamento mudar.

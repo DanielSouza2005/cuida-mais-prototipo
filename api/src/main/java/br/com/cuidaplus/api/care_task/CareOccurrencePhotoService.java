@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.care_task;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.user.User;
 import java.nio.file.Path;
@@ -16,8 +17,9 @@ public class CareOccurrencePhotoService {
   private final CareActivityRecordRepository records;
   private final CareOccurrencePhotoStorageService storage;
   private final TaskAuditService audit;
-  public CareOccurrencePhotoService(CareOccurrencePhotoRepository photos, TaskOccurrenceRepository occurrences, CareActivityRecordRepository records, CareOccurrencePhotoStorageService storage, TaskAuditService audit) {
-    this.photos = photos; this.occurrences = occurrences; this.records = records; this.storage = storage; this.audit = audit;
+  private final AuditService criticalAudit;
+  public CareOccurrencePhotoService(CareOccurrencePhotoRepository photos, TaskOccurrenceRepository occurrences, CareActivityRecordRepository records, CareOccurrencePhotoStorageService storage, TaskAuditService audit, AuditService criticalAudit) {
+    this.photos = photos; this.occurrences = occurrences; this.records = records; this.storage = storage; this.audit = audit; this.criticalAudit = criticalAudit;
   }
   @Transactional public void attach(TaskOccurrence occurrence, User caregiver, List<MultipartFile> files) {
     List<MultipartFile> provided = files == null ? List.of() : files.stream().filter(file -> file != null && !file.isEmpty()).toList();
@@ -35,6 +37,8 @@ public class CareOccurrencePhotoService {
       var stored = storage.store(file); CareOccurrencePhoto photo = new CareOccurrencePhoto();
       photo.setActivityRecord(record); photo.setUploadedBy(caregiver); photo.setFileName(stored.fileName()); photo.setOriginalFileName(stored.originalFileName()); photo.setContentType(stored.contentType()); photo.setFileSize(stored.fileSize());
       photos.save(photo);
+      criticalAudit.success(AuditAction.FOTO_ASSISTENCIAL_ENVIADA, AuditCategory.ASSISTENCIAL, caregiver,
+        "REGISTRO_DIARIO_CUIDADO", record.getId(), "CONTRATACAO", record.getContract().getId());
     }
   }
   @Transactional(readOnly = true) public PhotoFile get(UUID userId, UUID occurrenceId, UUID photoId) {

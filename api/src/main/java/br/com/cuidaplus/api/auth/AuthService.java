@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.auth;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.auth.dto.AuthResponse;
 import br.com.cuidaplus.api.auth.dto.AddressRequest;
 import br.com.cuidaplus.api.auth.dto.ForgotPasswordRequest;
@@ -18,6 +19,7 @@ import br.com.cuidaplus.api.profile.AssistedPersonRepository;
 import br.com.cuidaplus.api.profile.CaregiverAvailability;
 import br.com.cuidaplus.api.profile.CaregiverProfile;
 import br.com.cuidaplus.api.profile.CaregiverProfileRepository;
+import br.com.cuidaplus.api.profile.CaregiverFormationPolicy;
 import br.com.cuidaplus.api.profile.EmergencyContact;
 import br.com.cuidaplus.api.profile.EmergencyContactRepository;
 import br.com.cuidaplus.api.profile.FormacaoCuidador;
@@ -66,6 +68,7 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
   private final TokenService tokenService;
   private final EmailService emailService;
+  private final AuditService audit;
   private final SecureRandom secureRandom = new SecureRandom();
   private final String mobileResetPasswordUrl;
   private final String webResetPasswordUrl;
@@ -85,6 +88,7 @@ public class AuthService {
     PasswordEncoder passwordEncoder,
     TokenService tokenService,
     EmailService emailService,
+    AuditService audit,
     @Value("${app.password-reset.mobile-url}") String mobileResetPasswordUrl,
     @Value("${app.password-reset.web-url}") String webResetPasswordUrl,
     @Value("${app.password-reset.prefer-mobile-link}") boolean preferMobileResetLink,
@@ -102,6 +106,7 @@ public class AuthService {
     this.passwordEncoder = passwordEncoder;
     this.tokenService = tokenService;
     this.emailService = emailService;
+    this.audit = audit;
     this.mobileResetPasswordUrl = mobileResetPasswordUrl;
     this.webResetPasswordUrl = webResetPasswordUrl;
     this.preferMobileResetLink = preferMobileResetLink;
@@ -173,13 +178,15 @@ public class AuthService {
 
   @Transactional
   public MessageResponse registerCaregiver(RegisterCaregiverRequest request, MultipartFile photo) {
-    User user = createUser(request.user(), UserType.CUIDADOR);
     RegisterCaregiverRequest.CaregiverProfileRequest profileRequest = request.caregiverProfile();
+    LinkedHashSet<FormacaoCuidador> formacoes = CaregiverFormationPolicy.requireValid(
+      profileRequest.formacoes(), profileRequest.formacaoOutro());
+    User user = createUser(request.user(), UserType.CUIDADOR);
 
     CaregiverProfile profile = new CaregiverProfile();
     profile.setUser(user);
-    profile.setFormacoes(new LinkedHashSet<>(profileRequest.formacoes()));
-    profile.setFormacaoOutro(profileRequest.formacoes().contains(FormacaoCuidador.OUTRO)
+    profile.setFormacoes(formacoes);
+    profile.setFormacaoOutro(formacoes.contains(FormacaoCuidador.OUTRO)
       ? trimToNull(profileRequest.formacaoOutro()) : null);
     profile.setTempoExperiencia(profileRequest.tempoExperiencia());
     profile.setBiografia(trimToNull(profileRequest.biografia()));
@@ -217,8 +224,17 @@ public class AuthService {
       throw new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED);
     }
 
-    validateLoginStatus(user);
+    try {
+      validateLoginStatus(user);
+    } catch (BusinessException exception) {
+      if (exception.getStatus() == HttpStatus.FORBIDDEN) {
+        audit.failure(AuditAction.LOGIN_BLOQUEADO, AuditCategory.SEGURANCA, AuditResult.BLOQUEADO_POR_REGRA,
+          user, "USUARIO", user.getId(), "Acesso impedido pela situação cadastral.");
+      }
+      throw exception;
+    }
     user.setUltimoLoginEm(Instant.now());
+    audit.success(AuditAction.LOGIN_SUCESSO, AuditCategory.SEGURANCA, user, "USUARIO", user.getId(), null, null);
 
     return new AuthResponse(userMapper.toResponse(user), tokenService.generate(user.getId()));
   }
@@ -236,6 +252,7 @@ public class AuthService {
       resetToken.setTokenHash(hashToken(token));
       resetToken.setExpiresAt(Instant.now().plusSeconds(resetExpirationMinutes * 60));
       passwordResetTokenRepository.save(resetToken);
+      audit.success(AuditAction.RECUPERACAO_SENHA_SOLICITADA, AuditCategory.SEGURANCA, user, "USUARIO", user.getId(), null, null);
 
       emailService.sendPasswordResetEmail(
         user.getEmail(),
@@ -267,6 +284,7 @@ public class AuthService {
     resetToken.setUsedAt(Instant.now());
     userRepository.save(user);
     passwordResetTokenRepository.save(resetToken);
+    audit.success(AuditAction.SENHA_REDEFINIDA, AuditCategory.SEGURANCA, user, "USUARIO", user.getId(), null, null);
 
     return new MessageResponse("Senha redefinida com sucesso.");
   }

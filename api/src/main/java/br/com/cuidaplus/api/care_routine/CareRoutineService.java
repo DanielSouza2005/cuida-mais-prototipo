@@ -1,5 +1,6 @@
 package br.com.cuidaplus.api.care_routine;
 
+import br.com.cuidaplus.api.audit.*;
 import br.com.cuidaplus.api.care_routine.dto.*;
 import br.com.cuidaplus.api.care_task.*;
 import br.com.cuidaplus.api.care_task.dto.MedicationRequest;
@@ -16,9 +17,10 @@ public class CareRoutineService {
   private final CareRoutineRepository routines;
   private final AssistedPersonRepository assistedPeople;
   private final UserService users;
+  private final AuditService audit;
 
-  public CareRoutineService(CareRoutineRepository routines, AssistedPersonRepository assistedPeople, UserService users) {
-    this.routines = routines; this.assistedPeople = assistedPeople; this.users = users;
+  public CareRoutineService(CareRoutineRepository routines, AssistedPersonRepository assistedPeople, UserService users, AuditService audit) {
+    this.routines = routines; this.assistedPeople = assistedPeople; this.users = users; this.audit = audit;
   }
 
   @Transactional(readOnly = true)
@@ -47,19 +49,26 @@ public class CareRoutineService {
     User owner = requireResponsible(userId);
     CareRoutine routine = new CareRoutine(); routine.setResponsibleUser(owner); routine.setActive(true);
     apply(routine, owner, request);
-    return response(routines.save(routine));
+    CareRoutine saved = routines.save(routine);
+    audit.success(AuditAction.ROTINA_CUIDADO_CRIADA, AuditCategory.ASSISTENCIAL, owner, "ROTINA_CUIDADO", saved.getId(), null, null);
+    return response(saved);
   }
 
   @Transactional
   public CareRoutineResponse update(UUID userId, UUID id, CareRoutineRequest request) {
     CareRoutine routine = owned(userId, id);
     apply(routine, routine.getResponsibleUser(), request);
+    audit.success(AuditAction.ROTINA_CUIDADO_ALTERADA, AuditCategory.ASSISTENCIAL, routine.getResponsibleUser(), "ROTINA_CUIDADO", routine.getId(), null, null);
     return response(routine);
   }
 
   @Transactional
   public CareRoutineResponse setActive(UUID userId, UUID id, boolean active) {
-    CareRoutine routine = owned(userId, id); routine.setActive(active); return response(routine);
+    CareRoutine routine = owned(userId, id); boolean previous = routine.isActive(); routine.setActive(active);
+    if (previous != active) audit.success(active ? AuditAction.ROTINA_CUIDADO_REATIVADA : AuditAction.ROTINA_CUIDADO_INATIVADA,
+      AuditCategory.ASSISTENCIAL, routine.getResponsibleUser(), "ROTINA_CUIDADO", routine.getId(),
+      AuditService.state("ativo", previous), AuditService.state("ativo", active), null);
+    return response(routine);
   }
 
   @Transactional(readOnly = true)
