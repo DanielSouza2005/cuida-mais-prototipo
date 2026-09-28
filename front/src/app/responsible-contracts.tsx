@@ -4,13 +4,14 @@ import { Search, SlidersHorizontal } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { CollapsibleFilters } from '@/components/collapsible-filters';
 import { ContractHistoryCard } from '@/components/contract-history-card';
 import { DatePickerField } from '@/components/date-picker-field';
 import { PrimaryButton } from '@/components/primary-button';
 import { ScreenContainer } from '@/components/screen-container';
 import { ApiError } from '@/services/api';
 import { getCaregiverContracts, getResponsibleContracts } from '@/services/responsibleContractsService';
-import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
+import { colors, fontFamily, radii, spacing } from '@/theme/tokens';
 import type { ContractHistoryCategory, ContractHistoryItem, ContractsHistoryPage } from '@/types/contractsHistory';
 import { contractCategoryLabels } from '@/utils/contractsHistoryLabels';
 
@@ -26,6 +27,7 @@ function toIsoDate(value: string) {
 
 export function ContractsHistoryScreen({ viewer = 'RESPONSAVEL' }: { viewer?: 'RESPONSAVEL' | 'CUIDADOR' }) {
   const [category, setCategory] = useState<ContractHistoryCategory>('ATIVAS');
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [draftFilters, setDraftFilters] = useState<AppliedFilters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>(emptyFilters);
   const [items, setItems] = useState<ContractHistoryItem[]>([]);
@@ -107,6 +109,10 @@ export function ContractsHistoryScreen({ viewer = 'RESPONSAVEL' }: { viewer?: 'R
   }
 
   const hasActiveFilters = Boolean(appliedFilters.participantName || appliedFilters.startDateFrom || appliedFilters.startDateTo || category !== 'TODAS');
+  const activeFiltersCount = Number(category !== 'ATIVAS')
+    + Number(Boolean(appliedFilters.participantName))
+    + Number(Boolean(appliedFilters.startDateFrom))
+    + Number(Boolean(appliedFilters.startDateTo));
 
   return (
     <ScreenContainer keyboardAvoiding contentStyle={styles.content} scrollViewProps={{
@@ -116,20 +122,29 @@ export function ContractsHistoryScreen({ viewer = 'RESPONSAVEL' }: { viewer?: 'R
     }}>
       <AppHeader showBack={!isTabRoute} title={viewer === 'CUIDADOR' ? 'Solicitações e contratações' : 'Contratações'} subtitle={viewer === 'CUIDADOR' ? 'Acompanhe pedidos recebidos e serviços em andamento.' : 'Acompanhe suas solicitações e serviços contratados.'} />
 
-      <View style={styles.categories} accessibilityRole="tablist">
-        {categories.map((entry) => {
-          const active = category === entry;
-          return <Pressable key={entry} accessibilityRole="tab" accessibilityState={{ selected: active }} disabled={isLoading} onPress={() => selectCategory(entry)} style={[styles.chip, active && styles.chipActive]}><Text style={[styles.chipText, active && styles.chipTextActive]}>{contractCategoryLabels[entry]}</Text></Pressable>;
-        })}
-      </View>
-
-      <View style={styles.filtersCard}>
+      <CollapsibleFilters
+        activeFiltersCount={activeFiltersCount}
+        accessibilityHint="Expande ou recolhe as opções de filtro das contratações"
+        collapsedAccessibilityLabel="Mostrar filtros de contratações"
+        expanded={filtersExpanded}
+        expandedAccessibilityLabel="Ocultar filtros de contratações"
+        onToggle={() => setFiltersExpanded((current) => !current)}
+      >
         <View style={styles.filterTitleRow}><View style={styles.filterIcon}><SlidersHorizontal color={colors.primary} size={18} /></View><View><Text style={styles.filterTitle}>Filtrar registros</Text><Text style={styles.filterSubtitle}>Combine participante e período</Text></View></View>
+        <View style={styles.filterSection}>
+          <Text style={styles.label}>Status</Text>
+          <View style={styles.categories} accessibilityRole="tablist">
+            {categories.map((entry) => {
+              const active = category === entry;
+              return <Pressable key={entry} accessibilityRole="tab" accessibilityState={{ selected: active }} disabled={isLoading} onPress={() => selectCategory(entry)} style={[styles.chip, active && styles.chipActive]}><Text style={[styles.chipText, active && styles.chipTextActive]}>{contractCategoryLabels[entry]}</Text></Pressable>;
+            })}
+          </View>
+        </View>
         <View style={styles.field}><Text style={styles.label}>{viewer === 'CUIDADOR' ? 'Buscar por responsável' : 'Buscar por cuidador'}</Text><View style={styles.inputShell}><Search color={colors.mutedForeground} size={19} /><TextInput accessibilityLabel={viewer === 'CUIDADOR' ? 'Buscar por responsável' : 'Buscar por cuidador'} autoCapitalize="words" placeholder={viewer === 'CUIDADOR' ? 'Nome do responsável' : 'Nome do cuidador'} placeholderTextColor={colors.mutedForeground} value={draftFilters.participantName} onChangeText={(participantName) => setDraftFilters((current) => ({ ...current, participantName }))} style={styles.input} /></View></View>
         <View style={styles.dateRow}><View style={styles.dateField}><DatePickerField label="De" optional value={draftFilters.startDateFrom} onChange={(startDateFrom) => { setDateError(null); setDraftFilters((current) => ({ ...current, startDateFrom })); }} /></View><View style={styles.dateField}><DatePickerField label="Até" optional value={draftFilters.startDateTo} onChange={(startDateTo) => { setDateError(null); setDraftFilters((current) => ({ ...current, startDateTo })); }} /></View></View>
         {dateError ? <Text accessibilityRole="alert" style={styles.errorText}>{dateError}</Text> : null}
         <View style={styles.actions}><PrimaryButton label="Aplicar filtros" onPress={applyFilters} disabled={isLoading} style={styles.actionButton} /><PrimaryButton label="Limpar filtros" variant="secondary" onPress={clearFilters} disabled={isLoading || (!draftFilters.participantName && !draftFilters.startDateFrom && !draftFilters.startDateTo)} style={styles.actionButton} /></View>
-      </View>
+      </CollapsibleFilters>
 
       {isLoading ? <View style={styles.state}><ActivityIndicator color={colors.primary} /><Text style={styles.stateText}>{loadingMessage}</Text></View> : null}
       {!isLoading && error ? <View style={styles.errorState}><Text style={styles.errorTitle}>Não foi possível carregar</Text><Text style={styles.stateText}>{error}</Text><PrimaryButton label="Tentar novamente" variant="secondary" onPress={() => fetchFirstPage(category, appliedFilters, 'Carregando contratações...')} /></View> : null}
@@ -143,17 +158,17 @@ export function ContractsHistoryScreen({ viewer = 'RESPONSAVEL' }: { viewer?: 'R
 export default function ResponsibleContractsScreen() { return <ContractsHistoryScreen />; }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.xl, gap: spacing.xl },
+  content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.xl },
   categories: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radii.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipText: { fontFamily: fontFamily.semiBold, fontSize: 12, color: colors.secondaryForeground },
   chipTextActive: { color: colors.primaryForeground },
-  filtersCard: { gap: spacing.lg, padding: spacing.lg, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, ...shadows.card },
   filterTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   filterIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.secondary },
   filterTitle: { fontFamily: fontFamily.bold, fontSize: 15, color: colors.foreground },
   filterSubtitle: { fontFamily: fontFamily.regular, fontSize: 11, color: colors.mutedForeground },
+  filterSection: { gap: spacing.sm },
   field: { gap: spacing.xs }, label: { fontFamily: fontFamily.semiBold, fontSize: 13, color: colors.foreground },
   inputShell: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, backgroundColor: colors.card },
   input: { flex: 1, paddingVertical: spacing.md, fontFamily: fontFamily.medium, fontSize: 14, color: colors.foreground },

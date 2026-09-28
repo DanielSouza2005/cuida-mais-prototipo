@@ -1,12 +1,13 @@
 import { router, useSegments, type Href } from 'expo-router';
 import * as Location from 'expo-location';
-import { ArrowRight, MapPin, Navigation, Search, SlidersHorizontal } from 'lucide-react-native';
+import { ArrowRight, MapPin, Navigation, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/app-header';
 import { AppTextInput } from '@/components/app-text-input';
+import { CollapsibleFilters } from '@/components/collapsible-filters';
 import { LoadingState } from '@/components/loading-state';
 import { LocationCombobox } from '@/components/location-combobox';
 import { PrimaryButton } from '@/components/primary-button';
@@ -47,6 +48,7 @@ const initialFilters: CaregiverSearchFilters = {
 export default function CaregiverSearchScreen() {
   const segments = useSegments();
   const isTabRoute = (segments as string[])[0] === '(tabs)';
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [draftFilters, setDraftFilters] = useState<CaregiverSearchFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<CaregiverSearchFilters>(initialFilters);
   const [locationQuery, setLocationQuery] = useState('');
@@ -67,6 +69,7 @@ export default function CaregiverSearchScreen() {
     draftFilters.services.length ||
     draftFilters.modalities.length,
   );
+  const appliedFiltersCount = countActiveFilters(appliedFilters);
 
   useEffect(() => {
     let active = true;
@@ -271,103 +274,103 @@ export default function CaregiverSearchScreen() {
               subtitle="Encontre profissionais disponíveis para apoiar o cuidado domiciliar."
             />
 
-            <AppTextInput
-              label="Nome do cuidador"
-              icon={Search}
-              value={draftFilters.query}
-              onChangeText={(value) => updateFilter('query', value)}
-              placeholder="Buscar por nome do cuidador"
-              returnKeyType="search"
-            />
-
-            <LocationCombobox
-              value={locationQuery}
-              selectedLocation={draftFilters.location}
-              suggestions={locationSuggestions}
-              loading={locationsLoading}
-              disabled={false}
-              onChangeText={changeLocationText}
-              onSelectLocation={selectLocation}
-              onClear={clearLocation}
-            />
-            <PrimaryButton
-              label="Usar minha localização"
-              icon={Navigation}
-              variant="secondary"
-              loading={currentLocationLoading}
-              onPress={useCurrentLocation}
-              style={styles.currentLocationButton}
-            />
-            <PrimaryButton
-              label="Usar endereço de cuidado"
-              icon={MapPin}
-              variant="secondary"
-              loading={careAddressLoading}
-              onPress={useCareAddressLocation}
-              style={styles.currentLocationButton}
-            />
-            {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
-
-            <View style={styles.filterHeader}>
-              <View style={styles.filterTitleRow}>
-                <SlidersHorizontal color={colors.primary} size={17} strokeWidth={2.5} />
-                <Text style={styles.filterTitle}>Filtros</Text>
-              </View>
-            </View>
-
-            <FilterRow title="Disponibilidade">
-              {availabilityOptions.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  label={option.label}
-                  selected={draftFilters.availability.includes(option.value)}
-                  disabled={loading}
-                  onPress={() => toggleAvailability(option.value)}
+            <CollapsibleFilters
+              activeFiltersCount={appliedFiltersCount}
+              accessibilityHint="Expande ou recolhe as opções de filtro dos cuidadores"
+              expanded={filtersExpanded}
+              onToggle={() => setFiltersExpanded((current) => !current)}
+            >
+                <AppTextInput
+                  label="Nome do cuidador"
+                  icon={Search}
+                  value={draftFilters.query}
+                  onChangeText={(value) => updateFilter('query', value)}
+                  placeholder="Buscar por nome do cuidador"
+                  returnKeyType="search"
                 />
-              ))}
-            </FilterRow>
 
-            <FilterRow title="Serviços e especialidades">
-              {searchServiceOptions.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  label={option.label}
-                  selected={draftFilters.services.includes(option.value)}
-                  disabled={loading}
-                  onPress={() => toggleService(option.value as CaregiverService)}
+                <LocationCombobox
+                  value={locationQuery}
+                  selectedLocation={draftFilters.location}
+                  suggestions={locationSuggestions}
+                  loading={locationsLoading}
+                  disabled={false}
+                  onChangeText={changeLocationText}
+                  onSelectLocation={selectLocation}
+                  onClear={clearLocation}
                 />
-              ))}
-            </FilterRow>
-
-            <FilterRow title="Modalidade de atendimento">
-              {searchModalityOptions.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  label={option.label}
-                  selected={draftFilters.modalities.includes(option.value)}
-                  disabled={loading}
-                  onPress={() => toggleModality(option.value as CareModality)}
-                />
-              ))}
-            </FilterRow>
-
-            <View style={styles.searchActions}>
-              <PrimaryButton
-                label="Buscar"
-                icon={Search}
-                loading={loading}
-                onPress={applySearch}
-                style={styles.searchButton}
-              />
-              {hasFilters ? (
                 <PrimaryButton
-                  label="Limpar filtros"
+                  label="Usar minha localização"
+                  icon={Navigation}
                   variant="secondary"
-                  onPress={clearFilters}
-                  style={styles.searchButton}
+                  loading={currentLocationLoading}
+                  onPress={useCurrentLocation}
+                  style={styles.currentLocationButton}
                 />
-              ) : null}
-            </View>
+                <PrimaryButton
+                  label="Usar endereço de cuidado"
+                  icon={MapPin}
+                  variant="secondary"
+                  loading={careAddressLoading}
+                  onPress={useCareAddressLocation}
+                  style={styles.currentLocationButton}
+                />
+                {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
+
+                <FilterRow title="Disponibilidade">
+                  {availabilityOptions.map((option) => (
+                    <FilterChip
+                      key={option.value}
+                      label={option.label}
+                      selected={draftFilters.availability.includes(option.value)}
+                      disabled={loading}
+                      onPress={() => toggleAvailability(option.value)}
+                    />
+                  ))}
+                </FilterRow>
+
+                <FilterRow title="Serviços e especialidades">
+                  {searchServiceOptions.map((option) => (
+                    <FilterChip
+                      key={option.value}
+                      label={option.label}
+                      selected={draftFilters.services.includes(option.value)}
+                      disabled={loading}
+                      onPress={() => toggleService(option.value as CaregiverService)}
+                    />
+                  ))}
+                </FilterRow>
+
+                <FilterRow title="Modalidade de atendimento">
+                  {searchModalityOptions.map((option) => (
+                    <FilterChip
+                      key={option.value}
+                      label={option.label}
+                      selected={draftFilters.modalities.includes(option.value)}
+                      disabled={loading}
+                      onPress={() => toggleModality(option.value as CareModality)}
+                    />
+                  ))}
+                </FilterRow>
+
+                <View style={styles.searchActions}>
+                  <PrimaryButton
+                    label="Buscar"
+                    icon={Search}
+                    loading={loading}
+                    onPress={applySearch}
+                    style={styles.searchButton}
+                  />
+                  {hasFilters ? (
+                    <PrimaryButton
+                      label="Limpar filtros"
+                      variant="secondary"
+                      onPress={clearFilters}
+                      style={styles.searchButton}
+                    />
+                  ) : null}
+                </View>
+            </CollapsibleFilters>
 
             <View style={styles.resultsHeader}>
               <Text style={styles.resultsCount}>
@@ -403,6 +406,14 @@ export default function CaregiverSearchScreen() {
       />
     </SafeAreaView>
   );
+}
+
+function countActiveFilters(filters: CaregiverSearchFilters) {
+  return Number(Boolean(filters.query.trim()))
+    + Number(Boolean(filters.location || filters.origin))
+    + filters.availability.length
+    + filters.services.length
+    + filters.modalities.length;
 }
 
 function FilterRow({ title, children }: { title: string; children: React.ReactNode }) {
@@ -567,7 +578,7 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   headerContent: {
     gap: spacing.lg,
@@ -687,22 +698,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     fontSize: 13,
     color: colors.mutedForeground,
-  },
-  filterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  filterTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  filterTitle: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: 17,
-    color: colors.foreground,
   },
   clearButton: {
     minHeight: 34,
