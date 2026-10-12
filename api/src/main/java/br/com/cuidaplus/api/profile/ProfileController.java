@@ -11,9 +11,9 @@ import br.com.cuidaplus.api.profile.dto.EmergencyContactUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.ResponsibleProfileUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.ProfilePhotoResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse;
 import br.com.cuidaplus.api.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -39,7 +39,7 @@ public class ProfileController {
   }
 
   @GetMapping("/me")
-  public Map<String, Object> me() {
+  public ProfileResponse me() {
     return profileService.findMyProfile(AuthenticatedUser.id());
   }
 

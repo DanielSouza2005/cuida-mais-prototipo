@@ -11,6 +11,11 @@ import br.com.cuidaplus.api.profile.CaregiverApprovalStatus;
 import br.com.cuidaplus.api.profile.CaregiverProfile;
 import br.com.cuidaplus.api.profile.CaregiverProfileRepository;
 import br.com.cuidaplus.api.profile.FormacaoCuidador;
+import br.com.cuidaplus.api.profile.Parentesco;
+import br.com.cuidaplus.api.profile.PreferenciaContato;
+import br.com.cuidaplus.api.profile.ResponsibleApprovalStatus;
+import br.com.cuidaplus.api.profile.ResponsibleProfile;
+import br.com.cuidaplus.api.profile.ResponsibleProfileRepository;
 import br.com.cuidaplus.api.security.TokenService;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserRepository;
@@ -34,6 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class AdminAuthorizationTest {
   @Autowired MockMvc mvc; @Autowired UserRepository users; @Autowired CaregiverProfileRepository caregivers;
+  @Autowired ResponsibleProfileRepository responsibles;
   @Autowired TokenService tokens;
   @Autowired AuditService audit;
   @Autowired CriticalActionAuditRepository auditRecords;
@@ -41,18 +47,46 @@ class AdminAuthorizationTest {
   User administrator; User responsible;
 
   @BeforeEach void setup(){
-    auditRecords.deleteAll(); caregivers.deleteAll(); users.deleteAll(); administrator=save("admin@example.com",UserType.ADMIN);
+    auditRecords.deleteAll(); caregivers.deleteAll(); responsibles.deleteAll(); users.deleteAll(); administrator=save("admin@example.com",UserType.ADMIN);
     responsible=save("responsible@example.com",UserType.RESPONSAVEL);
+    saveResponsibleProfile(responsible);
   }
 
   @Test void commonUserCannotAccessAdministrativeEndpoint() throws Exception {
     mvc.perform(get("/api/admin/users").header("Authorization","Bearer "+tokens.generate(responsible.getId())))
-      .andExpect(status().isForbidden());
+      .andExpect(status().isForbidden())
+      .andExpect(jsonPath("$.timestamp").exists())
+      .andExpect(jsonPath("$.status").value(403))
+      .andExpect(jsonPath("$.code").value("ACCESS_DENIED"))
+      .andExpect(jsonPath("$.message").value("Acesso negado."))
+      .andExpect(jsonPath("$.fields").isMap());
     mvc.perform(get("/api/admin/caregivers").param("status","APROVADO")
         .header("Authorization","Bearer "+tokens.generate(responsible.getId())))
       .andExpect(status().isForbidden());
     mvc.perform(get("/api/admin/audit").header("Authorization","Bearer "+tokens.generate(responsible.getId())))
       .andExpect(status().isForbidden());
+  }
+
+  @Test void unauthenticatedRequestUsesStandardApiError() throws Exception {
+    mvc.perform(get("/api/users/me"))
+      .andExpect(status().isUnauthorized())
+      .andExpect(jsonPath("$.timestamp").exists())
+      .andExpect(jsonPath("$.status").value(401))
+      .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+      .andExpect(jsonPath("$.message").value("Autenticação necessária."))
+      .andExpect(jsonPath("$.fields").isMap());
+  }
+
+  @Test void openApiPublishesBearerSecuritySchemasAndCanonicalRoutes() throws Exception {
+    mvc.perform(get("/v3/api-docs"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.info.title").value("Cuidar+ API"))
+      .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+      .andExpect(jsonPath("$.components.schemas.ApiError").exists())
+      .andExpect(jsonPath("$.components.schemas.ProfileResponse").exists())
+      .andExpect(jsonPath("$.paths['/api/responsible/service-requests/{id}/accept'].patch").exists())
+      .andExpect(jsonPath("$.paths['/api/responsible/service-requests/{id}/accept'].post.deprecated").value(true))
+      .andExpect(jsonPath("$.paths['/api/caregiver/contracts/{contractId}/attendance'].get").exists());
   }
 
   @Test void administratorCanFilterAndOpenFriendlyAuditResponse() throws Exception {
@@ -125,12 +159,14 @@ class AdminAuthorizationTest {
       .andExpect(status().isOk()).andExpect(jsonPath("$.accountStatus").value("ATIVO"));
     mvc.perform(patch("/api/admin/users/{id}/unblock",responsible.getId())
         .header("Authorization","Bearer "+tokens.generate(administrator.getId())))
-      .andExpect(status().isConflict());
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
     mvc.perform(patch("/api/admin/users/{id}/unblock",administrator.getId())
         .header("Authorization","Bearer "+tokens.generate(responsible.getId())))
       .andExpect(status().isForbidden());
   }
 
   private User save(String email,UserType type){User user=new User();user.setFullName("Pessoa Teste");user.setEmail(email);user.setMaiorDeIdadeConfirmado(true);user.setPasswordHash("not-used");user.setUserType(type);return users.save(user);}
+  private ResponsibleProfile saveResponsibleProfile(User user){ResponsibleProfile profile=new ResponsibleProfile();profile.setUser(user);profile.setParentesco(Parentesco.FILHO);profile.setPreferenciaContato(PreferenciaContato.WHATSAPP);profile.setSituacaoAprovacao(ResponsibleApprovalStatus.APROVADO);return responsibles.save(profile);}
   private CaregiverProfile saveCaregiver(String email,CaregiverApprovalStatus status){User caregiver=save(email,UserType.CUIDADOR);CaregiverProfile profile=new CaregiverProfile();profile.setUser(caregiver);profile.getFormacoes().add(FormacaoCuidador.CURSO_CUIDADOR_IDOSOS);profile.setSituacaoAprovacao(status);return caregivers.save(profile);}
 }

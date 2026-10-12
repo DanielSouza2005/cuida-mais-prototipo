@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import jakarta.validation.Valid;
 
@@ -28,15 +29,27 @@ public class ResponsibleServiceRequestController {
     return service.responsibleDetails(AuthenticatedUser.id(), id);
   }
 
-  @PostMapping("/{id}/accept")
+  @PatchMapping("/{id}/accept")
   public ResponsibleServiceRequestResponse accept(@PathVariable UUID id) {
     opportunities.accept(AuthenticatedUser.id(), id);
     return service.responsibleDetails(AuthenticatedUser.id(), id);
   }
 
-  @PostMapping("/{id}/reject")
+  @PatchMapping("/{id}/reject")
   public ResponsibleServiceRequestResponse reject(@PathVariable UUID id, @Valid @RequestBody RejectServiceRequestRequest body) {
     opportunities.reject(AuthenticatedUser.id(), id, body.reason());
     return service.responsibleDetails(AuthenticatedUser.id(), id);
+  }
+
+  @Deprecated
+  @PostMapping("/{id}/accept")
+  public ResponsibleServiceRequestResponse acceptLegacy(@PathVariable UUID id) {
+    return accept(id);
+  }
+
+  @Deprecated
+  @PostMapping("/{id}/reject")
+  public ResponsibleServiceRequestResponse rejectLegacy(@PathVariable UUID id, @Valid @RequestBody RejectServiceRequestRequest body) {
+    return reject(id, body);
   }
 }

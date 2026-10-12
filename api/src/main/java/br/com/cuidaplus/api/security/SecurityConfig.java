@@ -23,9 +23,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final SecurityErrorWriter securityErrorWriter;
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, SecurityErrorWriter securityErrorWriter) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    this.securityErrorWriter = securityErrorWriter;
   }
 
   @Bean
@@ -35,11 +37,17 @@ public class SecurityConfig {
       .cors(cors -> {})
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .exceptionHandling(exception -> exception
-        .authenticationEntryPoint((request, response, authException) -> response.setStatus(HttpStatus.UNAUTHORIZED.value()))
+        .authenticationEntryPoint((request, response, authException) -> securityErrorWriter.write(
+          response, HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "Autenticação necessária."
+        ))
+        .accessDeniedHandler((request, response, accessDeniedException) -> securityErrorWriter.write(
+          response, HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Acesso negado."
+        ))
       )
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.GET, "/health").permitAll()
         .requestMatchers(HttpMethod.HEAD, "/health").permitAll()
+        .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/profile-photos/**").permitAll()
         .requestMatchers(
           HttpMethod.POST,

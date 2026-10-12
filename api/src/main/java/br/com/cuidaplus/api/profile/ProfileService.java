@@ -13,15 +13,21 @@ import br.com.cuidaplus.api.profile.dto.EmergencyContactUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.PersonalInfoUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.ResponsibleProfileUpdateRequest;
 import br.com.cuidaplus.api.profile.dto.ProfilePhotoResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse.AddressResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse.AssistedPersonResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse.AvailabilityResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse.CaregiverProfileResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse.EmergencyContactResponse;
+import br.com.cuidaplus.api.profile.dto.ProfileResponse.ResponsibleProfileResponse;
 import br.com.cuidaplus.api.storage.ProfilePhotoStorageService;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserMapper;
 import br.com.cuidaplus.api.user.UserService;
 import br.com.cuidaplus.api.user.UserType;
 import java.math.BigDecimal;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -89,45 +95,49 @@ public class ProfileService {
   }
 
   @Transactional(readOnly = true)
-  public Map<String, Object> findMyProfile(UUID userId) {
+  public ProfileResponse findMyProfile(UUID userId) {
     User user = userService.findById(userId);
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("user", userMapper.toResponse(user));
+    ResponsibleProfileResponse responsibleResponse = null;
+    List<AssistedPersonResponse> assistedPersons = null;
+    ResponsibleProfile responsibleProfile = responsibleProfileRepository.findByUser(user).orElse(null);
+    if (responsibleProfile != null) {
+      responsibleResponse = new ResponsibleProfileResponse(
+        responsibleProfile.getParentesco(),
+        responsibleProfile.getParentescoOutro(),
+        responsibleProfile.getPreferenciaContato()
+      );
+      assistedPersons = assistedPersonRepository.findByResponsibleUser(user).stream()
+        .map(this::toAssistedPersonResponse)
+        .toList();
+    }
 
-    responsibleProfileRepository.findByUser(user).ifPresent(profile -> {
-      Map<String, Object> responsibleProfile = new LinkedHashMap<>();
-      responsibleProfile.put("parentesco", profile.getParentesco());
-      responsibleProfile.put("parentescoOutro", profile.getParentescoOutro());
-      responsibleProfile.put("preferenciaContato", profile.getPreferenciaContato());
-      response.put("responsibleProfile", responsibleProfile);
-      response.put("assistedPersons", assistedPersonRepository.findByResponsibleUser(user).stream().map(this::toAssistedPersonResponse).toList());
-    });
-
-    caregiverProfileRepository.findByUser(user).ifPresent(profile -> {
+    CaregiverProfileResponse caregiverResponse = null;
+    CaregiverProfile profile = caregiverProfileRepository.findByUser(user).orElse(null);
+    if (profile != null) {
       CaregiverAvailability availabilityData = safeAvailability(profile);
-      Map<String, Object> availability = new LinkedHashMap<>();
-      availability.put("diasSemana", new LinkedHashSet<>(availabilityData.getDiasSemana()));
-      availability.put("periodos", new LinkedHashSet<>(availabilityData.getPeriodos()));
-      availability.put("horarioInicio", availabilityData.getHorarioInicio());
-      availability.put("horarioFim", availabilityData.getHorarioFim());
-      availability.put("observacao", availabilityData.getObservacao());
+      AvailabilityResponse availability = new AvailabilityResponse(
+        new LinkedHashSet<>(availabilityData.getDiasSemana()),
+        new LinkedHashSet<>(availabilityData.getPeriodos()),
+        availabilityData.getHorarioInicio(),
+        availabilityData.getHorarioFim(),
+        availabilityData.getObservacao()
+      );
+      caregiverResponse = new CaregiverProfileResponse(
+        new LinkedHashSet<>(profile.getFormacoes()),
+        profile.getFormacaoOutro(),
+        profile.getTempoExperiencia(),
+        profile.getExperiencia(),
+        profile.getBiografia(),
+        toAddressResponse(safeAddress(profile)),
+        new LinkedHashSet<>(profile.getModalidades()),
+        profile.getModalidadeOutro(),
+        new LinkedHashSet<>(profile.getServicosOferecidos()),
+        profile.getServicoOutro(),
+        availability
+      );
+    }
 
-      Map<String, Object> caregiverProfile = new LinkedHashMap<>();
-      caregiverProfile.put("formacoes", new LinkedHashSet<>(profile.getFormacoes()));
-      caregiverProfile.put("formacaoOutro", profile.getFormacaoOutro());
-      caregiverProfile.put("tempoExperiencia", profile.getTempoExperiencia());
-      caregiverProfile.put("experiencia", profile.getExperiencia());
-      caregiverProfile.put("biografia", profile.getBiografia());
-      caregiverProfile.put("enderecoAtendimento", toAddressResponse(safeAddress(profile)));
-      caregiverProfile.put("modalidades", new LinkedHashSet<>(profile.getModalidades()));
-      caregiverProfile.put("modalidadeOutro", profile.getModalidadeOutro());
-      caregiverProfile.put("servicosOferecidos", new LinkedHashSet<>(profile.getServicosOferecidos()));
-      caregiverProfile.put("servicoOutro", profile.getServicoOutro());
-      caregiverProfile.put("disponibilidade", availability);
-      response.put("caregiverProfile", caregiverProfile);
-    });
-
-    return response;
+    return new ProfileResponse(userMapper.toResponse(user), responsibleResponse, assistedPersons, caregiverResponse);
   }
 
   @Transactional
@@ -304,48 +314,49 @@ public class ProfileService {
       .orElseThrow(() -> new BusinessException("Pessoa assistida não encontrada.", HttpStatus.NOT_FOUND));
   }
 
-  private Map<String, Object> toAssistedPersonResponse(AssistedPerson assistedPerson) {
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("id", assistedPerson.getId());
-    response.put("nome", assistedPerson.getNome());
-    response.put("dataNascimento", assistedPerson.getDataNascimento());
-    response.put("grauDependencia", assistedPerson.getGrauDependencia());
-    response.put("mobilidade", assistedPerson.getMobilidade());
-    response.put("mobilidadeOutro", assistedPerson.getMobilidadeOutro());
-    response.put("alergias", new LinkedHashSet<>(assistedPerson.getAlergias()));
-    response.put("alergiasOutro", assistedPerson.getAlergiasOutro());
-    response.put("alergiasDetalhes", assistedPerson.getAlergiasDetalhes());
-    response.put("restricoesAlimentares", new LinkedHashSet<>(assistedPerson.getRestricoesAlimentares()));
-    response.put("restricoesAlimentaresOutro", assistedPerson.getRestricoesAlimentaresOutro());
-    response.put("restricoesAlimentaresDetalhes", assistedPerson.getRestricoesAlimentaresDetalhes());
-    response.put("medicamentos", assistedPerson.getMedicamentos());
-    response.put("observacoes", assistedPerson.getObservacoes());
-    response.put("enderecoCuidado", toAddressResponse(assistedPerson.getEnderecoCuidado()));
-    emergencyContactRepository.findByAssistedPerson(assistedPerson).ifPresent(contact -> {
-      Map<String, Object> emergencyContact = new LinkedHashMap<>();
-      emergencyContact.put("nome", contact.getNome());
-      emergencyContact.put("telefone", contact.getTelefone());
-      emergencyContact.put("vinculo", contact.getVinculo());
-      emergencyContact.put("isResponsibleContact", contact.isResponsibleContact());
-      response.put("contatoEmergencia", emergencyContact);
-    });
-    return response;
+  private AssistedPersonResponse toAssistedPersonResponse(AssistedPerson assistedPerson) {
+    EmergencyContactResponse emergencyContact = emergencyContactRepository.findByAssistedPerson(assistedPerson)
+      .map(contact -> new EmergencyContactResponse(
+        contact.getNome(),
+        contact.getTelefone(),
+        contact.getVinculo(),
+        contact.isResponsibleContact()
+      ))
+      .orElse(null);
+    return new AssistedPersonResponse(
+      assistedPerson.getId(),
+      assistedPerson.getNome(),
+      assistedPerson.getDataNascimento(),
+      assistedPerson.getGrauDependencia(),
+      assistedPerson.getMobilidade(),
+      assistedPerson.getMobilidadeOutro(),
+      new LinkedHashSet<>(assistedPerson.getAlergias()),
+      assistedPerson.getAlergiasOutro(),
+      assistedPerson.getAlergiasDetalhes(),
+      new LinkedHashSet<>(assistedPerson.getRestricoesAlimentares()),
+      assistedPerson.getRestricoesAlimentaresOutro(),
+      assistedPerson.getRestricoesAlimentaresDetalhes(),
+      assistedPerson.getMedicamentos(),
+      assistedPerson.getObservacoes(),
+      toAddressResponse(assistedPerson.getEnderecoCuidado()),
+      emergencyContact
+    );
   }
 
-  private Map<String, Object> toAddressResponse(AddressFields address) {
+  private AddressResponse toAddressResponse(AddressFields address) {
     AddressFields safeAddress = address == null ? new AddressFields() : address;
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("cep", safeAddress.getCep());
-    response.put("rua", safeAddress.getRua());
-    response.put("numero", safeAddress.getNumero());
-    response.put("complemento", safeAddress.getComplemento());
-    response.put("bairro", safeAddress.getBairro());
-    response.put("cidade", safeAddress.getCidade());
-    response.put("estado", safeAddress.getEstado());
-    response.put("pontoReferencia", safeAddress.getPontoReferencia());
-    response.put("latitude", safeAddress.getLatitude());
-    response.put("longitude", safeAddress.getLongitude());
-    return response;
+    return new AddressResponse(
+      safeAddress.getCep(),
+      safeAddress.getRua(),
+      safeAddress.getNumero(),
+      safeAddress.getComplemento(),
+      safeAddress.getBairro(),
+      safeAddress.getCidade(),
+      safeAddress.getEstado(),
+      safeAddress.getPontoReferencia(),
+      safeAddress.getLatitude(),
+      safeAddress.getLongitude()
+    );
   }
 
   private CaregiverAvailability safeAvailability(CaregiverProfile profile) {

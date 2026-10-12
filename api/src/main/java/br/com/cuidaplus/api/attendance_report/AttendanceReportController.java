@@ -20,10 +20,20 @@ public class AttendanceReportController {
     return service.generate(AuthenticatedUser.id(), contractId, date);
   }
 
-  @GetMapping("/contracts/{contractId}/attendance/{date}/report")
+  @GetMapping({
+    "/caregiver/contracts/{contractId}/attendance/{date}/report",
+    "/responsible/contracts/{contractId}/attendance/{date}/report"
+  })
   public AttendanceReportResponse get(@PathVariable UUID contractId,
     @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
     return service.get(AuthenticatedUser.id(), contractId, date);
+  }
+
+  @Deprecated
+  @GetMapping("/contracts/{contractId}/attendance/{date}/report")
+  public AttendanceReportResponse getLegacy(@PathVariable UUID contractId,
+    @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    return get(contractId, date);
   }
 
   @GetMapping("/attendance-reports/{reportId}")

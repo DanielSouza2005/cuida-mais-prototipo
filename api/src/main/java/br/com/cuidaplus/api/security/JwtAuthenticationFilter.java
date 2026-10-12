@@ -6,7 +6,6 @@ import br.com.cuidaplus.api.profile.ResponsibleProfileRepository;
 import br.com.cuidaplus.api.user.AccountStatus;
 import br.com.cuidaplus.api.user.User;
 import br.com.cuidaplus.api.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,15 +28,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final UserRepository userRepository;
   private final CaregiverProfileRepository caregiverProfiles;
   private final ResponsibleProfileRepository responsibleProfiles;
-  private final ObjectMapper objectMapper;
+  private final SecurityErrorWriter securityErrorWriter;
 
   public JwtAuthenticationFilter(TokenService tokenService, UserRepository userRepository, CaregiverProfileRepository caregiverProfiles,
-    ResponsibleProfileRepository responsibleProfiles, ObjectMapper objectMapper) {
+    ResponsibleProfileRepository responsibleProfiles, SecurityErrorWriter securityErrorWriter) {
     this.tokenService = tokenService;
     this.userRepository = userRepository;
     this.caregiverProfiles = caregiverProfiles;
     this.responsibleProfiles = responsibleProfiles;
-    this.objectMapper = objectMapper;
+    this.securityErrorWriter = securityErrorWriter;
   }
 
   @Override
@@ -58,13 +57,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           new UsernamePasswordAuthenticationToken(userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getUserType().name())));
         SecurityContextHolder.getContext().setAuthentication(authentication);
       } catch (BusinessException exception) {
-        response.setStatus(exception.getStatus().value());
-        response.setContentType("application/json");
-        objectMapper.writeValue(response.getWriter(), java.util.Map.of(
-          "status", exception.getStatus().value(),
-          "code", exception.getCode() == null ? "INVALID_SESSION" : exception.getCode(),
-          "message", exception.getMessage()
-        ));
+        securityErrorWriter.write(
+          response,
+          exception.getStatus(),
+          exception.getCode() == null ? "INVALID_SESSION" : exception.getCode(),
+          exception.getMessage()
+        );
         return;
       }
     }

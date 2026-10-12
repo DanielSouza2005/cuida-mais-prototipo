@@ -25,11 +25,20 @@ public class AgendaController {
     return service.events(AuthenticatedUser.id(), startDate, endDate, viewMode);
   }
 
-  @GetMapping("/detail")
+  @GetMapping("/contracts/{contractId}/dates/{eventDate}")
   public AgendaEventDetailsResponse details(
+    @PathVariable UUID contractId,
+    @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate eventDate
+  ) {
+    return service.details(AuthenticatedUser.id(), contractId, eventDate);
+  }
+
+  @Deprecated
+  @GetMapping("/detail")
+  public AgendaEventDetailsResponse detailsLegacy(
     @RequestParam UUID contractId,
     @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate eventDate
   ) {
-    return service.details(AuthenticatedUser.id(), contractId, eventDate);
+    return details(contractId, eventDate);
   }
 }

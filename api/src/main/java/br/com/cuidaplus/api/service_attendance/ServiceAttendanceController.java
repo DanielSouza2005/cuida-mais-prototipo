@@ -38,10 +38,20 @@ public class ServiceAttendanceController {
     return response;
   }
 
-  @GetMapping("/contracts/{contractId}/attendance")
+  @GetMapping({
+    "/caregiver/contracts/{contractId}/attendance",
+    "/responsible/contracts/{contractId}/attendance"
+  })
   public AttendanceSummaryResponse details(@PathVariable UUID contractId,
     @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
     return service.details(AuthenticatedUser.id(), contractId, date);
+  }
+
+  @Deprecated
+  @GetMapping("/contracts/{contractId}/attendance")
+  public AttendanceSummaryResponse detailsLegacy(@PathVariable UUID contractId,
+    @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    return details(contractId, date);
   }
 
   @GetMapping("/caregiver/today-attendance")
