@@ -1,6 +1,6 @@
 ﻿# Inventário técnico de colunas do schema `public`
 
-Catálogo vigente após a V043. As 416 colunas estão relacionadas abaixo. As descrições funcionais por coluna estão no [dicionário principal](modelagem-banco-dados.md); este apêndice concentra metadados físicos e o mapeamento responsável.
+Catálogo vigente após a V051. As 423 colunas estão relacionadas abaixo. As descrições funcionais por coluna estão no [dicionário principal](modelagem-banco-dados.md); este apêndice concentra metadados físicos e o mapeamento responsável.
 
 | Tabela | Coluna | Tipo | Obrigatória | PK | FK para | Unique | Check(s) | Default | Índice(s) | JPA/infraestrutura |
 |---|---|---|---:|---:|---|---:|---|---|---|---|
@@ -172,10 +172,11 @@ Catálogo vigente após a V043. As 416 colunas estão relacionadas abaixo. As de
 | `registro_atendimento` | `data_atendimento` | date | Sim | Não | — | Sim | — | — | idx_registro_atendimento_contratacao_id_data_atendimen_4c3ec664, idx_registro_atendimento_cuidador_id_data_atendimento, uk_registro_atendimento_contratacao_id_data_atendiment_fc5cf1c5 | `ServiceAttendanceRecord` |
 | `registro_atendimento` | `tipo_registro` | character varying | Sim | Não | — | Sim | ck_registro_atendimento_tipo | — | uk_registro_atendimento_contratacao_id_data_atendiment_fc5cf1c5 | `ServiceAttendanceRecord` |
 | `registro_atendimento` | `registrado_em` | timestamp with time zone | Sim | Não | — | Não | — | — | idx_registro_atendimento_contratacao_id_data_atendimen_4c3ec664 | `ServiceAttendanceRecord` |
-| `registro_atendimento` | `latitude` | double precision | Sim | Não | — | Não | ck_registro_atendimento_latitude | — | — | `ServiceAttendanceRecord` |
-| `registro_atendimento` | `longitude` | double precision | Sim | Não | — | Não | ck_registro_atendimento_longitude | — | — | `ServiceAttendanceRecord` |
-| `registro_atendimento` | `precisao` | double precision | Sim | Não | — | Não | ck_registro_atendimento_precisao | — | — | `ServiceAttendanceRecord` |
-| `registro_atendimento` | `localizacao_capturada_em` | timestamp with time zone | Sim | Não | — | Não | — | — | — | `ServiceAttendanceRecord` |
+| `registro_atendimento` | `latitude` | double precision | Não | Não | — | Não | ck_registro_atendimento_latitude, ck_registro_atendimento_localizacao_coerente | — | — | `ServiceAttendanceRecord` |
+| `registro_atendimento` | `longitude` | double precision | Não | Não | — | Não | ck_registro_atendimento_longitude, ck_registro_atendimento_localizacao_coerente | — | — | `ServiceAttendanceRecord` |
+| `registro_atendimento` | `precisao` | double precision | Não | Não | — | Não | ck_registro_atendimento_precisao, ck_registro_atendimento_localizacao_coerente | — | — | `ServiceAttendanceRecord` |
+| `registro_atendimento` | `localizacao_capturada_em` | timestamp with time zone | Não | Não | — | Não | ck_registro_atendimento_localizacao_coerente | — | — | `ServiceAttendanceRecord` |
+| `registro_atendimento` | `status_localizacao` | character varying | Sim | Não | — | Não | ck_registro_atendimento_status_localizacao, ck_registro_atendimento_localizacao_coerente | 'OBTIDA'::character varying | — | `ServiceAttendanceRecord` |
 | `registro_atendimento` | `endereco_registrado` | character varying | Não | Não | — | Não | — | — | — | `ServiceAttendanceRecord` |
 | `registro_atendimento` | `fuso_dispositivo` | character varying | Sim | Não | — | Não | — | — | — | `ServiceAttendanceRecord` |
 | `registro_atendimento` | `horario_inicio_previsto` | time without time zone | Sim | Não | — | Não | — | — | — | `ServiceAttendanceRecord` |
@@ -420,3 +421,9 @@ Catálogo vigente após a V043. As 416 colunas estão relacionadas abaixo. As de
 | `usuario_token_redefinicao_senha` | `hash_token` | character varying | Sim | Não | — | Sim | — | — | uk_usuario_token_redefinicao_senha_hash_token | `PasswordResetToken` |
 | `usuario_token_redefinicao_senha` | `usado_em` | timestamp with time zone | Não | Não | — | Não | — | — | — | `PasswordResetToken` |
 | `usuario_token_redefinicao_senha` | `usuario_id` | uuid | Sim | Não | usuario | Não | — | — | — | `PasswordResetToken` |
+| `usuario_token_redefinicao_senha` | `tentativas_codigo` | integer | Sim | Não | — | Não | ck_usuario_token_redefinicao_senha_tentativas | 0 | — | `PasswordResetToken` |
+| `usuario_token_redefinicao_senha` | `verificado_em` | timestamp with time zone | Não | Não | — | Não | — | — | — | `PasswordResetToken` |
+| `usuario_token_redefinicao_senha` | `hash_autorizacao` | character varying | Não | Não | — | Sim | — | — | uk_usuario_token_redefinicao_senha_hash_autorizacao | `PasswordResetToken` |
+| `usuario_token_redefinicao_senha` | `autorizacao_expira_em` | timestamp with time zone | Não | Não | — | Não | — | — | — | `PasswordResetToken` |
+| `usuario_token_redefinicao_senha` | `autorizacao_usada_em` | timestamp with time zone | Não | Não | — | Não | — | — | — | `PasswordResetToken` |
+| `usuario_token_redefinicao_senha` | `invalidado_em` | timestamp with time zone | Não | Não | — | Não | — | — | — | `PasswordResetToken` |

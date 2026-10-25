@@ -13,9 +13,10 @@ export type AttendanceRecord = {
   label: string;
   recordedAt: string;
   attendanceDate: string;
-  latitude: number;
-  longitude: number;
-  accuracy: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null;
+  locationStatus: AttendanceLocationStatus;
   addressSnapshot?: string | null;
   deviceTimezone: string;
   scheduledStartTime: string;
@@ -46,12 +47,15 @@ export type AttendanceSummary = {
 
 export type AttendanceLocationPayload = {
   attendanceDate: string;
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-  locationCapturedAt: string;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
+  locationCapturedAt: string | null;
+  locationStatus: AttendanceLocationStatus;
   mocked: boolean;
   deviceTimezone: string;
 };
+
+export type AttendanceLocationStatus = 'OBTIDA' | 'PERMISSAO_NEGADA' | 'SERVICO_DESATIVADO' | 'TIMEOUT' | 'INDISPONIVEL';
 
 export type TodayAttendanceResponse = { content: AttendanceSummary[] };

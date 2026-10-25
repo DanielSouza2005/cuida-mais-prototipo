@@ -192,7 +192,9 @@ public class AttendanceReportService {
       result.add(new TimelineEvent(record.getOccurredAt(), text.toString().trim(), "MANUAL", 1));
     }
     result.sort(Comparator.comparingInt(TimelineEvent::boundary).thenComparing(TimelineEvent::instant));
-    result.add(new TimelineEvent(end.getRecordedAt(), "Atendimento encerrado. Localização registrada.", "ENCERRAMENTO", 2));
+    result.add(new TimelineEvent(end.getRecordedAt(), locationObtained(end)
+      ? "Atendimento encerrado. Localização registrada."
+      : "Atendimento encerrado. Localização não registrada: " + locationStatusLabel(end.getLocationStatus()) + ".", "ENCERRAMENTO", 2));
     return result;
   }
 
@@ -204,7 +206,12 @@ public class AttendanceReportService {
       .append("Data do atendimento: ").append(date.format(DATE)).append('\n')
       .append("Horário previsto: ").append(start.getScheduledStartTime().format(TIME)).append(" às ").append(start.getScheduledEndTime().format(TIME)).append('\n')
       .append("Horário de início registrado: ").append(formatInstant(start.getRecordedAt(), zone)).append('\n')
-      .append("Horário de encerramento registrado: ").append(formatInstant(end.getRecordedAt(), zone)).append("\n\n")
+      .append("Horário de encerramento registrado: ").append(formatInstant(end.getRecordedAt(), zone)).append('\n')
+      .append("Localização do encerramento: ").append(locationObtained(end) ? "Registrada" : "Não registrada").append('\n');
+    if (!locationObtained(end)) {
+      text.append("Motivo: ").append(locationStatusLabel(end.getLocationStatus())).append('\n');
+    }
+    text.append('\n')
       .append("Resumo do atendimento:\nO atendimento foi iniciado às ").append(formatInstant(start.getRecordedAt(), zone))
       .append(" e encerrado às ").append(formatInstant(end.getRecordedAt(), zone))
       .append(". Durante o período, foram registrados os cuidados e as anotações abaixo, em ordem cronológica.\n\n")
@@ -212,6 +219,21 @@ public class AttendanceReportService {
     for (TimelineEvent event : events) text.append(formatInstant(event.instant(), zone)).append(" — ").append(event.text()).append('\n');
     return text.append("\nAnotações de enfermagem:\n").append(nursingNotes)
       .append("\n\nObservações adicionais:\nCampo reservado para complemento do cuidador.").toString();
+  }
+
+  private String locationStatusLabel(AttendanceLocationStatus status) {
+    if (status == null) return "localização obtida";
+    return switch (status) {
+      case PERMISSAO_NEGADA -> "permissão de localização negada";
+      case SERVICO_DESATIVADO -> "serviço de localização desativado";
+      case TIMEOUT -> "tempo limite ao obter localização";
+      case INDISPONIVEL -> "localização indisponível";
+      case OBTIDA -> "localização obtida";
+    };
+  }
+
+  private boolean locationObtained(ServiceAttendanceRecord record) {
+    return record.getLocationStatus() == null || record.getLocationStatus() == AttendanceLocationStatus.OBTIDA;
   }
 
   private String nursingNotes(List<TimelineEvent> events, ServiceAttendanceRecord end, ZoneId zone) {

@@ -5,8 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 
 public class ResetPasswordRequest {
 
-  @NotBlank(message = "Informe o token de recuperação.")
-  private String token;
+  @NotBlank(message = "Informe a autorização de recuperação.")
+  private String authorization;
 
   private String newPassword;
 
@@ -14,17 +14,17 @@ public class ResetPasswordRequest {
 
   public ResetPasswordRequest() {}
 
-  public ResetPasswordRequest(String token, String newPassword) {
-    this.token = token;
+  public ResetPasswordRequest(String authorization, String newPassword) {
+    this.authorization = authorization;
     this.newPassword = newPassword;
   }
 
-  public String getToken() {
-    return token;
+  public String getAuthorization() {
+    return authorization;
   }
 
-  public void setToken(String token) {
-    this.token = token;
+  public void setAuthorization(String authorization) {
+    this.authorization = authorization;
   }
 
   public String getNewPassword() {
@@ -43,8 +43,8 @@ public class ResetPasswordRequest {
     this.password = password;
   }
 
-  public String token() {
-    return token;
+  public String authorization() {
+    return authorization;
   }
 
   public String resolvedPassword() {
@@ -69,6 +69,6 @@ public class ResetPasswordRequest {
 
   @Override
   public String toString() {
-    return "ResetPasswordRequest[token=[PROTEGIDO], password=[PROTEGIDA]]";
+    return "ResetPasswordRequest[authorization=[PROTEGIDA], password=[PROTEGIDA]]";
   }
 }

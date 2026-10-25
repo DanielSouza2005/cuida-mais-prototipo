@@ -44,8 +44,9 @@ public class AttendanceScheduleService {
 
     LocalTime start = matching.stream().map(ServiceRequestScheduleDay::getStartTime).min(LocalTime::compareTo).orElseThrow();
     LocalTime end = matching.stream().map(ServiceRequestScheduleDay::getEndTime).max(LocalTime::compareTo).orElseThrow();
-    ZonedDateTime scheduledStart = ZonedDateTime.of(date, start, AttendanceTimeConfig.SERVICE_ZONE);
-    ZonedDateTime scheduledEnd = ZonedDateTime.of(end.isAfter(start) ? date : date.plusDays(1), end, AttendanceTimeConfig.SERVICE_ZONE);
+    ScheduleIntervalPolicy.ResolvedInterval interval = ScheduleIntervalPolicy.resolve(date, start, end);
+    ZonedDateTime scheduledStart = interval.start().atZone(AttendanceTimeConfig.SERVICE_ZONE);
+    ZonedDateTime scheduledEnd = interval.end().atZone(AttendanceTimeConfig.SERVICE_ZONE);
     return new AttendanceSchedule(
       date, start, end, scheduledStart.toInstant(), scheduledEnd.toInstant(),
       scheduledStart.minus(TOLERANCE).toInstant(), scheduledStart.plus(TOLERANCE).toInstant(),
@@ -56,6 +57,15 @@ public class AttendanceScheduleService {
   public boolean hasSchedule(CareContract contract, LocalDate date) {
     try { requireSchedule(contract, date); return true; }
     catch (BusinessException exception) { return false; }
+  }
+
+  public boolean hasOvernightSchedule(CareContract contract, LocalDate date) {
+    try {
+      AttendanceSchedule schedule = requireSchedule(contract, date);
+      return schedule.scheduledEnd().atZone(AttendanceTimeConfig.SERVICE_ZONE).toLocalDate().isAfter(date);
+    } catch (BusinessException exception) {
+      return false;
+    }
   }
 
   private LocalDate upperBound(CareContract contract) {

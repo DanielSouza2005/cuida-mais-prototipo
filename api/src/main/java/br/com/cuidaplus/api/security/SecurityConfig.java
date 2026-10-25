@@ -56,6 +56,7 @@ public class SecurityConfig {
           "/api/auth/register/caregiver",
           "/api/auth/login",
           "/api/auth/forgot-password",
+          "/api/auth/password-reset/verify-code",
           "/api/auth/reset-password"
         ).permitAll()
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

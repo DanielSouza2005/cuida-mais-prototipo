@@ -6,7 +6,7 @@ import br.com.cuidaplus.api.user.AccountStatus;
 
 public interface EmailService {
 
-  void sendPasswordResetEmail(String to, String resetLink, String fallbackWebLink, long expirationMinutes);
+  void sendPasswordResetEmail(String to, String verificationCode, long expirationMinutes);
 
   boolean sendAttendanceReportEmail(String to, AttendanceReportEmailMessage report);
 

@@ -66,7 +66,21 @@ public class CaregiverServiceRequestService {
   private void expireIfNeeded(ServiceRequest entity) { if (entity.getStatus() == ServiceRequestStatus.PENDENTE && entity.getExpiresAt().isBefore(Instant.now())) { entity.setStatus(ServiceRequestStatus.EXPIRADA); history.record(StatusHistoryEntityType.SERVICE_REQUEST, entity.getId(), ServiceRequestStatus.PENDENTE.name(), ServiceRequestStatus.EXPIRADA.name(), entity.getResponsibleUser(), null); } }
   private boolean hasConflict(ServiceRequest target) { return requests.findByCaregiverUserAndStatusOrderByCreatedAtDesc(target.getCaregiverUser(), ServiceRequestStatus.ACEITA).stream().filter(other -> !other.getId().equals(target.getId())).anyMatch(other -> dateOverlap(target, other) && scheduleOverlap(target, other)); }
   private boolean dateOverlap(ServiceRequest first, ServiceRequest second) { LocalDate firstEnd = first.getEndDate() == null ? LocalDate.MAX : first.getEndDate(), secondEnd = second.getEndDate() == null ? LocalDate.MAX : second.getEndDate(); return !first.getStartDate().isAfter(secondEnd) && !second.getStartDate().isAfter(firstEnd); }
-  private boolean scheduleOverlap(ServiceRequest first, ServiceRequest second) { return first.getScheduleDays().stream().anyMatch(left -> second.getScheduleDays().stream().anyMatch(right -> left.getWeekday() == right.getWeekday() && left.getStartTime().isBefore(right.getEndTime()) && left.getEndTime().isAfter(right.getStartTime()))); }
+  private boolean scheduleOverlap(ServiceRequest first, ServiceRequest second) {
+    LocalDate monday = LocalDate.of(2026, 8, 24);
+    return first.getScheduleDays().stream().anyMatch(left -> {
+      LocalDate leftDate = monday.plusDays(left.getWeekday().ordinal());
+      var leftInterval = ScheduleIntervalPolicy.resolve(leftDate, left.getStartTime(), left.getEndTime());
+      return second.getScheduleDays().stream().anyMatch(right -> {
+        LocalDate rightDate = monday.plusDays(right.getWeekday().ordinal());
+        for (int weekShift : new int[] {-7, 0, 7}) {
+          var rightInterval = ScheduleIntervalPolicy.resolve(rightDate.plusDays(weekShift), right.getStartTime(), right.getEndTime());
+          if (ScheduleIntervalPolicy.overlaps(leftInterval, rightInterval)) return true;
+        }
+        return false;
+      });
+    });
+  }
 
   private CaregiverReceivedRequestResponse response(ServiceRequest entity, boolean conflict) {
     AssistedPerson person = entity.getAssistedPerson(); AddressFields address = person.getEnderecoCuidado(); ResponsibleProfile profile = responsibleProfiles.findByUser(entity.getResponsibleUser()).orElse(null);

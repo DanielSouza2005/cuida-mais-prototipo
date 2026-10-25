@@ -35,6 +35,24 @@ public class PasswordResetToken {
   @Column
   private Instant usedAt;
 
+  @Column(name = "tentativas_codigo", nullable = false)
+  private int codeAttempts;
+
+  @Column(name = "verificado_em")
+  private Instant verifiedAt;
+
+  @Column(name = "hash_autorizacao", unique = true, length = 64)
+  private String authorizationHash;
+
+  @Column(name = "autorizacao_expira_em")
+  private Instant authorizationExpiresAt;
+
+  @Column(name = "autorizacao_usada_em")
+  private Instant authorizationUsedAt;
+
+  @Column(name = "invalidado_em")
+  private Instant invalidatedAt;
+
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
 
@@ -78,4 +96,18 @@ public class PasswordResetToken {
   public void setUsedAt(Instant usedAt) {
     this.usedAt = usedAt;
   }
+
+  public Instant getCreatedAt() { return createdAt; }
+  public int getCodeAttempts() { return codeAttempts; }
+  public void setCodeAttempts(int value) { codeAttempts = value; }
+  public Instant getVerifiedAt() { return verifiedAt; }
+  public void setVerifiedAt(Instant value) { verifiedAt = value; }
+  public String getAuthorizationHash() { return authorizationHash; }
+  public void setAuthorizationHash(String value) { authorizationHash = value; }
+  public Instant getAuthorizationExpiresAt() { return authorizationExpiresAt; }
+  public void setAuthorizationExpiresAt(Instant value) { authorizationExpiresAt = value; }
+  public Instant getAuthorizationUsedAt() { return authorizationUsedAt; }
+  public void setAuthorizationUsedAt(Instant value) { authorizationUsedAt = value; }
+  public Instant getInvalidatedAt() { return invalidatedAt; }
+  public void setInvalidatedAt(Instant value) { invalidatedAt = value; }
 }

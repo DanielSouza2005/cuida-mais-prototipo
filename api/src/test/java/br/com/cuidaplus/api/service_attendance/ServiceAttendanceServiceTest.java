@@ -112,6 +112,21 @@ class ServiceAttendanceServiceTest {
   }
 
   @Test
+  void endsWithoutCoordinatesWhenLocationIsUnavailable() {
+    stored.add(record(AttendanceRecordType.START));
+    Instant now = Instant.parse("2026-08-25T00:30:00Z");
+    AttendanceActionRequest withoutLocation = new AttendanceActionRequest(
+      date, null, null, null, null, AttendanceLocationStatus.TIMEOUT, false, "America/Sao_Paulo");
+
+    var response = serviceAt(now).end(caregiverId, contractId, withoutLocation);
+
+    assertEquals(AttendanceStatus.ENDED, response.status());
+    assertEquals(AttendanceLocationStatus.TIMEOUT, response.endRecord().locationStatus());
+    assertNull(response.endRecord().latitude());
+    assertEquals(now, response.endRecord().recordedAt());
+  }
+
+  @Test
   void blocksEndingOneMinuteAfterTheAllowedWindow() {
     stored.add(record(AttendanceRecordType.START));
     Instant now = Instant.parse("2026-08-25T01:31:00Z");
@@ -169,7 +184,7 @@ class ServiceAttendanceServiceTest {
   }
 
   private AttendanceActionRequest request(Instant capturedAt, boolean mocked) {
-    return new AttendanceActionRequest(date, -23.55052, -46.633308, 18.5, capturedAt, mocked, "America/Sao_Paulo");
+    return new AttendanceActionRequest(date, -23.55052, -46.633308, 18.5, capturedAt, AttendanceLocationStatus.OBTIDA, mocked, "America/Sao_Paulo");
   }
 
   private ServiceRequestScheduleDay schedule() {

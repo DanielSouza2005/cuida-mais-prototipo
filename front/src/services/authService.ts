@@ -160,6 +160,14 @@ export function resetPassword(request: ResetPasswordRequest) {
   });
 }
 
+export function verifyPasswordResetCode(request: import('@/types/auth').VerifyPasswordResetCodeRequest) {
+  return apiRequest<import('@/types/auth').PasswordResetAuthorizationResponse>('/api/auth/password-reset/verify-code', {
+    auth: false,
+    method: 'POST',
+    body: request,
+  });
+}
+
 export function logout(token: string | null) {
   return apiRequest<MessageResponse>('/api/auth/logout', {
     method: 'POST',

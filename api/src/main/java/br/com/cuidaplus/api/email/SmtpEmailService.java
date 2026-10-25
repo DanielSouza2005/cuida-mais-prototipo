@@ -34,7 +34,7 @@ public class SmtpEmailService implements EmailService {
 
   @Override
   @Async
-  public void sendPasswordResetEmail(String to, String resetLink, String fallbackWebLink, long expirationMinutes) {
+  public void sendPasswordResetEmail(String to, String verificationCode, long expirationMinutes) {
     try {
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(
@@ -47,8 +47,8 @@ public class SmtpEmailService implements EmailService {
       helper.setTo(to);
       helper.setSubject("Redefinição de senha - Cuidar+");
       helper.setText(
-        buildPasswordResetText(expirationMinutes),
-        buildPasswordResetHtml(resetLink, fallbackWebLink, expirationMinutes)
+        buildPasswordResetText(verificationCode, expirationMinutes),
+        buildPasswordResetHtml(verificationCode, expirationMinutes)
       );
       mailSender.send(message);
     } catch (MailException exception) {
@@ -134,19 +134,15 @@ public class SmtpEmailService implements EmailService {
       "Para consultar o relatório completo, o histórico, os anexos e os detalhes do atendimento, acesse o aplicativo Cuidar+.";
   }
 
-  private String buildPasswordResetText(long expirationMinutes) {
+  private String buildPasswordResetText(String verificationCode, long expirationMinutes) {
     return "Recebemos uma solicitação para redefinir a senha da sua conta no Cuidar+.\n\n" +
-      "Use o botão Redefinir senha no e-mail em HTML para criar uma nova senha.\n\n" +
-      "Este link é válido por " + expirationMinutes + " minutos. " +
+      "Seu código de verificação é: " + verificationCode + "\n\n" +
+      "Digite o código no aplicativo. Ele é válido por " + expirationMinutes + " minutos e pode ser usado uma única vez. " +
       "Se você não solicitou a redefinição de senha, ignore este e-mail.\n\n" +
       "Cuidar+ - Organizacao e apoio ao cuidado domiciliar.";
   }
 
-  private String buildPasswordResetHtml(String resetLink, String fallbackWebLink, long expirationMinutes) {
-    String buttonLink = resolveEmailSafeButtonLink(resetLink, fallbackWebLink);
-    String safeButtonLink = escapeHtml(buttonLink);
-    String safeFallbackWebLink = escapeHtml(fallbackWebLink);
-
+  private String buildPasswordResetHtml(String verificationCode, long expirationMinutes) {
     return "<!doctype html>" +
       "<html><body style=\"margin:0;padding:0;background:#f6f8fb;font-family:Arial,sans-serif;color:#172033;\">" +
       "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#f6f8fb;padding:24px 0;\">" +
@@ -158,11 +154,10 @@ public class SmtpEmailService implements EmailService {
       "<p style=\"font-size:15px;line-height:24px;margin:0;color:#536073;\">Recebemos uma solicitação para redefinir a senha da sua conta no Cuidar+.</p>" +
       "</td></tr>" +
       "<tr><td style=\"padding:24px 32px 12px 32px;\">" +
-      "<a href=\"" + safeButtonLink + "\" style=\"display:inline-block;background:#208aef;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 22px;border-radius:6px;\">Redefinir senha</a>" +
+      "<div style=\"display:inline-block;background:#edf6ff;color:#172033;font-size:30px;letter-spacing:8px;font-weight:700;padding:16px 22px;border-radius:6px;\">" + escapeHtml(verificationCode) + "</div>" +
       "</td></tr>" +
       "<tr><td style=\"padding:12px 32px 24px 32px;\">" +
-      "<p style=\"font-size:13px;line-height:21px;margin:0 0 10px 0;color:#536073;\">Este link é válido por " + expirationMinutes + " minutos. Se você não solicitou a redefinição de senha, ignore este e-mail.</p>" +
-      "<p style=\"font-size:13px;line-height:21px;margin:0;color:#536073;\">Caso o botão não funcione no computador, <a href=\"" + safeFallbackWebLink + "\" style=\"color:#208aef;text-decoration:none;font-weight:700;\">abra a versão web</a> ou solicite um novo link pelo aplicativo.</p>" +
+      "<p style=\"font-size:13px;line-height:21px;margin:0;color:#536073;\">Digite este código no aplicativo. Ele é válido por " + expirationMinutes + " minutos e pode ser usado uma única vez. Se você não solicitou a redefinição, ignore este e-mail.</p>" +
       "</td></tr>" +
       "<tr><td style=\"padding:18px 32px;background:#f9fbfd;border-top:1px solid #e5eaf0;color:#748094;font-size:12px;line-height:18px;\">" +
       "Cuidar+ - Organizacao e apoio ao cuidado domiciliar." +
@@ -171,19 +166,6 @@ public class SmtpEmailService implements EmailService {
       "</td></tr>" +
       "</table>" +
       "</body></html>";
-  }
-
-  private String resolveEmailSafeButtonLink(String resetLink, String fallbackWebLink) {
-    if (isHttpLink(resetLink)) {
-      return resetLink;
-    }
-
-    return fallbackWebLink;
-  }
-
-  private boolean isHttpLink(String value) {
-    String normalizedValue = value == null ? "" : value.trim().toLowerCase();
-    return normalizedValue.startsWith("https://") || normalizedValue.startsWith("http://");
   }
 
   private String escapeHtml(String value) {

@@ -160,9 +160,12 @@ export type ForgotPasswordRequest = {
 };
 
 export type ResetPasswordRequest = {
-  token: string;
+  authorization: string;
   newPassword: string;
 };
+
+export type VerifyPasswordResetCodeRequest = { email: string; code: string };
+export type PasswordResetAuthorizationResponse = { authorization: string; expiresInSeconds: number };
 
 export type MessageResponse = {
   message: string;

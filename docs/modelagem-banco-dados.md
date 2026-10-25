@@ -57,18 +57,24 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 
 **Nome lógico:** Tokens de redefinição. **Finalidade:** recuperação de senha. **Entidade:** `PasswordResetToken`. **Requisitos relacionados:** RF03.
 
-**Papel nos requisitos:** principal; controla validade e uso único do token de recuperação.
+**Papel nos requisitos:** principal; controla o código de verificação e a autorização restrita, ambos de uso único.
 
 | Coluna | Tipo | Obrigatório | Chave | Descrição |
 |---|---|---:|---|---|
 | `id` | uuid | Sim | PK | Identificador do token. |
 | `criado_em` | timestamptz | Sim | — | Emissão. |
-| `expira_em` | timestamptz | Sim | — | Validade máxima. |
-| `hash_token` | varchar(64) | Sim | Unique | Hash do token. |
-| `usado_em` | timestamptz | Não | — | Momento do consumo. |
+| `expira_em` | timestamptz | Sim | — | Validade do código, limitada a 10 minutos por padrão. |
+| `hash_token` | varchar(64) | Sim | Unique | Hash BCrypt do código numérico; o código nunca é persistido. |
+| `usado_em` | timestamptz | Não | — | Momento do consumo ou invalidação definitiva. |
 | `usuario_id` | uuid | Sim | FK | Dono do token. |
+| `tentativas_codigo` | integer | Sim | Check | Tentativas incorretas, entre zero e cinco. |
+| `verificado_em` | timestamptz | Não | — | Momento em que o código foi validado. |
+| `hash_autorizacao` | varchar(64) | Não | Unique | SHA-256 da autorização aleatória restrita à redefinição. |
+| `autorizacao_expira_em` | timestamptz | Não | — | Validade curta da autorização após verificar o código. |
+| `autorizacao_usada_em` | timestamptz | Não | — | Consumo atômico da autorização. |
+| `invalidado_em` | timestamptz | Não | — | Invalidação por reenvio, expiração ou limite de tentativas. |
 
-**Relacionamentos e regras:** `usuario_id` → `usuario.id`; token expirado ou já usado é recusado.
+**Relacionamentos e regras:** `usuario_id` → `usuario.id`; novo código invalida o anterior, o reenvio exige intervalo mínimo de 60 segundos, cinco erros bloqueiam o código e a redefinição exige uma autorização aleatória de cinco minutos consumida sob bloqueio pessimista. Registros legados por link foram invalidados pela V051.
 
 ### 4.2.1 `usuario_confirmacao_exclusao`
 
@@ -373,7 +379,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `usuario_solicitante_id` | uuid | Sim | FK | Usuário que iniciou o registro. |
 | `oportunidade_origem_id` | uuid | Não | FK, Unique parcial | Publicação da qual nasceu a candidatura. |
 
-**Relacionamentos e regras:** FKs para `usuario`, `pessoa_assistida`, `rotina_cuidado` e autorreferência. Uma candidatura por publicação/cuidador é garantida por índice unique parcial. Solicitação direta inicia `PENDENTE`; publicação sem cuidador inicia `ABERTA`; vencidas tornam-se `EXPIRADA`. Datas e horários variam conforme `tipo_contratacao`, e o fim não pode anteceder o início. Não existe tabela física `publicacoes_servico`.
+**Relacionamentos e regras:** FKs para `usuario`, `pessoa_assistida`, `rotina_cuidado` e autorreferência. Uma candidatura por publicação/cuidador é garantida por índice unique parcial. Solicitação direta inicia `PENDENTE`; publicação sem cuidador inicia `ABERTA`; vencidas tornam-se `EXPIRADA`. Datas e horários variam conforme `tipo_contratacao`; intervalos noturnos ancoram no dia de início, terminam no dia seguinte e têm duração máxima explícita de 16 horas. Não existe tabela física `publicacoes_servico`.
 
 ## 4.15 `solicitacao_servico_agenda_dia`
 
@@ -388,7 +394,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `horario_inicio` | time | Sim | — | Início diário. |
 | `horario_fim` | time | Sim | — | Fim diário. |
 
-**Relacionamentos e regras:** FK → `solicitacao_servico.id`, com exclusão em cascata. O fim deve ser posterior ao início; PK composta impede dia repetido.
+**Relacionamentos e regras:** FK → `solicitacao_servico.id`, com exclusão em cascata. Horários iguais são inválidos; fim menor que o início representa o dia seguinte somente quando a duração resultante não ultrapassa 16 horas. A PK composta impede dia repetido.
 
 ## 4.16 `solicitacao_servico_atividade`
 
@@ -802,10 +808,11 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `data_atendimento` | date | Sim | Unique composto | Data local. |
 | `tipo_registro` | varchar(10) | Sim | Check/Unique composto | `START` ou `END`. |
 | `registrado_em` | timestamptz | Sim | — | Momento real. |
-| `latitude` | double precision | Sim | Check | Latitude entre -90 e 90. |
-| `longitude` | double precision | Sim | Check | Longitude entre -180 e 180. |
-| `precisao` | double precision | Sim | Check | Precisão entre 0 e 1000 metros. |
-| `localizacao_capturada_em` | timestamptz | Sim | — | Momento da captura. |
+| `latitude` | double precision | Não | Check | Latitude entre -90 e 90 quando a localização foi obtida. |
+| `longitude` | double precision | Não | Check | Longitude entre -180 e 180 quando a localização foi obtida. |
+| `precisao` | double precision | Não | Check | Precisão entre 0 e 1000 metros quando informada; pode faltar mesmo com coordenadas obtidas. |
+| `localizacao_capturada_em` | timestamptz | Não | — | Momento da captura, ausente quando a tentativa falha. |
+| `status_localizacao` | varchar(30) | Sim | Check | `OBTIDA`, `PERMISSAO_NEGADA`, `SERVICO_DESATIVADO`, `TIMEOUT` ou `INDISPONIVEL`. |
 | `endereco_registrado` | varchar(500) | Não | — | Texto do local. |
 | `fuso_dispositivo` | varchar(80) | Sim | — | Fuso do dispositivo. |
 | `horario_inicio_previsto` | time | Sim | — | Início planejado. |
@@ -816,7 +823,7 @@ As tabelas foram nomeadas no singular, em português, sem acentuação e em `sna
 | `criado_em` | timestamptz | Sim | — | Criação. |
 | `atualizado_em` | timestamptz | Sim | — | Atualização. |
 
-**Relacionamentos e regras:** FKs → contratação, usuários e pessoa; contratação usa `ON DELETE CASCADE`. O triplo contratação/data/tipo é único. Só o cuidador contratado registra; `END` depende de `START`; a agenda e a janela são validadas e a localização é obrigatória.
+**Relacionamentos e regras:** FKs → contratação, usuários e pessoa; contratação usa `ON DELETE CASCADE`. O triplo contratação/data/tipo é único. Só o cuidador contratado registra; `END` depende de `START`; a agenda e a janela são validadas. O início continua exigindo localização válida. O encerramento aceita ausência estruturada de localização, preservando horário real, autor e motivo técnico; coordenadas nulas são obrigatórias nesses casos e nunca são substituídas por `0,0`.
 
 ## 4.33 `relatorio_atendimento`
 
@@ -1123,7 +1130,7 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 |---|---|---|
 | RF01 | Cadastro de usuário | Cadastro de responsáveis e cuidador. |
 | RF02 | Autenticação | Login e logout dos usuários. |
-| RF03 | Recuperação de senha | Redefinição de senha por token temporário. |
+| RF03 | Recuperação de senha | Código de seis dígitos, autorização temporária restrita e redefinição dentro do aplicativo. |
 | RF04 | Gerenciamento de perfil | Consulta e edição dos dados cadastrais. |
 | RF05 | Cadastro de cuidador com perfil profissional | Formação, experiência, serviços, modalidades e disponibilidade do cuidador. |
 | RF06 | Busca de cuidador | Pesquisa de cuidador por filtros e localização. |
@@ -1138,7 +1145,7 @@ As matrizes classificam a participação como **Principal** quando a persistênc
 | RF15 | Registro de atividades | Execução, não realização, auditoria e histórico das atividades de cuidado. |
 | RF16 | Diário da pessoa assistida | Registros manuais e cuidados avulsos. |
 | RF17 | Busca de serviços pelo cuidador | Busca de serviços publicados e manifestação de interesse. |
-| RF18 | Check-in e check-out do serviço com localização | Início e encerramento do atendimento com horário real e localização. |
+| RF18 | Check-in e check-out do serviço com localização | Início com localização e encerramento com horário real mesmo quando a localização estiver indisponível. |
 | RF19 | Relatório de atendimento e anotações de enfermagem | Geração, edição, finalização e envio do relatório. |
 | RF20 | Gerenciamento administrativo de usuários | Consulta, detalhamento, bloqueio e desbloqueio de contas por administrador. |
 | RF21 | Aprovação e reprovação de perfis | Análise de cuidadores e responsáveis, histórico, restrição de acesso e comunicação por e-mail. |

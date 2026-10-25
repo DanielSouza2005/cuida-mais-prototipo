@@ -10,10 +10,11 @@ import br.com.cuidaplus.api.auth.dto.RegisterCaregiverRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterResponsibleRequest;
 import br.com.cuidaplus.api.auth.dto.ResetPasswordRequest;
+import br.com.cuidaplus.api.auth.dto.VerifyPasswordResetCodeRequest;
+import br.com.cuidaplus.api.auth.dto.PasswordResetAuthorizationResponse;
 import br.com.cuidaplus.api.common.MessageResponse;
 import br.com.cuidaplus.api.security.AuthenticatedUser;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -70,9 +72,14 @@ public class AuthController {
   @PostMapping("/forgot-password")
   public MessageResponse forgotPassword(
     @Valid @RequestBody ForgotPasswordRequest request,
-    @RequestHeader(value = "Origin", required = false) String origin
+    HttpServletRequest httpRequest
   ) {
-    return authService.requestPasswordReset(request, origin);
+    return authService.requestPasswordReset(request, httpRequest.getRemoteAddr());
+  }
+
+  @PostMapping("/password-reset/verify-code")
+  public PasswordResetAuthorizationResponse verifyPasswordResetCode(@Valid @RequestBody VerifyPasswordResetCodeRequest request) {
+    return authService.verifyPasswordResetCode(request);
   }
 
   @PostMapping("/reset-password")

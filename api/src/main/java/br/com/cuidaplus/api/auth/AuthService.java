@@ -10,6 +10,8 @@ import br.com.cuidaplus.api.auth.dto.RegisterRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterResponsibleRequest;
 import br.com.cuidaplus.api.auth.dto.RegisterUserDataRequest;
 import br.com.cuidaplus.api.auth.dto.ResetPasswordRequest;
+import br.com.cuidaplus.api.auth.dto.VerifyPasswordResetCodeRequest;
+import br.com.cuidaplus.api.auth.dto.PasswordResetAuthorizationResponse;
 import br.com.cuidaplus.api.common.BusinessException;
 import br.com.cuidaplus.api.common.MessageResponse;
 import br.com.cuidaplus.api.email.EmailService;
@@ -34,28 +36,31 @@ import br.com.cuidaplus.api.user.UserService;
 import br.com.cuidaplus.api.user.UserType;
 import br.com.cuidaplus.api.storage.ProfilePhotoStorageService;
 import java.math.BigDecimal;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AuthService {
 
-  private static final String RESET_MESSAGE = "Se o e-mail estiver cadastrado, enviaremos instruções de recuperação.";
+  private static final String RESET_MESSAGE = "Se o e-mail estiver cadastrado, você receberá um código de verificação.";
+  private static final int MAX_CODE_ATTEMPTS = 5;
+  private static final Duration RESEND_INTERVAL = Duration.ofSeconds(60);
+  private static final Duration AUTHORIZATION_EXPIRATION = Duration.ofMinutes(5);
 
   private final UserRepository userRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -69,11 +74,8 @@ public class AuthService {
   private final TokenService tokenService;
   private final EmailService emailService;
   private final AuditService audit;
+  private final PasswordResetRateLimiter passwordResetRateLimiter;
   private final SecureRandom secureRandom = new SecureRandom();
-  private final String mobileResetPasswordUrl;
-  private final String webResetPasswordUrl;
-  private final boolean preferMobileResetLink;
-  private final Set<String> allowedOrigins;
   private final long resetExpirationMinutes;
 
   public AuthService(
@@ -89,10 +91,7 @@ public class AuthService {
     TokenService tokenService,
     EmailService emailService,
     AuditService audit,
-    @Value("${app.password-reset.mobile-url}") String mobileResetPasswordUrl,
-    @Value("${app.password-reset.web-url}") String webResetPasswordUrl,
-    @Value("${app.password-reset.prefer-mobile-link}") boolean preferMobileResetLink,
-    @Value("${app.cors.allowed-origins}") String allowedOrigins,
+    PasswordResetRateLimiter passwordResetRateLimiter,
     @Value("${app.password-reset.expiration-minutes}") long resetExpirationMinutes
   ) {
     this.userRepository = userRepository;
@@ -107,16 +106,8 @@ public class AuthService {
     this.tokenService = tokenService;
     this.emailService = emailService;
     this.audit = audit;
-    this.mobileResetPasswordUrl = mobileResetPasswordUrl;
-    this.webResetPasswordUrl = webResetPasswordUrl;
-    this.preferMobileResetLink = preferMobileResetLink;
-    this.allowedOrigins = Arrays
-      .stream(allowedOrigins.split(","))
-      .map(String::trim)
-      .map(this::stripTrailingSlash)
-      .filter(origin -> !origin.isBlank())
-      .collect(Collectors.toSet());
-    this.resetExpirationMinutes = resetExpirationMinutes;
+    this.passwordResetRateLimiter = passwordResetRateLimiter;
+    this.resetExpirationMinutes = Math.min(Math.max(resetExpirationMinutes, 5), 15);
   }
 
   @Transactional
@@ -241,52 +232,86 @@ public class AuthService {
 
   @Transactional
   public MessageResponse requestPasswordReset(ForgotPasswordRequest request, String origin) {
+    passwordResetRateLimiter.requireAllowed(origin);
     String email = UserService.normalizeEmail(request.email());
     userRepository.findByEmail(email).ifPresent(user -> {
       if (!user.isActive()) return;
+      Optional<PasswordResetToken> latest = passwordResetTokenRepository.findFirstByUserOrderByCreatedAtDesc(user);
+      if (latest.isPresent() && latest.get().getCreatedAt().isAfter(Instant.now().minus(RESEND_INTERVAL))) return;
       invalidateUnusedTokens(user);
-      String token = generateResetToken();
+      String code = generateVerificationCode();
 
       PasswordResetToken resetToken = new PasswordResetToken();
       resetToken.setUser(user);
-      resetToken.setTokenHash(hashToken(token));
+      resetToken.setTokenHash(passwordEncoder.encode(code));
       resetToken.setExpiresAt(Instant.now().plusSeconds(resetExpirationMinutes * 60));
       passwordResetTokenRepository.save(resetToken);
       audit.success(AuditAction.RECUPERACAO_SENHA_SOLICITADA, AuditCategory.SEGURANCA, user, "USUARIO", user.getId(), null, null);
-
-      emailService.sendPasswordResetEmail(
-        user.getEmail(),
-        buildPrimaryResetLink(token),
-        buildWebResetLink(token, origin),
-        resetExpirationMinutes
-      );
+      sendResetCodeAfterCommit(user.getEmail(), code);
     });
 
     return new MessageResponse(RESET_MESSAGE);
   }
 
+  @Transactional(noRollbackFor = BusinessException.class)
+  public PasswordResetAuthorizationResponse verifyPasswordResetCode(VerifyPasswordResetCodeRequest request) {
+    String email = UserService.normalizeEmail(request.email());
+    User user = userRepository.findByEmail(email).filter(User::isActive)
+      .orElseThrow(() -> invalidCode("PASSWORD_RESET_CODE_INVALID"));
+    PasswordResetToken latest = passwordResetTokenRepository.findFirstByUserOrderByCreatedAtDesc(user)
+      .flatMap(token -> passwordResetTokenRepository.findForUpdateById(token.getId()))
+      .orElseThrow(() -> invalidCode("PASSWORD_RESET_CODE_INVALID"));
+    Instant now = Instant.now();
+    if (latest.getInvalidatedAt() != null || latest.getUsedAt() != null || latest.getVerifiedAt() != null) {
+      throw invalidCode("PASSWORD_RESET_CODE_INVALID");
+    }
+    if (!latest.getExpiresAt().isAfter(now)) {
+      latest.setInvalidatedAt(now);
+      throw new BusinessException("Código de verificação expirado. Solicite um novo código.", HttpStatus.BAD_REQUEST, "PASSWORD_RESET_CODE_EXPIRED");
+    }
+    if (latest.getCodeAttempts() >= MAX_CODE_ATTEMPTS) {
+      throw new BusinessException("Limite de tentativas atingido. Solicite um novo código.", HttpStatus.TOO_MANY_REQUESTS, "PASSWORD_RESET_CODE_ATTEMPTS_EXCEEDED");
+    }
+    if (!passwordEncoder.matches(request.code(), latest.getTokenHash())) {
+      latest.setCodeAttempts(latest.getCodeAttempts() + 1);
+      if (latest.getCodeAttempts() >= MAX_CODE_ATTEMPTS) {
+        latest.setInvalidatedAt(now);
+        throw new BusinessException("Limite de tentativas atingido. Solicite um novo código.", HttpStatus.TOO_MANY_REQUESTS, "PASSWORD_RESET_CODE_ATTEMPTS_EXCEEDED");
+      }
+      throw invalidCode("PASSWORD_RESET_CODE_INVALID");
+    }
+    String authorization = generateAuthorization();
+    latest.setVerifiedAt(now);
+    latest.setAuthorizationHash(hashToken(authorization));
+    latest.setAuthorizationExpiresAt(now.plus(AUTHORIZATION_EXPIRATION));
+    return new PasswordResetAuthorizationResponse(authorization, AUTHORIZATION_EXPIRATION.toSeconds());
+  }
+
   @Transactional
   public MessageResponse resetPassword(ResetPasswordRequest request) {
     PasswordResetToken resetToken = passwordResetTokenRepository
-      .findByTokenHash(hashToken(request.token()))
-      .orElseThrow(() -> new BusinessException("Token de recuperação inválido ou expirado.", HttpStatus.BAD_REQUEST));
-
-    if (resetToken.getUsedAt() != null) {
-      throw new BusinessException("Token de recuperação já utilizado.", HttpStatus.BAD_REQUEST);
+      .findForUpdateByAuthorizationHash(hashToken(request.authorization()))
+      .orElseThrow(() -> new BusinessException("Autorização de redefinição inválida ou expirada.", HttpStatus.BAD_REQUEST, "PASSWORD_RESET_AUTHORIZATION_INVALID"));
+    Instant now = Instant.now();
+    if (resetToken.getAuthorizationUsedAt() != null) {
+      throw new BusinessException("Autorização de redefinição já utilizada.", HttpStatus.CONFLICT, "PASSWORD_RESET_AUTHORIZATION_USED");
     }
-
-    if (resetToken.getExpiresAt().isBefore(Instant.now())) {
-      throw new BusinessException("Token de recuperação expirado.", HttpStatus.BAD_REQUEST);
+    if (resetToken.getVerifiedAt() == null || resetToken.getAuthorizationExpiresAt() == null || !resetToken.getAuthorizationExpiresAt().isAfter(now)) {
+      throw new BusinessException("Autorização de redefinição inválida ou expirada.", HttpStatus.BAD_REQUEST, "PASSWORD_RESET_AUTHORIZATION_EXPIRED");
     }
 
     User user = resetToken.getUser();
     user.setPasswordHash(passwordEncoder.encode(request.resolvedPassword()));
-    resetToken.setUsedAt(Instant.now());
+    resetToken.setUsedAt(now);
+    resetToken.setAuthorizationUsedAt(now);
     userRepository.save(user);
-    passwordResetTokenRepository.save(resetToken);
+    passwordResetTokenRepository.findByUserAndUsedAtIsNull(user).forEach(token -> {
+      token.setInvalidatedAt(now);
+      token.setUsedAt(now);
+    });
     audit.success(AuditAction.SENHA_REDEFINIDA, AuditCategory.SEGURANCA, user, "USUARIO", user.getId(), null, null);
 
-    return new MessageResponse("Senha redefinida com sucesso.");
+    return new MessageResponse("Senha redefinida com sucesso. Entre com sua nova senha.");
   }
 
   public MessageResponse logout() {
@@ -381,13 +406,36 @@ public class AuthService {
 
   private void invalidateUnusedTokens(User user) {
     Instant now = Instant.now();
-    passwordResetTokenRepository.findByUserAndUsedAtIsNull(user).forEach(token -> token.setUsedAt(now));
+    passwordResetTokenRepository.findByUserAndUsedAtIsNull(user).forEach(token -> {
+      token.setUsedAt(now);
+      token.setInvalidatedAt(now);
+    });
   }
 
-  private String generateResetToken() {
+  private String generateAuthorization() {
     byte[] bytes = new byte[32];
     secureRandom.nextBytes(bytes);
     return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+  }
+
+  private String generateVerificationCode() {
+    return String.format("%06d", secureRandom.nextInt(1_000_000));
+  }
+
+  private BusinessException invalidCode(String code) {
+    return new BusinessException("Código de verificação inválido.", HttpStatus.BAD_REQUEST, code);
+  }
+
+  private void sendResetCodeAfterCommit(String email, String code) {
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      emailService.sendPasswordResetEmail(email, code, resetExpirationMinutes);
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override public void afterCommit() {
+        emailService.sendPasswordResetEmail(email, code, resetExpirationMinutes);
+      }
+    });
   }
 
   private String hashToken(String token) {
@@ -403,46 +451,4 @@ public class AuthService {
     }
   }
 
-  private String buildPrimaryResetLink(String token) {
-    String baseUrl = preferMobileResetLink ? mobileResetPasswordUrl : webResetPasswordUrl;
-    return appendToken(ensureResetPasswordPath(baseUrl), token);
-  }
-
-  private String buildWebResetLink(String token, String origin) {
-    return appendToken(resolveWebResetPasswordUrl(origin), token);
-  }
-
-  private String resolveWebResetPasswordUrl(String origin) {
-    if (origin != null) {
-      String normalizedOrigin = stripTrailingSlash(origin.trim());
-      if (allowedOrigins.contains(normalizedOrigin)) {
-        return ensureResetPasswordPath(normalizedOrigin);
-      }
-    }
-
-    return ensureResetPasswordPath(webResetPasswordUrl);
-  }
-
-  private String appendToken(String baseUrl, String token) {
-    String separator = baseUrl.contains("?") ? "&" : "?";
-    return baseUrl + separator + "token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
-  }
-
-  private String ensureResetPasswordPath(String url) {
-    String normalizedUrl = stripTrailingSlash(url.trim());
-    if (normalizedUrl.endsWith("/reset-password")) {
-      return normalizedUrl;
-    }
-
-    return normalizedUrl + "/reset-password";
-  }
-
-  private String stripTrailingSlash(String value) {
-    String normalizedValue = value;
-    while (normalizedValue.endsWith("/")) {
-      normalizedValue = normalizedValue.substring(0, normalizedValue.length() - 1);
-    }
-
-    return normalizedValue;
-  }
 }

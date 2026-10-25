@@ -34,16 +34,16 @@ public class TaskRecurrenceService {
     if (task.getStatus() != TaskSeriesStatus.ATIVA || !contractCanGenerate(task.getContract())) return;
 
     LocalDate start = later(requestedStart, task.getStartDate());
-    LocalDate end = earlier(requestedEnd, task.getEndDate());
-    end = earlier(end, task.getContract().getEndDate());
+    LocalDate end = earlier(requestedEnd, overnightTail(task.getEndDate(), task.getContract()));
+    end = earlier(end, overnightTail(task.getContract().getEndDate(), task.getContract()));
     if (task.getContract().getStatus() == CareContractStatus.ENCERRAMENTO_AGENDADO) {
-      end = earlier(end, task.getContract().getEffectiveEndDate());
+      end = earlier(end, overnightTail(task.getContract().getEffectiveEndDate(), task.getContract()));
     }
     if (start == null || end == null || end.isBefore(start)) return;
 
     List<TaskOccurrence> created = new ArrayList<>();
     for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-      if (!matchesContract(task, date) || !matches(task, date) || !ContractCareSchedulePolicy.allows(task.getContract(), date, task.getScheduledTime())) continue;
+      if (!matches(task, date) || !ContractCareSchedulePolicy.allows(task.getContract(), date, task.getScheduledTime())) continue;
       OccurrenceCreationResult result = getOrCreateCareOccurrence(task, date);
       if (result.created()) created.add(result.occurrence());
     }
@@ -93,13 +93,6 @@ public class TaskRecurrenceService {
     return contract.getStatus() == CareContractStatus.AGENDADA || contract.getStatus() == CareContractStatus.ATIVA || contract.getStatus() == CareContractStatus.ENCERRAMENTO_AGENDADO;
   }
 
-  private boolean matchesContract(CareTask task, LocalDate date) {
-    var request = task.getContract().getServiceRequest();
-    if (request == null) return true;
-    if (request.getHiringType() == br.com.cuidaplus.api.service_request.HiringType.PONTUAL) return request.getSpecificDates().contains(date);
-    return request.getScheduleDays().stream().anyMatch(day -> day.getWeekday() == toWeekday(date.getDayOfWeek()));
-  }
-
   boolean isWithinContractSchedule(TaskOccurrence occurrence) {
     return ContractCareSchedulePolicy.allows(
       occurrence.getContract(), occurrence.getScheduledDate(), occurrence.getScheduledTime()
@@ -118,5 +111,9 @@ public class TaskRecurrenceService {
   }
   private LocalDate earlier(LocalDate first, LocalDate second) {
     if (first == null) return second; if (second == null) return first; return first.isBefore(second) ? first : second;
+  }
+
+  private LocalDate overnightTail(LocalDate end, CareContract contract) {
+    return end != null && ContractCareSchedulePolicy.hasOvernightSchedule(contract) ? end.plusDays(1) : end;
   }
 }

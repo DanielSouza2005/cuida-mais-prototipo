@@ -36,35 +36,12 @@ Aplicativo Expo com Expo Router integrado a API Spring Boot do projeto.
    npx expo start
    ```
 
-## Recuperacao de senha por deep link
+## Recuperação de senha por código
 
-O app usa o scheme `cuidarplus`. O link mobile esperado para redefinicao de senha e:
+O fluxo acontece integralmente no aplicativo: o usuário informa o e-mail, digita o código numérico recebido e define a nova senha. A recuperação de senha não usa deep link e a rota legada `/reset-password` apenas encaminha para esse fluxo.
 
-```text
-cuidarplus://reset-password?token=token_fake
-```
-
-Para testar no Android com o app instalado:
-
-```bash
-adb shell am start -W -a android.intent.action.VIEW -d "cuidarplus://reset-password?token=token_fake"
-```
-
-Para testar no iOS Simulator:
-
-```bash
-xcrun simctl openurl booted "cuidarplus://reset-password?token=token_fake"
-```
-
-No backend, configure os links por ambiente:
+No backend, a validade do código pode ser configurada por ambiente. O serviço limita o valor efetivo ao intervalo seguro de 5 a 15 minutos e usa 10 minutos por padrão:
 
 ```env
-PASSWORD_RESET_MOBILE_URL=cuidarplus://reset-password
-PASSWORD_RESET_WEB_URL=http://localhost:8081/reset-password
-PASSWORD_RESET_PREFER_MOBILE_LINK=true
-PASSWORD_RESET_EXPIRATION_MINUTES=30
+PASSWORD_RESET_EXPIRATION_MINUTES=10
 ```
-
-Em celular fisico durante o desenvolvimento, use o IP local da maquina no fallback web, por exemplo `http://IP_LOCAL_DA_MAQUINA:19006/reset-password`, porque `localhost` no celular aponta para o proprio aparelho.
-
-Em producao, troque `PASSWORD_RESET_WEB_URL` para o dominio HTTPS final, por exemplo `https://seudominio.com/reset-password`. Universal Links/App Links ainda exigem associacao do dominio no Android e iOS antes de substituir o fallback web por abertura universal. Clientes de e-mail podem remover links com scheme customizado, entao o botao do e-mail usa uma URL HTTP/HTTPS segura para clique.

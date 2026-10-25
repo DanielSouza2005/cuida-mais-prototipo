@@ -26,6 +26,19 @@ function parseDate(value: string) {
   return new Date(year, month - 1, day);
 }
 function formatAddress(address: ServiceRequestDraft['address']) { return `${address.street}, ${address.number}${address.complement ? `, ${address.complement}` : ''} • ${address.neighborhood} • ${address.city} - ${address.state}`; }
+function serviceDurationMinutes(start: string, end: string) {
+  const [startHour, startMinute] = start.split(':').map(Number);
+  const [endHour, endMinute] = end.split(':').map(Number);
+  const startTotal = startHour * 60 + startMinute;
+  let endTotal = endHour * 60 + endMinute;
+  if (endTotal < startTotal) endTotal += 24 * 60;
+  return endTotal - startTotal;
+}
+function timeInsideService(time: string, start: string, end: string) {
+  const duration = serviceDurationMinutes(start, end);
+  const offset = serviceDurationMinutes(start, time);
+  return duration > 0 && offset >= 0 && offset <= duration;
+}
 
 export default function RequestServiceFormScreen() {
   const { caregiverId, publish } = useLocalSearchParams<{ caregiverId?: string; publish?: string }>();
@@ -66,7 +79,7 @@ export default function RequestServiceFormScreen() {
     ? [...new Set(currentDraft.careRoutine.items
       .map((item) => item.scheduledTime?.slice(0, 5))
       .filter((time): time is string => typeof time === 'string')
-      .filter((time) => time < currentDraft.startTime || time > currentDraft.endTime))]
+      .filter((time) => !timeInsideService(time, currentDraft.startTime, currentDraft.endTime)))]
     : [];
 
   function update<K extends keyof ServiceRequestDraft>(key: K, value: ServiceRequestDraft[K]) {
@@ -90,7 +103,9 @@ export default function RequestServiceFormScreen() {
     if (currentDraft.hiringType !== 'PONTUAL' && currentDraft.weekDays.length === 0) return 'Selecione pelo menos um dia da semana.';
     if (!currentDraft.startTime.trim()) return 'Informe o horário inicial.';
     if (!currentDraft.endTime.trim()) return 'Informe o horário final.';
-    if (currentDraft.endTime <= currentDraft.startTime) return 'O horário final deve ser maior que o horário inicial.';
+    const duration = serviceDurationMinutes(currentDraft.startTime, currentDraft.endTime);
+    if (duration === 0) return 'Os horários inicial e final não podem ser iguais.';
+    if (duration > 16 * 60) return 'A duração do atendimento deve ser de no máximo 16 horas.';
     if (!currentDraft.needsDescription.trim()) return 'Descreva as necessidades da pessoa assistida.';
     return null;
   }
@@ -137,7 +152,7 @@ export default function RequestServiceFormScreen() {
 
       <Section title="Horários">
         <View style={styles.inline}><View style={styles.inlineField}><TimePickerField required label="Horário inicial" value={draft.startTime} onChange={(value) => update('startTime', value)} /></View><View style={styles.inlineField}><TimePickerField required label="Horário final" value={draft.endTime} onChange={(value) => update('endTime', value)} /></View></View>
-        <Text style={styles.helper}>Nesta versão visual, o mesmo horário será aplicado a todos os dias selecionados.</Text>
+        <Text style={styles.helper}>O mesmo horário será aplicado a todos os dias selecionados. Quando o horário final for menor, o término será no dia seguinte.</Text>
         {outOfScheduleTimes.length ? <View style={styles.scheduleWarning} accessibilityRole="alert"><Text style={styles.scheduleWarningTitle}>Atenção aos horários da rotina</Text><Text style={styles.scheduleWarningText}>Alguns cuidados desta rotina estão fora do horário do serviço e não serão considerados neste atendimento.</Text><Text style={styles.scheduleWarningText}>Fora do horário do serviço: {outOfScheduleTimes.sort().join(', ')}</Text></View> : null}
       </Section>
 

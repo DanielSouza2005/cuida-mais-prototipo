@@ -21,7 +21,7 @@ import { getCaregiverDayTasks, getResponsibleDayCareOccurrences } from '@/servic
 import { getUnreadNotificationCount } from '@/services/notificationService';
 import { subscribeNotificationsChanged } from '@/services/notificationEvents';
 import { ApiError } from '@/services/api';
-import { captureCurrentLocation, DeviceLocationError } from '@/services/deviceLocationService';
+import { captureCurrentLocation, captureCurrentLocationForCheckout, DeviceLocationError } from '@/services/deviceLocationService';
 import { AttendanceResponseError, endAttendance, getTodayAttendance, startAttendance } from '@/services/serviceAttendanceService';
 import { generateAttendanceReport } from '@/services/attendanceReportService';
 import { colors, fontFamily, shadows, spacing } from '@/theme/tokens';
@@ -144,7 +144,7 @@ export default function HomeScreen() {
     const wasStarting = attendance.canStart;
     setAttendanceActionLoading(true);
     try {
-      const location = await captureCurrentLocation();
+      const location = wasStarting ? await captureCurrentLocation() : await captureCurrentLocationForCheckout();
       const payload = { ...location, attendanceDate: attendance.attendanceDate, deviceTimezone: deviceTimezone() };
       const updated = wasStarting
         ? await startAttendance(attendance.contractId, payload)
@@ -153,6 +153,12 @@ export default function HomeScreen() {
       setCareContractId(attendance.contractId);
       if (wasStarting) Alert.alert('Atendimento iniciado', 'O início e a localização foram registrados.');
       else {
+        const checkoutMessage = location.locationStatus === 'OBTIDA'
+          ? 'Atendimento encerrado com sucesso.'
+          : location.locationStatus === 'PERMISSAO_NEGADA'
+            ? 'Atendimento encerrado com sucesso. A localização não foi registrada porque o acesso à localização não está permitido.'
+            : 'Atendimento encerrado com sucesso. Não foi possível registrar sua localização.';
+        Alert.alert('Atendimento encerrado', checkoutMessage);
         try {
           const report = await generateAttendanceReport(attendance.contractId, attendance.attendanceDate);
           router.push(`/attendance-report/${report.id}` as Href);
@@ -168,6 +174,10 @@ export default function HomeScreen() {
           ? 'Para registrar o atendimento, permita o acesso à localização.'
           : cause.reason === 'mocked'
             ? 'Não é possível registrar o atendimento com uma localização simulada.'
+            : cause.reason === 'services-disabled'
+              ? 'Ative o serviço de localização para iniciar o atendimento.'
+              : cause.reason === 'timeout'
+                ? 'A localização demorou para responder. Tente novamente.'
             : cause.reason === 'stale'
               ? 'Não foi possível obter uma localização recente. Tente novamente em alguns instantes.'
               : 'Não foi possível obter sua localização. Tente novamente.';

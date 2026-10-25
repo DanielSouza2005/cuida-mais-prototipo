@@ -56,6 +56,15 @@ class ContractCareSchedulePolicyTest {
     assertFalse(ContractCareSchedulePolicy.contains(LocalTime.of(20, 0), LocalTime.of(6, 0), LocalTime.NOON));
   }
 
+  @Test
+  void afterMidnightCareBelongsToPreviousStartDay() {
+    CareContract contract = contract(HiringType.PERIODO_INDETERMINADO, Set.of(), LocalTime.of(20, 0), LocalTime.of(8, 0));
+    contract.setStartDate(MONDAY.minusDays(7));
+
+    assertTrue(ContractCareSchedulePolicy.allows(contract, MONDAY.plusDays(1), LocalTime.of(2, 0)));
+    assertFalse(ContractCareSchedulePolicy.allows(contract, MONDAY.plusDays(1), LocalTime.of(12, 0)));
+  }
+
   private CareContract contract(HiringType hiringType, Set<LocalDate> dates) {
     return contract(hiringType, dates, LocalTime.of(14, 0), LocalTime.of(22, 0));
   }

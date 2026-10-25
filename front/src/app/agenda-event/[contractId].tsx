@@ -11,14 +11,14 @@ import { ProfileAvatar } from '@/components/profile-avatar';
 import { ScreenContainer } from '@/components/screen-container';
 import { getAgendaEventDetails } from '@/services/agendaService';
 import { ApiError } from '@/services/api';
-import { captureCurrentLocation, DeviceLocationError } from '@/services/deviceLocationService';
+import { captureCurrentLocation, captureCurrentLocationForCheckout, DeviceLocationError } from '@/services/deviceLocationService';
 import { endAttendance, startAttendance } from '@/services/serviceAttendanceService';
 import { generateAttendanceReport } from '@/services/attendanceReportService';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { AgendaEventDetails } from '@/types/agenda';
 import { contractHiringLabels, contractWeekdayLabels, formatCep } from '@/utils/contractsHistoryLabels';
-import { formatDateBR, formatDateTimeLocal, formatScheduleTime } from '@/utils/dateTime';
+import { formatDateBR, formatDateTimeLocal, formatScheduleRange, formatScheduleTime } from '@/utils/dateTime';
 import { deviceTimezone } from '@/utils/careTaskLabels';
 
 export default function AgendaEventDetailsScreen() {
@@ -66,12 +66,18 @@ export default function AgendaEventDetailsScreen() {
     const wasStarting = attendance.canStart;
     setAttendanceBusy(true);
     try {
-      const location = await captureCurrentLocation();
+      const location = wasStarting ? await captureCurrentLocation() : await captureCurrentLocationForCheckout();
       const payload = { ...location, attendanceDate: attendance.attendanceDate, deviceTimezone: deviceTimezone() };
       const updated = wasStarting ? await startAttendance(contractId, payload) : await endAttendance(contractId, payload);
       setDetails((current) => current ? { ...current, attendance: updated } : current);
       if (wasStarting) Alert.alert('Atendimento iniciado', 'O início e a localização foram registrados.');
       else {
+        const checkoutMessage = location.locationStatus === 'OBTIDA'
+          ? 'Atendimento encerrado com sucesso.'
+          : location.locationStatus === 'PERMISSAO_NEGADA'
+            ? 'Atendimento encerrado com sucesso. A localização não foi registrada porque o acesso à localização não está permitido.'
+            : 'Atendimento encerrado com sucesso. Não foi possível registrar sua localização.';
+        Alert.alert('Atendimento encerrado', checkoutMessage);
         try {
           const report = await generateAttendanceReport(contractId, attendance.attendanceDate);
           router.push(`/attendance-report/${report.id}` as Href);
@@ -83,6 +89,8 @@ export default function AgendaEventDetailsScreen() {
       if (cause instanceof DeviceLocationError) {
         const message = cause.reason === 'permission' ? 'Para registrar o atendimento, permita o acesso à localização.'
           : cause.reason === 'mocked' ? 'Não é possível registrar o atendimento com uma localização simulada.'
+            : cause.reason === 'services-disabled' ? 'Ative o serviço de localização para iniciar o atendimento.'
+              : cause.reason === 'timeout' ? 'A localização demorou para responder. Tente novamente.'
             : cause.reason === 'stale' ? 'Não foi possível obter uma localização recente. Tente novamente em alguns instantes.'
               : 'Não foi possível obter sua localização. Tente novamente.';
         Alert.alert(cause.reason === 'permission' ? 'Permissão de localização necessária' : 'Localização indisponível', message);
@@ -140,17 +148,19 @@ export default function AgendaEventDetailsScreen() {
 
       <Section title="Atendimento do dia">
         <Info label="Situação" value={attendance.statusLabel} />
-        <Info label="Horário previsto" value={`${formatScheduleTime(attendance.scheduledStartTime)} às ${formatScheduleTime(attendance.scheduledEndTime)}`} />
+        <Info label="Horário previsto" value={formatScheduleRange(attendance.scheduledStartTime, attendance.scheduledEndTime)} />
         <Text style={styles.diaryText}>{attendance.actionMessage}</Text>
         {attendance.startRecord ? <>
           <Info label="Registro de início" value={formatDateTimeLocal(attendance.startRecord.recordedAt)} />
-          <Info label="Precisão da localização" value={`Aproximadamente ${Math.round(attendance.startRecord.accuracy)} metros`} />
-          <PrimaryButton label="Ver localização de início" variant="secondary" onPress={() => openLocation(attendance.startRecord!.latitude, attendance.startRecord!.longitude)} />
+          {attendance.startRecord.accuracy != null ? <Info label="Precisão da localização" value={`Aproximadamente ${Math.round(attendance.startRecord.accuracy)} metros`} /> : null}
+          {attendance.startRecord.latitude != null && attendance.startRecord.longitude != null ? <PrimaryButton label="Ver localização de início" variant="secondary" onPress={() => openLocation(attendance.startRecord!.latitude!, attendance.startRecord!.longitude!)} /> : null}
         </> : null}
         {attendance.endRecord ? <>
           <Info label="Registro de encerramento" value={formatDateTimeLocal(attendance.endRecord.recordedAt)} />
-          <Info label="Precisão da localização" value={`Aproximadamente ${Math.round(attendance.endRecord.accuracy)} metros`} />
-          <PrimaryButton label="Ver localização de encerramento" variant="secondary" onPress={() => openLocation(attendance.endRecord!.latitude, attendance.endRecord!.longitude)} />
+          {attendance.endRecord.accuracy != null ? <Info label="Precisão da localização" value={`Aproximadamente ${Math.round(attendance.endRecord.accuracy)} metros`} /> : null}
+          {attendance.endRecord.locationStatus !== 'OBTIDA' ? <Info label="Localização do encerramento" value="Não registrada" /> : null}
+          {attendance.endRecord.locationStatus !== 'OBTIDA' ? <Info label="Motivo" value={locationStatusLabel(attendance.endRecord.locationStatus)} /> : null}
+          {attendance.endRecord.latitude != null && attendance.endRecord.longitude != null ? <PrimaryButton label="Ver localização de encerramento" variant="secondary" onPress={() => openLocation(attendance.endRecord!.latitude!, attendance.endRecord!.longitude!)} /> : null}
         </> : null}
         {user?.userType === 'caregiver' && (attendance.canStart || attendance.canEnd) ? <PrimaryButton
           label={attendance.canStart ? 'Iniciar atendimento' : 'Encerrar atendimento'}
@@ -175,7 +185,7 @@ export default function AgendaEventDetailsScreen() {
         {contract.scheduleDays.map((schedule) => (
           <View key={`${schedule.weekday}-${schedule.startTime}`} style={styles.scheduleRow}>
             <Clock3 color={colors.primary} size={15} />
-            <Text style={styles.scheduleText}>{contractWeekdayLabels[schedule.weekday]} · {formatScheduleTime(schedule.startTime)} às {formatScheduleTime(schedule.endTime)}</Text>
+            <Text style={styles.scheduleText}>{contractWeekdayLabels[schedule.weekday]} · {formatScheduleRange(schedule.startTime, schedule.endTime)}</Text>
           </View>
         ))}
       </Section>
@@ -202,6 +212,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Info({ label, value }: { label: string; value: string }) {
   if (!value?.trim()) return null;
   return <View style={styles.info}><Text style={styles.infoLabel}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>;
+}
+
+function locationStatusLabel(status: import('@/types/serviceAttendance').AttendanceLocationStatus) {
+  if (status === 'PERMISSAO_NEGADA') return 'Permissão de localização negada';
+  if (status === 'SERVICO_DESATIVADO') return 'Serviço de localização desativado';
+  if (status === 'TIMEOUT') return 'Tempo limite ao obter localização';
+  return 'Localização indisponível';
 }
 
 const styles = StyleSheet.create({

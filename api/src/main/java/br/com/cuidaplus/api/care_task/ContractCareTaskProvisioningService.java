@@ -52,7 +52,7 @@ public class ContractCareTaskProvisioningService {
       }
     }
   }
-  private void generateWindow(CareTask task,CareContract contract){LocalDate windowEnd=contract.getStartDate().plusDays(TaskRecurrenceService.GENERATION_WINDOW_DAYS-1L);LocalDate end=contract.getEndDate()==null||contract.getEndDate().isAfter(windowEnd)?windowEnd:contract.getEndDate();recurrence.generate(task,contract.getStartDate(),end);}
+  private void generateWindow(CareTask task,CareContract contract){LocalDate windowEnd=contract.getStartDate().plusDays(TaskRecurrenceService.GENERATION_WINDOW_DAYS-1L);LocalDate contractEnd=contract.getEndDate();if(contractEnd!=null&&ContractCareSchedulePolicy.hasOvernightSchedule(contract))contractEnd=contractEnd.plusDays(1);LocalDate end=contractEnd==null||contractEnd.isAfter(windowEnd)?windowEnd:contractEnd;recurrence.generate(task,contract.getStartDate(),end);}
   private boolean sameSource(CareTask task,ServiceRequestCareItemSnapshot source){return task.getSourceSnapshotItem()!=null&&Objects.equals(task.getSourceSnapshotItem().getId(),source.getId());}
   private boolean equivalent(CareTask task,ServiceRequestCareItemSnapshot source){return task.getContract()!=null&&Objects.equals(clean(task.getTitle()),clean(source.getTitle()))&&task.getCategory()==source.getCategory()&&Objects.equals(clean(task.getCustomCategory()),clean(source.getCustomCategory()))&&task.getRecurrenceType()==source.getRecurrenceType()&&Objects.equals(task.getScheduledTime(),source.getScheduledTime());}
   private String clean(String value){return value==null?"":value.trim().toLowerCase(Locale.forLanguageTag("pt-BR"));}

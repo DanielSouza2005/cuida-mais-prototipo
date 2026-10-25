@@ -18,10 +18,11 @@ public class ServiceAttendanceRecord {
   @Column(nullable = false) private LocalDate attendanceDate;
   @Enumerated(EnumType.STRING) @Column(nullable = false, length = 10) private AttendanceRecordType recordType;
   @Column(nullable = false) private Instant recordedAt;
-  @Column(nullable = false) private double latitude;
-  @Column(nullable = false) private double longitude;
-  @Column(nullable = false) private double accuracy;
-  @Column(nullable = false) private Instant locationCapturedAt;
+  private Double latitude;
+  private Double longitude;
+  private Double accuracy;
+  private Instant locationCapturedAt;
+  @Enumerated(EnumType.STRING) @Column(name = "status_localizacao", nullable = false, length = 30) private AttendanceLocationStatus locationStatus;
   @Column(length = 500) private String addressSnapshot;
   @Column(nullable = false, length = 80) private String deviceTimezone;
   @Column(nullable = false) private LocalTime scheduledStartTime;
@@ -43,10 +44,11 @@ public class ServiceAttendanceRecord {
   public LocalDate getAttendanceDate() { return attendanceDate; } public void setAttendanceDate(LocalDate value) { attendanceDate = value; }
   public AttendanceRecordType getRecordType() { return recordType; } public void setRecordType(AttendanceRecordType value) { recordType = value; }
   public Instant getRecordedAt() { return recordedAt; } public void setRecordedAt(Instant value) { recordedAt = value; }
-  public double getLatitude() { return latitude; } public void setLatitude(double value) { latitude = value; }
-  public double getLongitude() { return longitude; } public void setLongitude(double value) { longitude = value; }
-  public double getAccuracy() { return accuracy; } public void setAccuracy(double value) { accuracy = value; }
+  public Double getLatitude() { return latitude; } public void setLatitude(Double value) { latitude = value; }
+  public Double getLongitude() { return longitude; } public void setLongitude(Double value) { longitude = value; }
+  public Double getAccuracy() { return accuracy; } public void setAccuracy(Double value) { accuracy = value; }
   public Instant getLocationCapturedAt() { return locationCapturedAt; } public void setLocationCapturedAt(Instant value) { locationCapturedAt = value; }
+  public AttendanceLocationStatus getLocationStatus() { return locationStatus; } public void setLocationStatus(AttendanceLocationStatus value) { locationStatus = value; }
   public String getAddressSnapshot() { return addressSnapshot; } public void setAddressSnapshot(String value) { addressSnapshot = value; }
   public String getDeviceTimezone() { return deviceTimezone; } public void setDeviceTimezone(String value) { deviceTimezone = value; }
   public LocalTime getScheduledStartTime() { return scheduledStartTime; } public void setScheduledStartTime(LocalTime value) { scheduledStartTime = value; }

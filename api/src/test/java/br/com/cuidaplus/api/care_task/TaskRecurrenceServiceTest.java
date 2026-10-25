@@ -115,6 +115,30 @@ class TaskRecurrenceServiceTest {
   }
 
   @Test
+  void careAfterMidnightBelongsToPreviousDaysLastOvernightAttendance() {
+    LocalDate serviceDate = LocalDate.of(2026, 8, 24);
+    ServiceRequestScheduleDay schedule = new ServiceRequestScheduleDay();
+    schedule.setWeekday(DiaSemana.SEGUNDA);
+    schedule.setStartTime(LocalTime.of(20, 0));
+    schedule.setEndTime(LocalTime.of(8, 0));
+    ServiceRequest request = new ServiceRequest();
+    request.setHiringType(HiringType.PONTUAL);
+    request.setSpecificDates(new LinkedHashSet<>(Set.of(serviceDate)));
+    request.setScheduleDays(new LinkedHashSet<>(Set.of(schedule)));
+    contract.setStartDate(serviceDate);
+    contract.setEndDate(serviceDate);
+    contract.setServiceRequest(request);
+    task.setRecurrenceType(TaskRecurrenceType.DIARIA);
+    task.setStartDate(serviceDate);
+    task.setEndDate(serviceDate);
+    task.setScheduledTime(LocalTime.of(2, 0));
+
+    service.generate(task, serviceDate, serviceDate.plusDays(1));
+
+    assertEquals(List.of(serviceDate.plusDays(1)), createdDates());
+  }
+
+  @Test
   void concurrentConflictReturnsOccurrenceInsertedByOtherRequest() {
     task.setRecurrenceType(TaskRecurrenceType.UNICA);
     TaskOccurrence concurrent = new TaskOccurrence();

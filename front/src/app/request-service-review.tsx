@@ -12,6 +12,7 @@ import { createServiceRequest, getServiceRequestDraft } from '@/services/service
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme/tokens';
 import type { ServiceRequestPayload } from '@/types/serviceRequest';
 import { hiringLabels, weekdayLabels } from '@/utils/serviceRequestLabels';
+import { formatScheduleRange } from '@/utils/dateTime';
 
 function toIso(value: string) { if (!value) return null; const [day, month, year] = value.split('/'); return `${year}-${month}-${day}`; }
 function formatAddress(address: { street: string; number: string; neighborhood: string; city: string; state: string }) { return `${address.street}, ${address.number} • ${address.neighborhood} • ${address.city} - ${address.state}`; }
@@ -45,7 +46,7 @@ export default function RequestServiceReviewScreen() {
       <Card title="Pessoa assistida"><Strong>{draft.assistedPerson.name}</Strong><Text style={styles.text}>{draft.assistedPerson.summary}</Text></Card>
       <Card title="Endereço do cuidado"><Text style={styles.text}>{formatAddress(draft.address)}</Text>{draft.address.referencePoint ? <Text style={styles.text}>{draft.address.referencePoint}</Text> : null}</Card>
       {draft.careRoutine ? <Card title="Rotina de cuidados selecionada"><Strong>{draft.careRoutine.name}</Strong><Text style={styles.rowLabel}>Cuidados combinados</Text>{draft.careRoutine.items.map((item,index)=><CareRoutineItemDetails key={item.id??`${index}`} item={item} index={index}/>)}</Card> : null}
-      <Card title="Contratação"><Row label="Tipo" value={hiringLabels[draft.hiringType]} /><Row label="Datas" value={draft.hiringType === 'PONTUAL' ? draft.specificDates.join(', ') : [draft.startDate, draft.endDate].filter(Boolean).join(' até ')} />{draft.hiringType !== 'PONTUAL' && draft.weekDays.length ? <Row label="Dias" value={draft.weekDays.map((day) => weekdayLabels[day] ?? day).join(', ')} /> : null}<Row label="Horário" value={`${draft.startTime} às ${draft.endTime}`} /></Card>
+      <Card title="Contratação"><Row label="Tipo" value={hiringLabels[draft.hiringType]} /><Row label="Datas" value={draft.hiringType === 'PONTUAL' ? draft.specificDates.join(', ') : [draft.startDate, draft.endDate].filter(Boolean).join(' até ')} />{draft.hiringType !== 'PONTUAL' && draft.weekDays.length ? <Row label="Dias" value={draft.weekDays.map((day) => weekdayLabels[day] ?? day).join(', ')} /> : null}<Row label="Horário" value={formatScheduleRange(draft.startTime, draft.endTime)} /></Card>
       <Card title="Necessidades da pessoa assistida"><Text style={styles.text}>{draft.needsDescription}</Text>{draft.additionalNotes ? <Row label="Observações adicionais" value={draft.additionalNotes} /> : null}{draft.negotiation ? <Row label="Negociação" value={draft.negotiation} /> : null}</Card>
       <Card title="Status inicial"><View style={styles.status}><Text style={styles.statusText}>{draft.publication ? 'Disponível' : 'Pendente'}</Text></View><Text style={styles.text}>{draft.publication ? 'O serviço ficará disponível apenas quando a pessoa assistida autorizar ser encontrada por cuidadores.' : 'A solicitação ficará pendente até ser aceita, rejeitada, cancelada ou expirada.'}</Text><Text style={styles.notice}>O registro expira automaticamente após 15 dias.</Text></Card>
       {feedback ? <Text style={styles.error}>{feedback}</Text> : null}

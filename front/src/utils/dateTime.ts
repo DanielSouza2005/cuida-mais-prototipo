@@ -53,3 +53,10 @@ export function formatScheduleTime(value?: string | null) {
   const [hour, minute] = value.split(':');
   return hour && minute ? `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}` : value;
 }
+
+export function formatScheduleRange(start?: string | null, end?: string | null) {
+  const formattedStart = formatScheduleTime(start);
+  const formattedEnd = formatScheduleTime(end);
+  if (!formattedStart || !formattedEnd) return '';
+  return `${formattedStart} às ${formattedEnd}${formattedEnd < formattedStart ? ' (dia seguinte)' : ''}`;
+}

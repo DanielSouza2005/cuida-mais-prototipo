@@ -53,7 +53,7 @@ public class ServiceAttendanceService {
         requireActionableContract(contract);
         AttendanceSchedule schedule = schedules.requireSchedule(contract, request.attendanceDate());
         Instant now = clock.instant();
-        validateLocation(request, now);
+        validateLocation(request, now, true);
         if (records.existsByContractAndAttendanceDateAndRecordType(contract, request.attendanceDate(), AttendanceRecordType.START)) {
             throw new BusinessException("Este atendimento já foi iniciado.", HttpStatus.CONFLICT);
         }
@@ -74,7 +74,7 @@ public class ServiceAttendanceService {
         requireActionableContract(contract);
         AttendanceSchedule schedule = schedules.requireSchedule(contract, request.attendanceDate());
         Instant now = clock.instant();
-        validateLocation(request, now);
+        validateLocation(request, now, false);
         if (!records.existsByContractAndAttendanceDateAndRecordType(contract, request.attendanceDate(), AttendanceRecordType.START)) {
             throw new BusinessException("Você precisa iniciar o atendimento antes de encerrá-lo.", HttpStatus.CONFLICT);
         }
@@ -84,7 +84,8 @@ public class ServiceAttendanceService {
         requireWindow(now, schedule.endWindowStart(), schedule.endWindowEnd(), false);
         ServiceAttendanceRecord saved = records.save(record(contract, request, schedule, AttendanceRecordType.END, now, schedule.endWindowStart(), schedule.endWindowEnd()));
         audit.success(AuditAction.ATENDIMENTO_ENCERRADO, AuditCategory.ATENDIMENTO, caregiver,
-                "REGISTRO_ATENDIMENTO", saved.getId(), "CONTRATACAO", contract.getId());
+                "REGISTRO_ATENDIMENTO", saved.getId(), null,
+                AuditService.state("status", request.locationStatus() == AttendanceLocationStatus.OBTIDA ? "LOCALIZACAO_OBTIDA" : "LOCALIZACAO_NAO_REGISTRADA"), null);
         notifications.create(contract.getResponsibleUser(), NotificationType.SERVICE_ATTENDANCE_ENDED,
                 "Atendimento encerrado", "O cuidador encerrou o atendimento de hoje.", RelatedEntityType.CARE_CONTRACT, contract.getId(), schedule.scheduledStart());
         return summary(contract, request.attendanceDate(), now);
@@ -107,8 +108,12 @@ public class ServiceAttendanceService {
         List<AttendanceSummaryResponse> content = contracts.findByCaregiverUserOrderByUpdatedAtDesc(caregiver).stream()
                 .map(statusProcessor::processContractIfDue)
       .filter(this::isActionableContract)
-      .filter(contract -> schedules.hasSchedule(contract, today))
-      .map(contract -> summary(contract, today, clock.instant()))
+      .flatMap(contract -> {
+        List<AttendanceSummaryResponse> values = new ArrayList<>();
+        if (schedules.hasOvernightSchedule(contract, today.minusDays(1))) values.add(summary(contract, today.minusDays(1), clock.instant()));
+        if (schedules.hasSchedule(contract, today)) values.add(summary(contract, today, clock.instant()));
+        return values.stream();
+      })
       .sorted(Comparator.comparing(AttendanceSummaryResponse::scheduledStartTime))
                 .toList();
         return new TodayAttendanceResponse(content);
@@ -159,17 +164,27 @@ public class ServiceAttendanceService {
         }
     }
 
-    private void validateLocation(AttendanceActionRequest request, Instant now) {
+    private void validateLocation(AttendanceActionRequest request, Instant now, boolean required) {
         try {
             ZoneId.of(request.deviceTimezone());
         } catch (DateTimeException exception) {
             throw new BusinessException("Informe um fuso horário válido, como America/Sao_Paulo.");
         }
+        if (request.locationStatus() != AttendanceLocationStatus.OBTIDA) {
+            if (required) throw new BusinessException("A localização é obrigatória para iniciar o atendimento.", HttpStatus.CONFLICT);
+            if (request.latitude() != null || request.longitude() != null || request.accuracy() != null || request.locationCapturedAt() != null) {
+                throw new BusinessException("Não envie coordenadas quando a localização não foi obtida.");
+            }
+            return;
+        }
+        if (request.latitude() == null || request.longitude() == null || request.locationCapturedAt() == null) {
+            throw new BusinessException("Informe os dados completos da localização obtida.");
+        }
         if (request.mocked())
             throw new BusinessException("Não é possível registrar o atendimento com uma localização simulada.", HttpStatus.CONFLICT);
-        if (request.locationCapturedAt().isBefore(now.minus(MAX_LOCATION_AGE)) || request.locationCapturedAt().isAfter(now.plus(MAX_LOCATION_FUTURE))) {
-            throw new BusinessException("A localização não é recente. Obtenha sua localização novamente.", HttpStatus.CONFLICT);
-        }
+//        if (request.locationCapturedAt().isBefore(now.minus(MAX_LOCATION_AGE)) || request.locationCapturedAt().isAfter(now.plus(MAX_LOCATION_FUTURE))) {
+//            throw new BusinessException("A localização não é recente. Obtenha sua localização novamente.", HttpStatus.CONFLICT);
+//        }
     }
 
     private void requireWindow(Instant now, Instant start, Instant end, boolean starting) {
@@ -197,6 +212,7 @@ public class ServiceAttendanceService {
         value.setLongitude(request.longitude());
         value.setAccuracy(request.accuracy());
         value.setLocationCapturedAt(request.locationCapturedAt());
+        value.setLocationStatus(request.locationStatus());
         value.setAddressSnapshot(null);
         value.setDeviceTimezone(request.deviceTimezone());
         value.setScheduledStartTime(schedule.startTime());
@@ -247,7 +263,7 @@ public class ServiceAttendanceService {
         if (value == null) return null;
         String label = value.getRecordType() == AttendanceRecordType.START ? "Início do atendimento" : "Encerramento do atendimento";
         return new AttendanceRecordResponse(value.getId(), value.getRecordType(), label, value.getRecordedAt(), value.getAttendanceDate(),
-                value.getLatitude(), value.getLongitude(), value.getAccuracy(), value.getAddressSnapshot(), value.getDeviceTimezone(),
+                value.getLatitude(), value.getLongitude(), value.getAccuracy(), value.getLocationStatus(), value.getAddressSnapshot(), value.getDeviceTimezone(),
                 value.getScheduledStartTime(), value.getScheduledEndTime(), value.getAllowedWindowStart(), value.getAllowedWindowEnd(), value.isWithinAllowedWindow());
     }
 
