@@ -45,6 +45,7 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -75,6 +76,7 @@ public class AuthService {
   private final EmailService emailService;
   private final AuditService audit;
   private final PasswordResetRateLimiter passwordResetRateLimiter;
+  private final LoginAttemptService loginAttempts;
   private final SecureRandom secureRandom = new SecureRandom();
   private final long resetExpirationMinutes;
 
@@ -92,6 +94,7 @@ public class AuthService {
     EmailService emailService,
     AuditService audit,
     PasswordResetRateLimiter passwordResetRateLimiter,
+    LoginAttemptService loginAttempts,
     @Value("${app.password-reset.expiration-minutes}") long resetExpirationMinutes
   ) {
     this.userRepository = userRepository;
@@ -107,6 +110,7 @@ public class AuthService {
     this.emailService = emailService;
     this.audit = audit;
     this.passwordResetRateLimiter = passwordResetRateLimiter;
+    this.loginAttempts = loginAttempts;
     this.resetExpirationMinutes = Math.min(Math.max(resetExpirationMinutes, 5), 15);
   }
 
@@ -207,13 +211,9 @@ public class AuthService {
   @Transactional
   public AuthResponse login(LoginRequest request) {
     String email = UserService.normalizeEmail(request.email());
-    User user = userRepository
-      .findByEmail(email)
+    UUID userId = loginAttempts.authenticate(email, request.password());
+    User user = userRepository.findById(userId)
       .orElseThrow(() -> new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED));
-
-    if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-      throw new BusinessException("E-mail ou senha inválidos.", HttpStatus.UNAUTHORIZED);
-    }
 
     try {
       validateLoginStatus(user);
@@ -302,6 +302,8 @@ public class AuthService {
 
     User user = resetToken.getUser();
     user.setPasswordHash(passwordEncoder.encode(request.resolvedPassword()));
+    user.setTentativasLoginInvalidas(0);
+    user.setLoginBloqueadoAte(null);
     resetToken.setUsedAt(now);
     resetToken.setAuthorizationUsedAt(now);
     userRepository.save(user);

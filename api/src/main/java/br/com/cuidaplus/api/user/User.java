@@ -64,6 +64,12 @@ public class User {
 
   private Instant ultimoLoginEm;
 
+  @Column(name = "tentativas_login_invalidas", nullable = false)
+  private int tentativasLoginInvalidas;
+
+  @Column(name = "login_bloqueado_ate")
+  private Instant loginBloqueadoAte;
+
   private Instant exclusaoSolicitadaEm;
 
   private Instant excluidoEm;
@@ -163,6 +169,10 @@ public class User {
   public void setDesbloqueadoPorUsuarioId(UUID value) { desbloqueadoPorUsuarioId = value; }
   public Instant getUltimoLoginEm() { return ultimoLoginEm; }
   public void setUltimoLoginEm(Instant value) { ultimoLoginEm = value; }
+  public int getTentativasLoginInvalidas() { return tentativasLoginInvalidas; }
+  public void setTentativasLoginInvalidas(int value) { tentativasLoginInvalidas = value; }
+  public Instant getLoginBloqueadoAte() { return loginBloqueadoAte; }
+  public void setLoginBloqueadoAte(Instant value) { loginBloqueadoAte = value; }
   public Instant getExclusaoSolicitadaEm() { return exclusaoSolicitadaEm; }
   public void setExclusaoSolicitadaEm(Instant value) { exclusaoSolicitadaEm = value; }
   public Instant getExcluidoEm() { return excluidoEm; }
